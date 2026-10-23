@@ -36,8 +36,8 @@ pub async fn begin_login<R: Runtime>(
     app: tauri::AppHandle<R>,
 ) -> Result<Option<Credentials>, CommandError> {
     let state = State::get().await?;
-    let config = state.config_manager.get_config().await;
-    let use_browser_based_login = updater_utils::is_flatpak() || config.use_browser_based_login;
+    // CrimeClient: always the browser login with our own client ID (the webview login uses the Xbox app's ID)
+    let use_browser_based_login = true;
 
     if use_browser_based_login {
         // Flatpak: Use external browser with local HTTP server

@@ -773,6 +773,10 @@ impl MinecraftAuthStore {
             "[Token Refresh] Starting NoRisk token refresh check for user: {}",
             creds.username
         );
+        // CrimeClient has no NoRisk account backend; Minecraft itself only needs the Microsoft login.
+        if !NORISK_BACKEND {
+            return Ok((creds.clone(), false));
+        }
         let mut maybe_update = false;
 
         if !force_update {
@@ -907,33 +911,9 @@ impl MinecraftAuthStore {
         let cred_id = creds.id;
         let profile_name = creds.username.clone();
 
-        // Use the stored auth_flow to determine which refresh method to use
-        // For backwards compatibility, None defaults to trying Direct first, then SISU
-        match creds.auth_flow {
-            Some(AuthFlow::Direct) => {
-                info!("[Token Refresh] Using Direct OAuth flow");
-                self.refresh_token_direct(creds, cred_id, profile_name).await
-            }
-            Some(AuthFlow::Sisu) => {
-                info!("[Token Refresh] Using SISU flow");
-                self.refresh_token_sisu(creds, cred_id, profile_name).await
-            }
-            None => {
-                // Backwards compatibility: try SISU first (default), then Direct
-                info!("[Token Refresh] No auth_flow stored, trying SISU first (default)...");
-                match self.refresh_token_sisu(creds, cred_id, profile_name.clone()).await {
-                    Ok(result) => Ok(result),
-                    Err(sisu_err) => {
-                        if let Some(reason) = keep_cached_credentials_reason(&sisu_err) {
-                            info!("[Token Refresh] SISU flow failed ({}); skipping Direct fallback", reason);
-                            return Err(sisu_err);
-                        }
-                        info!("[Token Refresh] SISU flow failed: {:?}, trying Direct...", sisu_err);
-                        self.refresh_token_direct(creds, cred_id, profile_name).await
-                    }
-                }
-            }
-        }
+        // CrimeClient only logs in through the direct OAuth flow with its own client ID; the SISU flow would use the
+        // official Xbox app's ID, which is not ours to use.
+        self.refresh_token_direct(creds, cred_id, profile_name).await
     }
 
     /// Refresh token using Direct OAuth flow (browser-based login)
@@ -1447,8 +1427,12 @@ const MICROSOFT_CLIENT_ID: &str = "00000000402b5328";
 const AUTH_REPLY_URL: &str = "https://login.live.com/oauth20_desktop.srf";
 const REQUESTED_SCOPE: &str = "service::user.auth.xboxlive.com::MBI_SSL";
 
-// Alternative Client-ID for direct OAuth2 flow (supports localhost redirect)
-const DIRECT_OAUTH_CLIENT_ID: &str = "e16699bb-2aa8-46da-b5e3-45cbcce29091";
+/// The NoRisk account backend (NoRisk tokens, cosmetics, friends) is not part of CrimeClient.
+const NORISK_BACKEND: bool = false;
+
+// CrimeClient: our own Azure app (approved for the Minecraft API), the only login path.
+// Its registration needs the redirect URI http://localhost/callback and public client flows enabled.
+const DIRECT_OAUTH_CLIENT_ID: &str = "c36a9fb6-4f2a-41ff-90bd-ae7cc92031eb";
 const DIRECT_OAUTH_AUTHORIZE_URL: &str = "https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize";
 const DIRECT_OAUTH_TOKEN_URL: &str = "https://login.microsoftonline.com/consumers/oauth2/v2.0/token";
 

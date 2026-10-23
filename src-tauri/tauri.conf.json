@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "NoRisk Launcher",
-  "version": "0.6.29",
-  "identifier": "gg.norisk.NoRiskClientLauncherV3",
+  "productName": "CrimeClient Launcher",
+  "version": "0.1.0",
+  "identifier": "de.crime77.crimeclient.launcher",
   "build": {
     "beforeDevCommand": "yarn native-deps && yarn stage-native --debug && yarn dev",
     "devUrl": "http://localhost:1430",
@@ -12,7 +12,7 @@
   "plugins": {
     "minecraft_auth": {},
     "updater": {
-      "active": true,
+      "active": false,
       "endpoints": [],
       "dialog": false,
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDk5QkZBNTBGNjhDQTBGOEYKUldTUEQ4cG9ENlcvbVpVTVdnVkNNSGlXWXVXRklqcGFxNnBuRW1LM3VDTXpKcXU2MmdCNVc5S2IK"
@@ -23,12 +23,12 @@
     "deep-link": {
       "desktop": {
         "schemes": [
-          "norisk"
+          "crimeclient"
         ]
       }
     },
     "cli": {
-      "description": "NoRisk Launcher",
+      "description": "CrimeClient Launcher",
       "subcommands": {
         "launch": {
           "description": "Launch a profile with runtime-only overrides (does not persist)",
@@ -205,7 +205,7 @@
       {
         "fullscreen": false,
         "resizable": true,
-        "title": "NoRiskClient",
+        "title": "CrimeClient Launcher",
         "width": 1280,
         "height": 800,
         "minWidth": 1080,

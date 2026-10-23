@@ -172,7 +172,7 @@ async fn main() {
             let logged_args: Vec<String> = argv
                 .iter()
                 .map(|a| match url::Url::parse(a) {
-                    Ok(u) if u.scheme() == "norisk" => {
+                    Ok(u) if u.scheme() == "crimeclient" => {
                         format!("norisk://{}{} (query hidden)", u.host_str().unwrap_or_default(), u.path())
                     }
                     _ => a.clone(),
