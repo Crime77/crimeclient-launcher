@@ -51,7 +51,8 @@ pub async fn begin_login<R: Runtime>(
             rng.gen_range(25565..=25600)
         });
 
-        let redirect_uri = format!("http://localhost:{}/callback", port);
+        // 127.0.0.1 like the callback server binds; "localhost" may resolve to ::1 in the browser
+        let redirect_uri = format!("http://127.0.0.1:{}/", port);
         info!("[Login] Using redirect URI: {}", redirect_uri);
 
         // Use embedded HTML templates (works on all platforms including Flatpak)

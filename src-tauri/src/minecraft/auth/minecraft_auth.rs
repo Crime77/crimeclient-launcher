@@ -1431,7 +1431,7 @@ const REQUESTED_SCOPE: &str = "service::user.auth.xboxlive.com::MBI_SSL";
 const NORISK_BACKEND: bool = false;
 
 // CrimeClient: our own Azure app (approved for the Minecraft API), the only login path.
-// Its registration needs the redirect URI http://localhost/callback and public client flows enabled.
+// Its registration (like Prism's) allows the loopback redirect http://localhost on any port, without a path.
 const DIRECT_OAUTH_CLIENT_ID: &str = "c36a9fb6-4f2a-41ff-90bd-ae7cc92031eb";
 const DIRECT_OAUTH_AUTHORIZE_URL: &str = "https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize";
 const DIRECT_OAUTH_TOKEN_URL: &str = "https://login.microsoftonline.com/consumers/oauth2/v2.0/token";
@@ -2430,8 +2430,9 @@ pub async fn start_oauth_callback_server(
     let error_html_shared = Arc::new(error_html);
 
     // Create the router with shared state
+    // root path: CrimeClient's Azure app registers the loopback redirect like Prism, http://localhost (any port, no path)
     let app = Router::new().route(
-        "/callback",
+        "/",
         get({
             let tx_shared = tx_shared.clone();
             let success_html_shared = success_html_shared.clone();
