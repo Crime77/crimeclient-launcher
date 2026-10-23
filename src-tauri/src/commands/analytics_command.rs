@@ -31,6 +31,8 @@ pub struct TrackEventResponse {
 }
 
 const ANALYTICS_URL: &str = "https://analytics-api-staging.norisk.gg/api/track";
+/// CrimeClient sends no usage statistics (the endpoint is NoRisk's).
+const CRIMECLIENT_ANALYTICS: bool = false;
 
 fn analytics_url() -> String {
     if cfg!(debug_assertions) {
@@ -98,6 +100,9 @@ pub async fn track_with_frontend_identity(event_type: &str, properties: Value) -
 }
 
 async fn send_event(event: AnalyticsEvent) -> Result<bool, String> {
+    if !CRIMECLIENT_ANALYTICS {
+        return Ok(false);
+    }
     match state_manager::State::get().await {
         Ok(state) => {
             if !state.config_manager.get_config().await.enable_analytics {

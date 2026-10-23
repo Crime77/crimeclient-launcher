@@ -3096,6 +3096,23 @@ impl ProfileManager {
         let mut copies_created = 0;
         let mut copies_updated = 0;
 
+        // CrimeClient: copies of standard profiles that are no longer offered (e.g. NoRisk's) go away, but only while
+        // they were never installed or played, so nobody loses a world.
+        let offered: std::collections::HashSet<Uuid> = standard_profiles.iter().map(|p| p.id).collect();
+        for profile in &user_profiles {
+            if let Some(source_id) = profile.source_standard_profile_id {
+                if !offered.contains(&source_id)
+                    && matches!(profile.state, ProfileState::NotInstalled)
+                    && profile.playtime_seconds == 0
+                {
+                    match self.delete_profile(profile.id).await {
+                        Ok(()) => info!("ProfileManager: Removed '{}', its standard profile is no longer offered", profile.name),
+                        Err(e) => warn!("ProfileManager: Could not remove stale standard copy '{}': {}", profile.name, e),
+                    }
+                }
+            }
+        }
+
         for standard_profile in standard_profiles {
             if let Some(existing_copy_id) = existing_copies_by_source_id.get(&standard_profile.id) {
                 // Update existing copy with forced fields

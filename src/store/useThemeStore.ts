@@ -15,6 +15,14 @@ export type AccentColor = {
 };
 
 export const ACCENT_COLORS: Record<string, AccentColor> = {
+  crimson: {
+    name: "Crimson",
+    value: "#e11d48",
+    hoverValue: "#be123c",
+    shadowValue: "rgba(225, 29, 72, 0.5)",
+    light: "#ff4d6d",
+    dark: "#9f1239",
+  },
   cyan: {
     name: "Cyan",
     value: "#00B9E8",
@@ -275,7 +283,7 @@ interface ThemeState {
 export const useThemeStore = create<ThemeState>()(
   persist(
     (set, get) => ({
-      accentColor: ACCENT_COLORS.blue,
+      accentColor: ACCENT_COLORS.crimson,
       isBackgroundAnimationEnabled: false,
       showNavLabels: true,
       isDetailViewSidebarOnLeft: true,

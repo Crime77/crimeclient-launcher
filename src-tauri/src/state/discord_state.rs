@@ -7,7 +7,8 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tokio::sync::{Mutex, RwLock};
 use uuid::Uuid;
 
-const DISCORD_APP_ID: &str = "1237087999104122981";
+/// Discord application for Rich Presence. Empty: no Rich Presence (the upstream ID is NoRisk's application).
+const DISCORD_APP_ID: &str = "";
 const RECONNECT_BACKOFF: Duration = Duration::from_secs(60);
 
 #[derive(Debug, Clone, PartialEq)]
@@ -115,7 +116,8 @@ impl DiscordManager {
     }
 
     async fn connect(&self) -> Result<()> {
-        if !*self.enabled.read().await {
+        // NoRisk's Discord application would show "NoRisk Client"; off until CrimeClient has its own
+        if DISCORD_APP_ID.is_empty() || !*self.enabled.read().await {
             debug!("Discord Rich Presence is disabled, skipping connection");
             return Ok(());
         }

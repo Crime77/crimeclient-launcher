@@ -29,8 +29,9 @@ use crate::utils::string_utils::safe_truncate;
 // Base URL for CurseForge API
 const CURSEFORGE_API_BASE_URL: &str = "https://api.curseforge.com/v1";
 
-// Public CurseForge API Key (from PrismLauncher/MultiMC)
-const CURSEFORGE_API_KEY: &str = "$2a$10$bL4bIL5pUWqfcO7KQtnMReakwtfHbNKh6v1uTpKlzhwoueEJQnPnm";
+// CurseForge API key. The upstream one is Prism Launcher's, which forks must not reuse; empty until CrimeClient
+// has its own key from the CurseForge for Studios console (CurseForge requests fail without it, Modrinth still works).
+const CURSEFORGE_API_KEY: &str = "";
 
 /// Determines appropriate memory settings based on recommended RAM and system capabilities
 fn determine_memory_settings(recommended_ram_mb: Option<u64>) -> crate::state::profile_state::MemorySettings {

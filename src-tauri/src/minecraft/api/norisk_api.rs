@@ -12,6 +12,7 @@ use crate::state::event_state::{EventPayload, EventType};
 use log::{debug, error, info, trace};
 use serde::{Deserialize, Serialize};
 use serde_json;
+use crate::config::HTTP_CLIENT;
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -129,6 +130,9 @@ pub struct UniquePlayersResponse {
     pub window_hours: i32,
     pub computed_at_ms: i64,
 }
+
+/// Where the CrimeClient launcher gets its pack list (modpacks.json) and standard profiles (versions.json).
+const CRIMECLIENT_LAUNCHER_API: &str = "https://crime77.duckdns.org/mod/api/launcher";
 
 pub struct NoRiskApi;
 
@@ -410,12 +414,27 @@ impl NoRiskApi {
         norisk_token: &str,
         is_experimental: bool,
     ) -> Result<NoriskModpacksConfig> {
-        trace!(
-            "[NoRisk API] Fetching modpack configuration from v3 endpoint. Experimental: {}",
-            is_experimental
-        );
-        Self::get_from_norisk_endpoint("launcher/modpacks-v3", norisk_token, None, is_experimental)
+        let _ = (norisk_token, is_experimental);
+        Self::get_crimeclient_json("modpacks.json").await
+    }
+
+    /// CrimeClient: the pack and standard profile lists come from the CrimeClient update API (written by
+    /// tools/build_modpack.py in the CraftCosmetics repo on every release), not from NoRisk.
+    async fn get_crimeclient_json<T: for<'de> Deserialize<'de>>(file: &str) -> Result<T> {
+        let url = format!("{}/{}", CRIMECLIENT_LAUNCHER_API, file);
+        trace!("[CrimeClient API] GET {}", url);
+        let response = HTTP_CLIENT
+            .get(&url)
+            .send()
             .await
+            .map_err(|e| AppError::Other(format!("Failed to reach {}: {}", url, e)))?;
+        if !response.status().is_success() {
+            return Err(AppError::Other(format!("{} answered {}", url, response.status())));
+        }
+        response
+            .json::<T>()
+            .await
+            .map_err(|e| AppError::Other(format!("Failed to parse {}: {}", url, e)))
     }
 
     /// Fetches the standard version profiles from the NoRisk API.
@@ -423,12 +442,8 @@ impl NoRiskApi {
         norisk_token: &str,
         is_experimental: bool,
     ) -> Result<NoriskVersionsConfig> {
-        trace!(
-            "[NoRisk API] Fetching standard version profiles. Experimental: {}",
-            is_experimental
-        );
-        Self::get_from_norisk_endpoint("launcher/versions-v3", norisk_token, None, is_experimental)
-            .await
+        let _ = (norisk_token, is_experimental);
+        Self::get_crimeclient_json("versions.json").await
     }
 
     /// Request discord link status

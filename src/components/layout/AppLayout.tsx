@@ -87,7 +87,6 @@ export function AppLayout({
     { id: "profiles", icon: "solar:user-id-bold", label: t("nav.profiles") },
     { id: "mods", icon: "solar:widget-bold", label: t("nav.mods") },
     { id: "skins", icon: "solar:emoji-funny-circle-bold", label: t("nav.skins") },
-    { id: "capes", icon: "solar:shop-bold", label: t("nav.capes") },
     ...(clipsEnabled
       ? [{ id: "clips", icon: "solar:videocamera-record-bold", label: t("nav.clips") }]
       : []),
@@ -539,7 +538,7 @@ function HeaderBar({ minimizeRef, maximizeRef, closeRef }: HeaderBarProps) {
               className="font-smallcaps text-2xl tracking-wider font-bold text-shadow"
               data-tauri-drag-region
             >
-              NoRiskClient
+              CrimeClient
             </h1>
             {availableUpdate && (
               <Tooltip content={isUpdating ? t('header.update.tooltip_updating') : t('header.update.tooltip_available', { version: availableUpdate.version })}>

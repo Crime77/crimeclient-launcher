@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { NewsSection } from "../news/NewsSection";
+import { CrimeNews } from "../news/CrimeNews";
 import { ErrorMessage } from "../ui/ErrorMessage";
 import { useMinecraftAuthStore } from "../../store/minecraft-auth-store";
 import { useProfileStore } from "../../store/profile-store";
@@ -14,8 +14,6 @@ import {
 } from "../../store/background-effect-store";
 // DISABLED: Snow effect (seasonal feature)
 // import { SnowEffectToggle } from "../ui/SnowEffectToggle";
-import { ReferralBanner } from "../ui/ReferralBanner";
-import { ApplixirAdButton } from "../ui/ApplixirAdButton";
 import { ToggleSwitch } from "../ui/ToggleSwitch";
 import { useQualitySettingsStore } from "../../store/quality-settings-store";
 import { isWebGLAvailable } from "@noriskclient/nrc-skin-renderer";
@@ -80,14 +78,8 @@ export function PlayTab() {
           />
         )}
 
-        {/* Referral Banner - Top Left */}
-        <div className="absolute top-3 left-3 z-20">
-          <ReferralBanner />
-        </div>
-
-        {/* Watch Ad + 3D Render Toggle - Top Right */}
+        {/* 3D Render Toggle - Top Right */}
         <div className="absolute top-6 right-6 z-20 flex flex-col items-end gap-3">
-          <ApplixirAdButton />
           <div className="flex items-center gap-2">
             <span className="text-sm text-white/70 font-minecraft">{t("settings.background.skin_animation")}</span>
             <ToggleSwitch
@@ -127,7 +119,7 @@ export function PlayTab() {
         </div>
       </div>
 
-      <NewsSection className="w-1/3 border-l-2 border-white/40 bg-black/10 backdrop-blur-lg p-5 overflow-hidden flex flex-col relative z-10" />
+      <CrimeNews className="w-1/3 border-l-2 border-white/40 bg-black/10 backdrop-blur-lg p-5 overflow-hidden flex flex-col relative z-10" />
     </div>
   );
 }

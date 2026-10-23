@@ -232,7 +232,7 @@
           "https://api.iconify.design",
           "https://*.modrinth.com",
           "https://sessionserver.mojang.com",
-          "https://*.norisk.gg"
+          "https://crime77.duckdns.org"
         ],
         "img-src": [
           "'self'",
@@ -240,7 +240,7 @@
           "http://asset.localhost",
           "https://*.modrinth.com",
           "https://cdn.modrinth.com",
-          "https://*.norisk.gg",
+          "https://crime77.duckdns.org",
           "https://textures.minecraft.net",
           "http://textures.minecraft.net",
           "https://crafatar.com",
@@ -275,8 +275,7 @@
           "https://www.youtube.com",
           "https://www.youtube-nocookie.com",
           "https://player.vimeo.com",
-          "https://api.norisk.gg",
-          "https://api-staging.norisk.gg"
+          "https://crime77.duckdns.org"
         ],
         "media-src": [
           "'self'",

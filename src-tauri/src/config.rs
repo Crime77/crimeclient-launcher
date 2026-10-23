@@ -26,10 +26,21 @@ pub static HTTP_CLIENT: Lazy<Client> = Lazy::new(|| {
     let client = reqwest::ClientBuilder::new()
         .user_agent(APP_USER_AGENT)
         .connect_timeout(HTTP_CONNECT_TIMEOUT)
+        .proxy(block_norisk())
         .build()
         .unwrap_or_else(|_| Client::new());
     client
 });
+
+/// CrimeClient has no NoRisk backend: requests to norisk.gg and its subdomains go to a closed local port and fail at
+/// once instead of talking to NoRisk's servers (accounts, cosmetics, capes, friends, news, packs).
+pub fn block_norisk() -> reqwest::Proxy {
+    reqwest::Proxy::custom(|url| {
+        url.host_str()
+            .filter(|host| *host == "norisk.gg" || host.ends_with(".norisk.gg"))
+            .and_then(|_| reqwest::Url::parse("http://127.0.0.1:9").ok())
+    })
+}
 
 // Extension trait for ProjectDirs to add meta_dir functionality
 pub trait ProjectDirsExt {
