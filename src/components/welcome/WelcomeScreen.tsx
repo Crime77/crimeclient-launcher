@@ -7,6 +7,7 @@ import { useThemeStore } from "../../store/useThemeStore";
 import { useMinecraftAuthStore } from "../../store/minecraft-auth-store";
 import { useWelcomeStore } from "../../store/welcome-store";
 import { useAddMinecraftAccount } from "../../hooks/useAddMinecraftAccount";
+import { GlutEffect } from "../effects/GlutEffect";
 
 /** Selling points on the hero half. Icons come from the offline bundle. */
 const HIGHLIGHTS = [
@@ -142,14 +143,10 @@ export function WelcomeScreen() {
             transition: "transform 140ms ease-out",
           }}
         >
-          <div
-            className="welcome-art absolute inset-0 bg-cover opacity-[0.55] saturate-[0.9]"
-            style={{
-              backgroundImage: "url(/welcome-background.jpg)",
-              backgroundPosition: "46% 52%",
-              animation: "welcome-drift 18s ease-in-out infinite",
-            }}
-          />
+          {/* CrimeClient's title screen background: raven, glow and embers */}
+          <div className="welcome-art absolute inset-0">
+            <GlutEffect />
+          </div>
         </div>
 
         {/* Layer 2 — accent bloom. Stays put; only the artwork moves. */}
@@ -177,7 +174,7 @@ export function WelcomeScreen() {
             header uses. The painted logo asset is not the current brand. */}
         <div className="relative z-10" style={rise(60)}>
           <span className="font-smallcaps text-3xl tracking-wider font-bold text-white text-shadow">
-            NoRiskClient
+            CrimeClient
           </span>
         </div>
 

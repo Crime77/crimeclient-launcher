@@ -19,11 +19,12 @@ const CRIMECLIENT_ANALYTICS = false;
 export const ACCENT_COLORS: Record<string, AccentColor> = {
   crimson: {
     name: "Crimson",
-    value: "#e11d48",
-    hoverValue: "#be123c",
-    shadowValue: "rgba(225, 29, 72, 0.5)",
-    light: "#ff4d6d",
-    dark: "#9f1239",
+    // same crimson as the client mod's default accent (Theme.CRIMSON)
+    value: "#e8314a",
+    hoverValue: "#c4243b",
+    shadowValue: "rgba(232, 49, 74, 0.5)",
+    light: "#ff5a6e",
+    dark: "#9f1a2c",
   },
   cyan: {
     name: "Cyan",
@@ -286,7 +287,7 @@ export const useThemeStore = create<ThemeState>()(
   persist(
     (set, get) => ({
       accentColor: ACCENT_COLORS.crimson,
-      isBackgroundAnimationEnabled: false,
+      isBackgroundAnimationEnabled: true,
       showNavLabels: true,
       isDetailViewSidebarOnLeft: true,
       profileGroupingCriterion: "group",
@@ -567,6 +568,16 @@ export const useThemeStore = create<ThemeState>()(
       },
     }),    {
       name: "norisk-theme-storage",
+      // v1: CrimeClient design, existing installs switch once to crimson with animated embers
+      version: 1,
+      migrate: (persisted, version) => {
+        const state = persisted as ThemeState;
+        if (version < 1) {
+          state.accentColor = ACCENT_COLORS.crimson;
+          state.isBackgroundAnimationEnabled = true;
+        }
+        return state;
+      },
       onRehydrateStorage: () => (state) => {
         if (state) {
           // Migration: Replace old "none" grouping criterion with "group"

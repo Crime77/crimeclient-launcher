@@ -24,6 +24,7 @@ import { NebulaLightning } from ".././effects/NebulaLightning";
 import { NebulaLiquidChrome } from ".././effects/NebulaLiquidChrome";
 import { RetroGridEffect } from "../effects/RetroGridEffect";
 import PlainBackground from "../effects/PlainBackground";
+import { GlutEffect } from "../effects/GlutEffect";
 import CustomMediaBackground from "../effects/CustomMediaBackground";
 import { Snowfall } from "../../features/snow-effect/Snowfall";
 import { useSnowEffectStore } from "../../store/snow-effect-store";
@@ -217,6 +218,8 @@ export function AppLayout({
 
     // Regular background effects for other tabs or when no theme background
     switch (currentEffect) {
+      case BACKGROUND_EFFECTS.GLUT:
+        return <GlutEffect />;
       case BACKGROUND_EFFECTS.MATRIX_RAIN:
         return (
           <MatrixRainEffect

@@ -33,6 +33,7 @@ export function AppearanceTab() {
     useQualitySettingsStore();
 
   const backgroundOptions = [
+    { id: BACKGROUND_EFFECTS.GLUT, name: t("settings.background.glut"), icon: "solar:fire-bold" },
     { id: BACKGROUND_EFFECTS.MATRIX_RAIN, name: t("settings.background.matrix_rain"), icon: "solar:code-bold" },
     { id: BACKGROUND_EFFECTS.ENCHANTMENT_PARTICLES, name: t("settings.background.enchantment_table"), icon: "solar:magic-stick-bold" },
     { id: BACKGROUND_EFFECTS.NEBULA_WAVES, name: t("settings.background.nebula_waves"), icon: "solar:soundwave-bold" },

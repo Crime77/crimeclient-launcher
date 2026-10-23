@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 
 export enum BACKGROUND_EFFECTS {
   NONE = "none",
+  GLUT = "glut",
   MATRIX_RAIN = "matrix-rain",
   ENCHANTMENT_PARTICLES = "enchantment-particles",
   NEBULA_WAVES = "nebula-waves",
@@ -36,7 +37,7 @@ interface BackgroundEffectState {
 export const useBackgroundEffectStore = create<BackgroundEffectState>()(
   persist(
     (set) => ({
-      currentEffect: BACKGROUND_EFFECTS.RETRO_GRID,
+      currentEffect: BACKGROUND_EFFECTS.GLUT,
       customMediaUrl: null,
       customMediaType: null,
       customMediaOpacity: 0.25,
@@ -54,6 +55,13 @@ export const useBackgroundEffectStore = create<BackgroundEffectState>()(
     }),
     {
       name: "norisk-background-effect-storage",
+      // v1: CrimeClient design, switch existing installs once to the Glut background
+      version: 1,
+      migrate: (persisted, version) => {
+        const state = persisted as BackgroundEffectState;
+        if (version < 1) state.currentEffect = BACKGROUND_EFFECTS.GLUT;
+        return state;
+      },
     },
   ),
 );
