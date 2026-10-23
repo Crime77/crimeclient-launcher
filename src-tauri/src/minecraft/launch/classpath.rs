@@ -205,6 +205,17 @@ impl ClasspathBuilder {
         let mut ordered: Vec<String> = Vec::new();
 
         fn push(path: String, seen: &mut HashSet<String>, out: &mut Vec<String>) {
+            // Use the physical path: under a redirected AppData (started from an MSIX-packaged app) Java sees the
+            // same jar under two paths and Fabric loads Mixin twice (ClassCastException at launch).
+            let path = std::fs::canonicalize(&path)
+                .map(|p| {
+                    let p = p.to_string_lossy().to_string();
+                    match p.strip_prefix(r"\\?\") {
+                        Some(rest) if !rest.starts_with("UNC") => rest.to_string(),
+                        _ => p,
+                    }
+                })
+                .unwrap_or(path);
             let normalized = path.replace("\\", "/");
             if seen.insert(normalized.clone()) {
                 out.push(normalized);
