@@ -22,7 +22,11 @@ let flagsmithInitialized = false;
 let cachedBlockedModsConfig: BlockedModsConfig | null = null;
 let configFetchPromise: Promise<BlockedModsConfig> | null = null;
 
+/** Feature flags live on NoRisk's Flagsmith; CrimeClient never contacts it, so every flag keeps its default. */
+const FLAGSMITH_ENABLED = false;
+
 const initializeFlagsmith = async () => {
+  if (!FLAGSMITH_ENABLED) return;
   try {
     const installId = getOrCreateInstallId();
     log('info', `Initializing Flagsmith service with install id ${installId}...`);

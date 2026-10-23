@@ -405,7 +405,8 @@ export function AdvancedTab() {
             variant="ghost"
             size="sm"
             onClick={() => {
-              openExternalUrl("https://norisk.gg/licenses")
+              // CrimeClient is a GPL-3.0 fork of the NoRisk launcher; the upstream repository carries the license and credits
+              openExternalUrl("https://github.com/NoRiskClient/noriskclient-launcher")
             }}
             icon={<Icon icon="solar:arrow-right-up-bold" className="w-5 h-5" />}
           >

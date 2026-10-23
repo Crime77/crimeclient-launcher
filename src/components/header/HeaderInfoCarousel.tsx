@@ -13,6 +13,8 @@ interface HeaderInfoCarouselProps {
   version: string | null;
 }
 
+/** The 24h player count comes from NoRisk's backend, which CrimeClient does not use; only the version is shown. */
+const PLAYER_STATS_ENABLED = false;
 const SLIDE_INTERVAL_MS = 8000;
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 
@@ -27,6 +29,7 @@ export function HeaderInfoCarousel({ version }: HeaderInfoCarouselProps) {
   const isHoveringRef = useRef(false);
 
   useEffect(() => {
+    if (!PLAYER_STATS_ENABLED) return;
     let cancelled = false;
 
     const fetchStats = async () => {

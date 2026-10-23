@@ -5,7 +5,6 @@ import { Modal } from '../ui/Modal';
 import { StaticTooltip } from '../ui/Tooltip';
 import { useCrashModalStore } from '../../store/crash-modal-store';
 import { Button } from '../ui/buttons/Button';
-import { Checkbox } from '../ui/Checkbox';
 import { Icon } from '@iconify/react';
 import { toast } from 'react-hot-toast';
 import { getProfile } from '../../services/profile-service';
@@ -31,7 +30,8 @@ export function GlobalCrashReportModal() {
   const [profileName, setProfileName] = useState<string>('');
   const [mclogsUrl, setMclogsUrl] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [analyzeWithNoRisk, setAnalyzeWithNoRisk] = useState(true);
+  // Crash analysis ran on NoRisk's backend; CrimeClient only uploads the log to mclo.gs.
+  const analyzeWithNoRisk = false;
   const [statusText, setStatusText] = useState<string | null>(null); // inline progress while analyzing
   const [displayedCrashReportContent, setDisplayedCrashReportContent] = useState<string | undefined>(undefined);
   const [isListeningForCrashContent, setIsListeningForCrashContent] = useState(false);
@@ -55,7 +55,6 @@ export function GlobalCrashReportModal() {
       }
       setMclogsUrl(null);
       setIsProcessing(false);
-      setAnalyzeWithNoRisk(true);
       setDisplayedCrashReportContent(crashData.crash_report_content);
       setIsListeningForCrashContent(false);
       hasFetchedCrashReportRef.current = false; // Reset fetch flag for new crash
@@ -294,16 +293,6 @@ ${gameLog}`
     }
   };
 
-  const handleContactSupport = async () => {
-    try {
-      await openExternalUrl('https://discord.norisk.gg');
-      toast.success(t('crash_modal.toast.discord_opened'));
-    } catch (error) {
-      logError(`Failed to open Discord URL: ${error}`);
-      toast.error(t('crash_modal.toast.discord_failed'));
-    }
-  };
-
   const primaryButtonText = analyzeWithNoRisk ? t('crash_modal.button.analyze') : t('crash_modal.button.upload_only');
 
   const modalFooter = (
@@ -329,15 +318,6 @@ ${gameLog}`
         </div>
         )}
       </div>
-      <Button
-        onClick={handleContactSupport}
-        variant="default"
-        icon={<Icon icon="solar:letter-linear" className="w-5 h-5" />}
-        disabled={isProcessing}
-        className="flex-1 justify-center whitespace-nowrap"
-      >
-        {t('crash_modal.button.contact_support')}
-      </Button>
     </div>
   );
 
@@ -378,12 +358,6 @@ ${gameLog}`
               <p className="text-sm font-minecraft text-gray-400">
                 {t('crash_modal.upload_notice')}
               </p>
-              <Checkbox
-                checked={analyzeWithNoRisk}
-                onChange={(e) => setAnalyzeWithNoRisk(e.target.checked)}
-                label={t('crash_modal.report_checkbox')}
-                size="sm"
-              />
             </div>
           </>
         )}

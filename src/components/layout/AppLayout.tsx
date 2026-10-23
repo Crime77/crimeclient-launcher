@@ -29,14 +29,10 @@ import { Snowfall } from "../../features/snow-effect/Snowfall";
 import { useSnowEffectStore } from "../../store/snow-effect-store";
 import { useLauncherTheme } from "../../hooks/useLauncherTheme";
 import * as ConfigService from "../../services/launcher-config-service";
-import { SocialsModal } from "../modals/SocialsModal";
-import { FriendsSidebar } from "../friends/FriendsSidebar";
 // TODO: Re-enable when WebSocket is stable
 // import { useFriendsWebSocket } from "../../hooks/useFriendsWebSocket";
-import { useFriendsStore } from "../../store/friends-store";
 import { useClipsStore } from "../../store/clips-store";
 import { closeClipEditorThen } from "../../services/clip-service";
-import { useChatStore } from "../../store/chat-store";
 import { checkUpdateAvailable, downloadAndInstallUpdate } from "../../services/nrc-service";
 import type { UpdateInfo } from "../../types/updater";
 import { ProfileWizardV2Modal } from "../modals/ProfileWizardV2Modal";
@@ -98,26 +94,7 @@ export function AppLayout({
   const { isBackgroundAnimationEnabled, accentColor: themeAccentColor, accentColor } = useThemeStore();
   const { isEnabled: isSnowEnabled } = useSnowEffectStore();
   const { selectedTheme, isThemeActive } = useLauncherTheme();
-  const { connectWebSocket, loadCurrentUser, loadFriends } = useFriendsStore();
-  const { loadChats } = useChatStore();
-
-  // TODO: Re-enable when WebSocket is stable
-  // useFriendsWebSocket();
-
-  useEffect(() => {
-    const initFriends = async () => {
-      try {
-        await loadCurrentUser();
-        await loadFriends();
-        await loadChats();
-        // TODO: Re-enable when WebSocket is stable
-        // await connectWebSocket();
-      } catch (e) {
-        // Silently fail - user might not be logged in yet
-      }
-    };
-    initFriends();
-  }, []);
+  // Friends, chats and socials ran on NoRisk's backend; CrimeClient has none of them.
 
   const getComplementaryBackground = () => {
     const hexToRgb = (hex: string) => {
@@ -375,12 +352,10 @@ export function AppLayout({
         </div>
       </div>
       {/* Global Modals Portal */}
-      <SocialsModal />
       <ProfileWizardV2Modal />
       <ProfileSettingsModal />
       <SettingsModal />
       <ProfileDuplicateModal />
-      <FriendsSidebar />
     </div>
   );
 }
