@@ -16,6 +16,9 @@ import { useDisplayContextStore } from "../../../store/useDisplayContextStore";
 import { useThemeStore } from "../../../store/useThemeStore";
 import { cn } from "../../../lib/utils";
 
+/** CurseForge search stays hidden until CrimeClient has its own CurseForge API key (src-tauri integrations/curseforge.rs). */
+const CURSEFORGE_ENABLED = false;
+
 // Define Profile type locally, similar to ModrinthSearchV2.tsx
 type Profile = any;
 
@@ -174,7 +177,8 @@ export const ModrinthSearchControlsV2: React.FC<
               <span className="hidden sm:inline">Modrinth</span>
             </button>
 
-            <button
+            {/* CurseForge needs an API key of our own (the upstream one is Prism's); hidden until there is one */}
+            {CURSEFORGE_ENABLED && <button
               onClick={() => onModSourceChange(ModPlatform.CurseForge)}
               className={cn(
                 "flex items-center gap-1.5 px-2 py-1 rounded-md font-smallcaps text-base transition-all duration-200 min-h-[2.5rem]",
@@ -190,7 +194,7 @@ export const ModrinthSearchControlsV2: React.FC<
                 className="w-5 h-5 object-contain"
               />
               <span className="hidden sm:inline">CurseForge</span>
-            </button>
+            </button>}
           </div>
         </div>
 

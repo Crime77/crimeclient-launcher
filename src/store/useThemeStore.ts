@@ -14,6 +14,8 @@ export type AccentColor = {
   isCustom?: boolean;
 };
 
+const CRIMECLIENT_ANALYTICS = false;
+
 export const ACCENT_COLORS: Record<string, AccentColor> = {
   crimson: {
     name: "Crimson",
@@ -548,6 +550,8 @@ export const useThemeStore = create<ThemeState>()(
       },
 
       shouldShowAnalyticsBanner: () => {
+        // CrimeClient collects no usage statistics, so there is nothing to ask for
+        if (!CRIMECLIENT_ANALYTICS) return false;
         const state = get();
         const consent = state.analyticsConsent;
 
