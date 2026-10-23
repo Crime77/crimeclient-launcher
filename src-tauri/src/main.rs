@@ -467,7 +467,10 @@ async fn main() {
                     Ok(state_manager_instance) => {
                         let config = state_manager_instance.config_manager.get_config().await;
                         let check_beta_channel = config.check_beta_channel;
-                        let mut auto_check_updates_enabled = config.auto_check_updates;
+                        // CrimeClient: NoRisk's self-updater would download and run the NoRisk installer; it stays
+                        // off until CrimeClient has its own update feed.
+                        let _ = config.auto_check_updates;
+                        let mut auto_check_updates_enabled = false;
 
                         // Disable auto-updates when running in Flatpak
                         if updater_utils::is_flatpak() {

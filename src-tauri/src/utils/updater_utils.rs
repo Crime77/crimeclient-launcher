@@ -70,10 +70,17 @@ pub fn is_flatpak() -> bool {
 /// # Returns
 ///
 /// * `Result<Option<UpdateCheckResult>>` - Detailed update information with updater instance, or None if up to date.
+/// Set once CrimeClient serves its own signed launcher updates.
+const CRIMECLIENT_UPDATE_FEED: bool = false;
+
 pub async fn check_update_available_detailed(
     app_handle: &AppHandle,
     is_beta_channel: bool,
 ) -> AppResult<Option<UpdateCheckResult>> {
+    // CrimeClient: no update feed yet. NoRisk's feed would hand out the NoRisk launcher installer.
+    if !CRIMECLIENT_UPDATE_FEED {
+        return Ok(None);
+    }
     let current_version = app_handle.package_info().version.to_string();
     let channel = if is_beta_channel { "Beta" } else { "Stable" };
 
