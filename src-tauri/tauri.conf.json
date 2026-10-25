@@ -299,7 +299,8 @@
   "bundle": {
     "windows": {
       "webviewInstallMode": {
-        "type": "embedBootstrapper"
+        "type": "downloadBootstrapper",
+        "silent": true
       },
       "nsis": {
         "installerIcon": "icons/icon.ico",
@@ -343,7 +344,7 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "createUpdaterArtifacts": true,
+    "createUpdaterArtifacts": false,
     "fileAssociations": [
       {
         "ext": [
