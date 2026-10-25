@@ -140,7 +140,7 @@ export const Checkbox = forwardRef<HTMLButtonElement, CheckboxProps>(  ({
               borderColor: checked || indeterminate ? colors.main : "rgba(255,255,255,0.3)",
               backgroundColor: checked || indeterminate ? `${colors.main}80` : "rgba(255,255,255,0.1)",
               filter: isHovered && !disabled ? "brightness(1.1)" : "brightness(1)",
-              transform: isHovered && !disabled ? "scale(1.05)" : "scale(1)",              ...createRadiusStyle(borderRadius),
+              transform: "none",              ...createRadiusStyle(borderRadius),
             }}
           >
             {(checked || indeterminate) && (

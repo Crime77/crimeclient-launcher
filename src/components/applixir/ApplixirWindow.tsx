@@ -109,7 +109,7 @@ function Titlebar({
       <div className="flex items-center gap-4">
         <Tooltip content={t("applixir.window.afk_points")} position="bottom" delay={0}>
           <div
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-b-2 backdrop-blur-md transition-all duration-200 hover:brightness-110"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border backdrop-blur-md transition-all duration-200 hover:brightness-110"
             style={{
               backgroundColor: `${accentColor.value}30`,
               borderColor: `${accentColor.value}80`,

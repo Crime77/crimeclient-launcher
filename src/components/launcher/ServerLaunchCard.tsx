@@ -91,7 +91,7 @@ export function ServerLaunchCard({
     const part1Y = shadowDepth === "short" ? "4px" : "8px";
     const part2Y = shadowDepth === "short" ? "6px" : "10px";
     const part2Blur = shadowDepth === "short" ? "10px" : "15px";
-    const boxShadow = `0 ${part1Y} 0 rgba(0,0,0,0.3), 0 ${part2Y} ${part2Blur} rgba(0,0,0,0.35), inset 0 1px 0 ${colors.light}40, inset 0 0 0 1px ${colors.main}20`;
+    const boxShadow = `0 10px 30px -18px rgba(0,0,0,0.8), inset 0 1px 0 ${colors.light}40, inset 0 0 0 1px ${colors.main}20`;
 
     return {
       backgroundColor,

@@ -12,6 +12,7 @@ pub mod clip_commands;
 pub mod config_commands;
 pub mod content_command;
 pub mod crash_fix_command;
+pub mod crime_store_command;
 pub mod curseforge_commands;
 pub mod file_command;
 pub mod flagsmith_commands;

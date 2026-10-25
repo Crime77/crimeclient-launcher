@@ -4,9 +4,21 @@ export interface FontPreset {
   smallcaps: string;
   minecraft: string;
   preview: string;
+  /** font-size-adjust so text sized for the Minecraft font keeps roughly the same size */
+  adjust?: number;
+  tracking?: string;
 }
 
 export const FONT_PRESETS: Record<string, FontPreset> = {
+  crime: {
+    id: "crime",
+    name: "CrimeClient",
+    smallcaps: '"Inter", system-ui, sans-serif',
+    minecraft: '"Inter", system-ui, sans-serif',
+    preview: '"Sora", "Inter", sans-serif',
+    adjust: 0.47,
+    tracking: "0",
+  },
   minecraft: {
     id: "minecraft",
     name: "Minecraft",
@@ -30,4 +42,4 @@ export const FONT_PRESETS: Record<string, FontPreset> = {
   },
 };
 
-export const DEFAULT_FONT_ID = "minecraft";
+export const DEFAULT_FONT_ID = "crime";

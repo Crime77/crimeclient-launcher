@@ -253,17 +253,14 @@ export function ProfileCardV2({
     const part1Y = shadowDepth === "short" ? "4px" : "8px";
     const part2Y = shadowDepth === "short" ? "6px" : "10px";
     const part2Blur = shadowDepth === "short" ? "10px" : "15px";
-    const boxShadow = `0 ${part1Y} 0 rgba(0,0,0,0.3), 0 ${part2Y} ${part2Blur} rgba(0,0,0,0.35), inset 0 1px 0 ${colors.light}40, inset 0 0 0 1px ${colors.main}20`;
+    const boxShadow = `0 10px 30px -18px rgba(0,0,0,0.8), inset 0 1px 0 ${colors.light}40, inset 0 0 0 1px ${colors.main}20`;
 
+    // CrimeClient: accent-tinted glass instead of the chunky 3D frame
     return {
-      backgroundColor,
-      border: "2px solid",
-      borderBottom: "4px solid",
-      borderColor,
-      borderBottomColor,
-      boxShadow,
-      transform: isHovered ? "scale(1.02)" : "scale(1)",
-      filter: isHovered ? "brightness(1.1)" : "brightness(1)",
+      backgroundColor: isHovered ? `${colors.main}26` : `${colors.main}17`,
+      border: `1px solid ${isHovered ? `${colors.main}80` : `${colors.main}40`}`,
+      boxShadow: isHovered ? `0 12px 30px -16px ${accentColor.shadowValue}` : "none",
+      transform: isHovered ? "translateY(-1px)" : "none",
       transition: "all 0.2s ease",
     };
   };
@@ -287,15 +284,9 @@ export function ProfileCardV2({
       : `0 2px 0 rgba(0,0,0,0.3), 0 3px 6px rgba(0,0,0,0.25), inset 0 1px 0 ${colors.light}30, inset 0 0 0 1px ${colors.main}20`;
 
     return {
-      backgroundColor,
-      border: "1px solid",
-      borderBottom: "2px solid",
-      borderColor,
-      borderBottomColor,
-      boxShadow,
+      backgroundColor: isHovered ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.06)",
+      border: "1px solid rgba(255,255,255,0.1)",
       color: "#ffffff",
-      transform: isHovered ? "scale(1.05)" : "scale(1)",
-      filter: isHovered ? "brightness(1.1)" : "brightness(1)",
       transition: "all 0.2s ease",
     };
   };
@@ -402,7 +393,7 @@ export function ProfileCardV2({
     
     return (
       <div
-        className={`relative flex flex-col ${gap} ${padding} rounded-lg ${variant === "3d" ? "backdrop-blur-md" : "bg-black/20 border border-white/10 hover:border-white/20"} transition-all duration-200 cursor-pointer`}
+        className={`relative flex flex-col ${gap} ${padding} rounded-lg ${variant === "3d" ? "backdrop-blur-md" : "bg-white/[0.035] border border-white/[0.07] hover:bg-white/[0.065] hover:border-white/[0.12]"} transition-all duration-200 cursor-pointer`}
         style={variant === "3d" ? get3DStyling() : {}}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
@@ -487,7 +478,7 @@ export function ProfileCardV2({
                  }
                }
              }}
-            className={`${isCompact ? 'w-6 h-6' : 'w-8 h-8'} flex items-center justify-center rounded transition-all duration-200 bg-black/30 hover:bg-black/50 text-white/70 hover:text-white border border-white/10 hover:border-white/20`}
+            className={`${isCompact ? 'w-6 h-6' : 'w-8 h-8'} flex items-center justify-center rounded transition-all duration-200 bg-white/[0.05] hover:bg-white/[0.1] text-white/70 hover:text-white border border-white/[0.08]`}
             title={t('profiles.profileOptions')}
             data-action="settings"
           >
@@ -507,7 +498,7 @@ export function ProfileCardV2({
                 navigate(`/profilesv2/${profile.id}`);
               }
             }}
-            className={`${variant === "3d" ? (isCompact ? 'w-auto px-2 h-6' : 'w-auto px-3 h-8') : (isCompact ? 'w-6 h-6' : 'w-8 h-8')} flex items-center justify-center gap-1 rounded transition-all duration-200 ${variant === "3d" ? "" : "bg-black/30 hover:bg-black/50 text-white/70 hover:text-white border border-white/10 hover:border-white/20"}`}
+            className={`${variant === "3d" ? (isCompact ? 'w-auto px-2 h-6' : 'w-auto px-3 h-8') : (isCompact ? 'w-6 h-6' : 'w-8 h-8')} flex items-center justify-center gap-1 rounded transition-all duration-200 ${variant === "3d" ? "" : "bg-white/[0.05] hover:bg-white/[0.1] text-white/70 hover:text-white border border-white/[0.08]"}`}
             style={variant === "3d" ? get3DButtonStyling(modsButtonHovered) : {}}
             onMouseEnter={() => setModsButtonHovered(true)}
             onMouseLeave={() => setModsButtonHovered(false)}
@@ -515,7 +506,7 @@ export function ProfileCardV2({
           >
             <Icon icon="solar:box-bold" className={isCompact ? 'w-3 h-3' : 'w-4 h-4'} />
             {variant === "3d" && (
-              <span className={`font-minecraft ${isCompact ? 'text-xs' : 'text-sm'} uppercase`}>MODS</span>
+              <span className={`font-minecraft ${isCompact ? 'text-xs' : 'text-sm'} `}>Mods</span>
             )}
           </button>
         </div>
@@ -674,7 +665,7 @@ export function ProfileCardV2({
   // List layout (original layout)
   return (
     <div
-      className={`relative flex items-center gap-4 p-3 rounded-lg ${variant === "3d" ? "backdrop-blur-md" : "bg-black/20 border border-white/10 hover:border-white/20"} transition-all duration-200 cursor-pointer`}
+      className={`relative flex items-center gap-4 p-3 rounded-lg ${variant === "3d" ? "backdrop-blur-md" : "bg-white/[0.035] border border-white/[0.07] hover:bg-white/[0.065] hover:border-white/[0.12]"} transition-all duration-200 cursor-pointer`}
       style={variant === "3d" ? get3DStyling() : {}}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}

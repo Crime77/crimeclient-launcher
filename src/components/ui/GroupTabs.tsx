@@ -56,35 +56,41 @@ export function GroupTabs({
   return (
     <div className={`mb-4 ${className}`}>
       <div className="flex items-center gap-2 flex-wrap">
-        {groups.map((group) => (
-          <button
-            key={group.id}
-            onClick={() => handleGroupClick(group.id)}
-                         className={`px-3 py-1 rounded-lg font-smallcaps text-lg transition-all duration-200 flex items-center gap-2 border-2 ${
-              activeGroup === group.id
-                ? 'text-white'
-                : 'text-white/70 bg-black/30 hover:bg-black/40 border-white/10 hover:border-white/20'
-            }`}
-            style={{
-              backgroundColor: activeGroup === group.id ? `${accentColor.value}20` : undefined,
-              borderColor: activeGroup === group.id ? accentColor.value : undefined,
-            }}
-          >
-            {group.icon && (
-              <Icon icon={group.icon} className="w-4 h-4" />
-            )}
-            <span>{group.name}</span>
-          </button>
-        ))}
-        
+        <div className="flex items-center gap-1 p-1 cc-glass" style={{ borderRadius: 9999 }}>
+          {groups.map((group) => {
+            const active = activeGroup === group.id;
+            return (
+              <button
+                key={group.id}
+                onClick={() => handleGroupClick(group.id)}
+                className={`cc-free h-8 px-3.5 text-[13px] font-semibold transition-colors flex items-center gap-1.5 ${
+                  active ? "text-white" : "text-white/55 hover:text-white hover:bg-white/[0.06]"
+                }`}
+                style={{
+                  borderRadius: 9999,
+                  background: active ? `linear-gradient(180deg, ${accentColor.value}, ${accentColor.hoverValue})` : undefined,
+                  boxShadow: active ? `0 6px 16px -8px ${accentColor.shadowValue}` : undefined,
+                }}
+              >
+                {group.icon && <Icon icon={group.icon} className="w-4 h-4" />}
+                <span className="capitalize">{group.name}</span>
+                {group.count > 0 && (
+                  <span className={`text-[11px] tabular-nums ${active ? "text-white/75" : "text-white/35"}`}>{group.count}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
         {/* Add Group Button */}
         {showAddButton && (
           <button
             onClick={handleAddGroupClick}
-            className="px-3 py-1 rounded-lg border border-dashed border-white/30 hover:border-white/50 text-white/50 hover:text-white/70 transition-all duration-200 flex items-center gap-2"
+            className="cc-free h-10 px-4 border border-dashed border-white/20 hover:border-white/40 text-white/50 hover:text-white text-[13px] font-semibold transition-colors flex items-center gap-2"
+            style={{ borderRadius: 9999 }}
           >
             <Icon icon={addButtonIcon} className="w-4 h-4" />
-            <span className="font-smallcaps text-lg transform -translate-y-0.5">{addButtonText}</span>
+            <span>{addButtonText}</span>
           </button>
         )}
       </div>

@@ -107,52 +107,46 @@ export function Modal({
 
   const getBorderClasses = () => {
     if (variant === "3d") {
-      return "border-2 border-b-4";
+      return "border";
     }
-    return "border border-b-2";
+    return "border";
   };
 
   const getBoxShadow = () => {
     if (variant === "3d") {
-      return `0 10px 0 rgba(0,0,0,0.3), 0 15px 25px rgba(0,0,0,0.5), inset 0 1px 0 ${accentColor.value}40, inset 0 0 0 1px ${accentColor.value}20`;
+      return `0 40px 90px -30px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.04), 0 0 60px -30px ${accentColor.shadowValue}`;
     }
-    return "none";
+    return "0 40px 90px -30px rgba(0,0,0,0.9)";
   };
   return (
     <div
       ref={modalRef}
-      className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md-anyos"
+      className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md-anyos"
       onClick={handleBackdropClick}
     >
       <div
         className={cn(
-          "relative flex flex-col w-full rounded-lg overflow-hidden max-h-[90vh]",
+          "relative flex flex-col w-full overflow-hidden max-h-[90vh] backdrop-blur-2xl",
           getBorderClasses(),
           variant === "3d" ? "shadow-2xl" : "",
           widthClasses[width],
           className,
         )}
         style={{
-          backgroundColor: `${accentColor.value}20`,
-          borderColor: `${accentColor.value}80`,
-          borderBottomColor: accentColor.value,
+          borderRadius: 24,
+          background: "linear-gradient(180deg, rgba(28,28,36,0.94), rgba(16,16,22,0.96))",
+          borderColor: "rgba(255,255,255,0.08)",
           boxShadow: getBoxShadow(),
         }}
       >
-        {variant === "3d" && (
-          <span
-            className="absolute inset-x-0 top-0 h-[2px] rounded-t-sm"
-            style={{ backgroundColor: `${accentColor.value}80` }}
-          />
-        )}
+        <span
+          className="absolute inset-x-10 top-0 h-px pointer-events-none"
+          style={{ background: `linear-gradient(90deg, transparent, ${accentColor.value}, transparent)` }}
+        />
 
         <div
           ref={headerRef}
-          className="flex items-center justify-between px-6 py-4 border-b-2 flex-shrink-0"
-          style={{
-            borderColor: `${accentColor.value}60`,
-            backgroundColor: `${accentColor.value}30`,
-          }}
+          className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06] flex-shrink-0"
         >
           <div className="flex items-center space-x-3">
             {titleIcon && (
@@ -161,7 +155,7 @@ export function Modal({
               </span>
             )}
             <div className="flex flex-col">
-              <h2 className="text-lg font-smallcaps text-white">
+              <h2 className="font-display text-lg font-semibold text-white">
                 {title}
               </h2>
               {titleSubtitle && <div className="mt-0.5">{titleSubtitle}</div>}

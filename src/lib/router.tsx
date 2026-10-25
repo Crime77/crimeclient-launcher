@@ -5,6 +5,7 @@ import { PlayTab } from "../components/tabs/PlayTab";
 import ModrinthTabV2 from "../components/tabs/ModrinthTabV2";
 import { SkinsTab } from "../components/tabs/SkinsTab";
 import { StoreTab } from "../components/tabs/StoreTab";
+import { ShopTab } from "../components/tabs/ShopTab";
 import { ClipsPage } from "../components/tabs/ClipsPage";
 import { BrowseTabWrapper } from "../components/profiles/BrowseTabWrapper";
 import { ProfilesTabV2 } from "../components/tabs/ProfilesTabV2";
@@ -63,6 +64,10 @@ export const router = createHashRouter([
       {
         path: "skins",
         element: <SkinsTab />,
+      },
+      {
+        path: "shop",
+        element: <ShopTab />,
       },
       {
         path: "capes",

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
+import { Minus, Square, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useThemeStore } from "../../store/useThemeStore";
 import { useMinecraftAuthStore } from "../../store/minecraft-auth-store";
@@ -110,22 +111,20 @@ export function WelcomeScreen() {
       {/* Titlebar strip: drag region + controls, floating over both halves. */}
       <div
         data-tauri-drag-region
-        className="absolute top-0 inset-x-0 h-10 z-30 flex items-center justify-end px-4 gap-3"
+        className="absolute top-0 inset-x-0 h-12 z-30 flex items-center justify-end px-2"
       >
         {([
-          ["minimize", "pixel:minus-solid", "window.minimize"],
-          ["toggleMaximize", "pixel:expand-solid", "window.maximize"],
-          ["close", "pixel:window-close-solid", "window.close"],
-        ] as const).map(([action, icon, labelKey]) => (
+          ["minimize", Minus, "window.minimize", 16],
+          ["toggleMaximize", Square, "window.maximize", 13],
+          ["close", X, "window.close", 17],
+        ] as const).map(([action, Glyph, labelKey, size]) => (
           <button
             key={action}
             onClick={() => handleWindow(action)}
             title={t(labelKey)}
-            className={`w-5 h-5 flex items-center justify-center text-white/50 transition-colors ${
-              action === "close" ? "hover:text-red-500" : "hover:text-white"
-            }`}
+            className={`cc-window-btn ${action === "close" ? "hover:!bg-[#e8314a] hover:!text-white" : ""}`}
           >
-            <Icon icon={icon} className="w-4 h-4" />
+            <Glyph size={size} />
           </button>
         ))}
       </div>
@@ -173,14 +172,17 @@ export function WelcomeScreen() {
         {/* The wordmark is type, not an image — the same treatment the app
             header uses. The painted logo asset is not the current brand. */}
         <div className="relative z-10" style={rise(60)}>
-          <span className="font-smallcaps text-3xl tracking-wider font-bold text-white text-shadow">
-            CrimeClient
+          <span className="flex items-center gap-3">
+            <img src="/logo.png" alt="" className="w-10 h-10 object-contain" draggable={false} />
+            <span className="font-display text-2xl font-bold text-white">
+              Crime<span style={{ color: accent }}>Client</span>
+            </span>
           </span>
         </div>
 
         <div className="relative z-10">
           <h1
-            className="font-smallcaps text-white leading-[0.95] text-[clamp(2.5rem,4.4vw,4.25rem)] max-w-[16ch]"
+            className="font-display font-bold tracking-tight text-white leading-[1.02] text-[clamp(2.5rem,4.4vw,4.25rem)] max-w-[16ch]"
             style={rise(140)}
           >
             {t("welcome.hero.line1")}
@@ -230,7 +232,7 @@ export function WelcomeScreen() {
             style={rise(80)}
           />
 
-          <h2 className="text-4xl font-smallcaps text-white" style={rise(160)}>
+          <h2 className="font-display text-3xl font-bold text-white" style={rise(160)}>
             {t("welcome.panel.title")}
           </h2>
           <p className="mt-3 text-sm font-minecraft text-white/55 leading-relaxed" style={rise(220)}>
@@ -302,16 +304,9 @@ function SignInButton({ accent, loading, onClick, label, loadingLabel }: SignInB
       }}
       onMouseDown={() => setPressed(true)}
       onMouseUp={() => setPressed(false)}
-      className="welcome-round relative w-full h-[58px] overflow-hidden border font-smallcaps text-base tracking-wide text-white disabled:cursor-wait"
+      className="welcome-round cc-play-button relative w-full h-[58px] overflow-hidden text-[15px] font-semibold text-white disabled:cursor-wait"
       style={{
-        backgroundColor: active ? `${accent}59` : `${accent}33`,
-        borderColor: active ? accent : `${accent}80`,
-        boxShadow: active
-          ? `0 10px 30px -8px ${accent}b3, inset 0 1px 0 ${accent}66`
-          : `0 4px 14px -6px ${accent}80, inset 0 1px 0 ${accent}33`,
         transform: pressed ? "translateY(1px)" : active ? "translateY(-2px)" : "none",
-        transition:
-          "background-color 200ms ease, border-color 200ms ease, box-shadow 220ms ease, transform 160ms cubic-bezier(0.22,1,0.36,1)",
       }}
     >
       {active && (

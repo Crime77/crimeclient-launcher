@@ -41,16 +41,29 @@ export const useFontStore = create<FontState>()(
           const family = `"${customFamily.trim()}", sans-serif`;
           root.setProperty("--font-smallcaps", family);
           root.setProperty("--font-minecraft", family);
+          root.removeProperty("--font-adjust");
+          root.removeProperty("--font-tracking");
           return;
         }
 
         const preset = FONT_PRESETS[fontId] ?? FONT_PRESETS[DEFAULT_FONT_ID];
         root.setProperty("--font-smallcaps", preset.smallcaps);
         root.setProperty("--font-minecraft", preset.minecraft);
+        if (preset.adjust) root.setProperty("--font-adjust", String(preset.adjust));
+        else root.removeProperty("--font-adjust");
+        if (preset.tracking) root.setProperty("--font-tracking", preset.tracking);
+        else root.removeProperty("--font-tracking");
       },
     }),
     {
       name: "norisk-font-storage",
+      // v1: CrimeClient design, the old Minecraft default becomes the CrimeClient font
+      version: 1,
+      migrate: (persisted, version) => {
+        const state = persisted as FontState;
+        if (version < 1 && state.fontId === "minecraft") state.fontId = DEFAULT_FONT_ID;
+        return state;
+      },
       onRehydrateStorage: () => (state) => {
         state?.applyFontToDOM();
       },

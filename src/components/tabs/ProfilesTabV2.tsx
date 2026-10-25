@@ -145,11 +145,13 @@ export function ProfilesTabV2() {
 
   // Create groups array with default groups + dynamic groups
   const createGroups = (): GroupTab[] => {
+    const nrcCount = getFilteredCountForGroup("nrc");
     const defaultGroups: GroupTab[] = [
-      { id: "all", name: "All", count: getFilteredCountForGroup("all") },
-      { id: "nrc", name: "NRC", count: getFilteredCountForGroup("nrc") },
-      { id: "server", name: "SERVER", count: getFilteredCountForGroup("server") },
-      { id: "modpacks", name: "MODPACKS", count: getFilteredCountForGroup("modpacks") },
+      { id: "all", name: t("profiles.groups.all"), count: getFilteredCountForGroup("all") },
+      // NoRisk profiles only exist on installs that came over from the NoRisk launcher
+      ...(nrcCount > 0 ? [{ id: "nrc", name: "NRC", count: nrcCount }] : []),
+      { id: "server", name: t("profiles.groups.server"), count: getFilteredCountForGroup("server") },
+      { id: "modpacks", name: t("profiles.groups.modpacks"), count: getFilteredCountForGroup("modpacks") },
     ];
 
     // Get unique profile groups and convert to GroupTab format

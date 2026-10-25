@@ -40,7 +40,7 @@ export const SearchStyleInput = forwardRef<HTMLInputElement, SearchStyleInputPro
 
     return (
       <div className="w-full">
-        <div className="flex items-center gap-2 bg-black/50 rounded-lg px-4 py-3 border border-white/10 hover:border-white/20 transition-colors">
+        <div className="flex items-center gap-2 bg-white/[0.04] rounded-lg px-4 py-3 border border-white/[0.09] hover:bg-white/[0.06] focus-within:border-[var(--accent)] transition-colors">
           {icon && (
             <Icon icon={icon} className="w-4 h-4 text-white/50 flex-shrink-0" />
           )}
@@ -82,7 +82,7 @@ export const SearchStyleTextArea = forwardRef<HTMLTextAreaElement, SearchStyleTe
   ({ className, placeholder = "Enter text...", icon, error, minHeight = "100px", ...props }, ref) => {
     return (
       <div className="w-full">
-        <div className="flex items-start gap-2 bg-black/50 rounded-lg px-4 py-3 border border-white/10 hover:border-white/20 transition-colors">
+        <div className="flex items-start gap-2 bg-white/[0.04] rounded-lg px-4 py-3 border border-white/[0.09] hover:bg-white/[0.06] focus-within:border-[var(--accent)] transition-colors">
           {icon && (
             <Icon icon={icon} className="w-4 h-4 text-white/50 flex-shrink-0 mt-1" />
           )}
@@ -179,9 +179,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
 
     const getBorderClasses = () => {
       if (variant === "3d") {
-        return "border-2 border-b-4";
+        return "border";
       }
-      return "border border-b-2";
+      return "border";
     };
 
     return (
@@ -196,43 +196,21 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             className,
           )}
           style={{
-            backgroundColor: `${accentColor.value}${isHovered || isFocused ? "50" : "30"}`,
+            backgroundColor: isFocused ? "rgba(255,255,255,0.07)" : isHovered ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.04)",
             borderColor: error
               ? "rgba(239, 68, 68, 0.6)"
-              : `${accentColor.value}${isHovered || isFocused ? "90" : "80"}`,
-            borderBottomColor: error
-              ? "rgb(185, 28, 28)"
-              : isHovered || isFocused
-                ? accentColor.hoverValue
-                : accentColor.value,
-            boxShadow:
-              variant === "3d"
-                ? `0 4px 0 rgba(0,0,0,0.3), 0 6px 10px rgba(0,0,0,0.35)`
-                : "none",
-            filter:
-              (isFocused || isHovered) && !props.disabled
-                ? "brightness(1.1)"
-                : "brightness(1)",
+              : isFocused
+                ? accentColor.value
+                : "rgba(255,255,255,0.09)",
+            boxShadow: isFocused && !error ? `0 0 0 3px ${accentColor.value}26` : "none",
+            transition: "background-color 0.15s, border-color 0.15s, box-shadow 0.15s",
             ...createRadiusStyle(borderRadius),
           }}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
-          {variant === "3d" && (
-            <span
-              className="absolute inset-x-0 top-0 h-[2px] transition-colors duration-200"
-              style={{
-                backgroundColor: error
-                  ? "rgba(239, 68, 68, 0.8)"
-                  : isHovered || isFocused
-                    ? accentColor.hoverValue
-                    : `${accentColor.value}80`,
-                opacity: isHovered || isFocused ? 1 : 0.8,                borderTopLeftRadius: borderRadius === 0 ? "0" : `${borderRadius}px`,
-                borderTopRightRadius: borderRadius === 0 ? "0" : `${borderRadius}px`,
-              }}
-            />
-          )}          <div className="flex items-center h-full w-full transition-transform duration-200" style={{
-            transform: isHovered && !props.disabled ? "scale(1.05)" : "scale(1)",
+          <div className="flex items-center h-full w-full transition-transform duration-200" style={{
+            transform: "none",
           }}>
             {icon && (
               <div className="flex items-center justify-center w-10 h-full text-white">

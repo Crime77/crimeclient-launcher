@@ -211,7 +211,7 @@ const calculateColorVariants = (baseColor: string): Partial<AccentColor> => {
   };
 };
 
-export const DEFAULT_BORDER_RADIUS = 0;
+export const DEFAULT_BORDER_RADIUS = 12;
 export const MIN_BORDER_RADIUS = 0;
 export const MAX_BORDER_RADIUS = 32;
 
@@ -569,13 +569,15 @@ export const useThemeStore = create<ThemeState>()(
     }),    {
       name: "norisk-theme-storage",
       // v1: CrimeClient design, existing installs switch once to crimson with animated embers
-      version: 1,
+      // v2: own launcher design with rounded corners
+      version: 2,
       migrate: (persisted, version) => {
         const state = persisted as ThemeState;
         if (version < 1) {
           state.accentColor = ACCENT_COLORS.crimson;
           state.isBackgroundAnimationEnabled = true;
         }
+        if (version < 2) state.borderRadius = DEFAULT_BORDER_RADIUS;
         return state;
       },
       onRehydrateStorage: () => (state) => {

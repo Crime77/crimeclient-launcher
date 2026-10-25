@@ -1,6 +1,6 @@
 # Third-party icon artwork
 
-The launcher bundles 318 icons from the sets below. The artwork is redistributed
+The launcher bundles 315 icons from the sets below. The artwork is redistributed
 unmodified; only the icons actually used are included, extracted from the `@iconify-json/*`
 packages by `scripts/generate-icon-bundle.mjs`.
 
@@ -8,13 +8,13 @@ GENERATED — run `yarn icons` to refresh.
 
 ## Solar (`solar`)
 
-- 252 icons used of 7401
+- 250 icons used of 7401
 - Author: [480 Design](https://www.figma.com/community/file/1166831539721848736)
 - Licence: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) (`CC-BY-4.0`)
 
 ## Pixel Icon (`pixel`)
 
-- 10 icons used of 578
+- 9 icons used of 578
 - Author: [HackerNoon](https://github.com/hackernoon/pixel-icon-library)
 - Licence: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) (`CC-BY-4.0`)
 

@@ -105,7 +105,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
         variant === "3d"
       ) {
         gsap.to(containerRef.current, {
-          boxShadow: `0 6px 0 rgba(0,0,0,0.25), 0 8px 12px rgba(0,0,0,0.4)`,
+          boxShadow: `0 14px 34px -18px rgba(0,0,0,0.85)`,
           duration: 0.2,
           ease: "power2.out",
         });
@@ -122,7 +122,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
         variant === "3d"
       ) {
         gsap.to(containerRef.current, {
-          boxShadow: `0 4px 0 rgba(0,0,0,0.3), 0 6px 10px rgba(0,0,0,0.35)`,
+          boxShadow: `0 10px 30px -18px rgba(0,0,0,0.8)`,
           duration: 0.2,
           ease: "power2.out",
         });
@@ -181,41 +181,29 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
         return "transparent";
       }
 
-      const baseOpacity = isHovered || isFocused ? "50" : "30";
-      return `${colors.main}${baseOpacity}`;
+      return isHovered || isFocused ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.045)";
     };    const getBorderColor = () => {
       if (variant === "minimal") return "transparent";
 
-      return isHovered || isFocused ? `${colors.light}` : `${colors.main}80`;
+      return isFocused ? colors.main : "rgba(255,255,255,0.09)";
     };
 
     const getBorderClasses = () => {
       if (variant === "minimal")
         return "border-b-2 border-white/30 rounded-none";
       if (variant === "filled") return "border-none rounded-[var(--border-radius)]";
-      if (variant === "3d") return "border-2 border-b-4 rounded-[var(--border-radius)]";
-      return "border border-b-2 rounded-[var(--border-radius)]";
+      if (variant === "3d") return "border rounded-[var(--border-radius)]";
+      return "border rounded-[var(--border-radius)]";
     };    const getBoxShadow = () => {
       if (variant === "minimal" || variant === "filled" || variant !== "3d")
         return "none";
 
       return isHovered || isFocused
-        ? `0 6px 0 rgba(0,0,0,0.25), 0 8px 12px rgba(0,0,0,0.4), inset 0 1px 0 ${colors.light}40, inset 0 0 0 1px ${colors.main}20`
-        : `0 4px 0 rgba(0,0,0,0.3), 0 6px 10px rgba(0,0,0,0.35), inset 0 1px 0 ${colors.light}40, inset 0 0 0 1px ${colors.main}20`;
+        ? `0 0 0 3px ${colors.main}26`
+        : "none";
     };    const standardInputContent = (
       <>
-        {variant === "3d" && (
-          <span
-            className="absolute inset-x-0 top-0 h-[2px] rounded-t-sm transition-colors duration-200"
-            style={{
-              backgroundColor:
-                isHovered || isFocused
-                  ? `${colors.light}`
-                  : `${colors.light}80`,
-              opacity: isHovered || isFocused ? 1 : 0.8,
-            }}
-          />
-        )}
+        
 
         <div className="flex items-center justify-center w-full h-full gap-2">
           <div
@@ -224,7 +212,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
               sizeStyles[size].icon,
             )}
             style={{
-              transform: isHovered && !disabled ? "scale(1.05)" : "scale(1)",
+              transform: "none",
             }}
           >
             {loading ? (
@@ -270,7 +258,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
                 sizeStyles[size].icon,
               )}
               style={{
-                transform: isHovered && !disabled ? "scale(1.05)" : "scale(1)",
+                transform: "none",
               }}
               aria-label={t('common.clear_search')}
             >

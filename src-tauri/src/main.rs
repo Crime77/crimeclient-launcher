@@ -21,6 +21,7 @@ use crate::commands::process_command::{
     get_processes, get_processes_by_profile, open_minecraft_log_window, open_single_log_window,
     set_discord_state, stop_process,
 };
+use commands::crime_store_command::crime_store_request;
 use commands::minecraft_auth_command::{
     begin_login, cancel_login, get_accounts, get_active_account, is_flatpak, remove_account, set_active_account
 };
@@ -628,6 +629,7 @@ async fn main() {
             get_active_account,
             set_active_account,
             get_accounts,
+            crime_store_request,
             twitch_available_scopes,
             twitch_begin_device_login,
             twitch_cancel_login,

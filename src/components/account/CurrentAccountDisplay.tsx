@@ -36,9 +36,9 @@ export function CurrentAccountDisplay({
   // Get border classes based on variant
   const getBorderClasses = () => {
     if (variant === "flat") {
-      return "border border-b-2";
+      return "border";
     }
-    return "border-2 border-b-4";
+    return "border";
   };
 
   // Get box shadow based on variant
@@ -46,7 +46,7 @@ export function CurrentAccountDisplay({
     if (variant === "flat") {
       return "none";
     }
-    return `0 8px 0 rgba(0,0,0,0.3), 0 10px 15px rgba(0,0,0,0.35), inset 0 1px 0 ${accentColor.value}40, inset 0 0 0 1px ${accentColor.value}20`;
+    return `0 14px 34px -18px rgba(0,0,0,0.85), inset 0 1px 0 ${accentColor.value}40, inset 0 0 0 1px ${accentColor.value}20`;
   };
 
   // Get hover box shadow based on variant
@@ -54,7 +54,7 @@ export function CurrentAccountDisplay({
     if (variant === "flat") {
       return "none";
     }
-    return "0 10px 0 rgba(0,0,0,0.25), 0 12px 20px rgba(0,0,0,0.4)";
+    return "0 16px 38px -18px rgba(0,0,0,0.9)";
   };
 
   // Get active box shadow based on variant
@@ -62,7 +62,7 @@ export function CurrentAccountDisplay({
     if (variant === "flat") {
       return "none";
     }
-    return "0 2px 0 rgba(0,0,0,0.2), 0 3px 5px rgba(0,0,0,0.3)";
+    return "none";
   };
 
   // Get hover transform based on variant
@@ -100,7 +100,7 @@ export function CurrentAccountDisplay({
           "text-shadow-sm",
           getBorderClasses(),
           variant !== "flat" &&
-            "shadow-[0_8px_0_rgba(0,0,0,0.3),0_10px_15px_rgba(0,0,0,0.35)]",
+            "shadow-[0_14px_34px_-18px_rgba(0,0,0,0.85)]",
           "cursor-pointer",
           getHoverTransform(),
           variant !== "flat" && `hover:shadow-[${getHoverBoxShadow()}]`,
@@ -171,7 +171,7 @@ export function CurrentAccountDisplay({
         "text-shadow-sm",
         getBorderClasses(),
         variant !== "flat" &&
-          "shadow-[0_8px_0_rgba(0,0,0,0.3),0_10px_15px_rgba(0,0,0,0.35)]",
+          "shadow-[0_14px_34px_-18px_rgba(0,0,0,0.85)]",
         "cursor-pointer",
         getHoverTransform(),
         variant !== "flat" && `hover:shadow-[${getHoverBoxShadow()}]`,

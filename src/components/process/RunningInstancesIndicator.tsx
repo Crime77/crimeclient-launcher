@@ -141,19 +141,29 @@ export function RunningInstancesIndicator({
   return (
     <div className={cn("relative", className)}>
       <div ref={buttonRef} className="relative">
-        <Button
-          variant={hasInstances ? "success" : "flat"}
-          size="sm"
+        <button
           onClick={handleOpenLogWindow}
-          icon={<Icon icon="solar:monitor-bold" className="w-4 h-4" />}
-          className="h-10"
+          title={
+            isLoading && instanceCount === 0
+              ? t('instances.loading')
+              : instanceCount === 0
+                ? t('instances.no_instances')
+                : `${instanceCount} ${t('common.instance', { count: instanceCount })}`
+          }
+          className={cn(
+            "cc-free relative flex items-center gap-1.5 h-9 transition-colors",
+            hasInstances
+              ? "px-3 bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25"
+              : "w-9 justify-center text-white/60 hover:text-white hover:bg-white/[0.08]",
+          )}
+          style={{ borderRadius: 9999 }}
         >
-          {isLoading && instanceCount === 0
-            ? t('instances.loading')
-            : instanceCount === 0
-              ? t('instances.no_instances')
-              : `${instanceCount} ${t('common.instance', { count: instanceCount })}`}
-        </Button>
+          <Icon icon="solar:monitor-bold" className="w-[18px] h-[18px]" />
+          {hasInstances && <span className="text-[13px] font-semibold">{instanceCount}</span>}
+          {hasInstances && (
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          )}
+        </button>
       </div>
 
       <Dropdown

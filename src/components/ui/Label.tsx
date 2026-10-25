@@ -132,9 +132,9 @@ export const Label = forwardRef<HTMLDivElement, LabelProps>(
         return "";
       }
       if (variant === "3d") {
-        return "border-2 border-b-4";
+        return "border";
       }
-      return "border border-b-2";
+      return "border";
     };
 
     const getBackgroundColor = () => {
@@ -179,15 +179,7 @@ export const Label = forwardRef<HTMLDivElement, LabelProps>(
         }}
         {...props}
       >
-        {variant === "3d" && (
-          <span
-            className="absolute inset-x-0 top-0 h-[2px] rounded-t-sm"
-            style={{
-              backgroundColor: `${colors.light}80`,
-              opacity: 0.8,
-            }}
-          />
-        )}
+        
 
         {variant === "3d" && (
           <>

@@ -73,7 +73,7 @@ export function Select({
 
     if (triggerRef.current && shouldAnimate && variant === "3d") {
       gsap.to(triggerRef.current, {
-        boxShadow: `0 6px 0 rgba(0,0,0,0.25), 0 8px 12px rgba(0,0,0,0.4)`,
+        boxShadow: `0 14px 34px -18px rgba(0,0,0,0.85)`,
         duration: 0.2,
         ease: "power2.out",
       });
@@ -87,7 +87,7 @@ export function Select({
 
     if (triggerRef.current && shouldAnimate && variant === "3d") {
       gsap.to(triggerRef.current, {
-        boxShadow: `0 4px 0 rgba(0,0,0,0.3), 0 6px 10px rgba(0,0,0,0.35)`,
+        boxShadow: `0 10px 30px -18px rgba(0,0,0,0.8)`,
         duration: 0.2,
         ease: "power2.out",
       });
@@ -130,24 +130,23 @@ export function Select({
   const colors = getVariantColors();
 
   const getBackgroundColor = () => {
-    const baseOpacity = isHovered || isOpen ? "50" : "30";
-    return `${colors.main}${baseOpacity}`;
+    return isHovered || isOpen ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.045)";
   };
 
   const getBorderColor = () => {
-    return isHovered || isOpen ? `${colors.light}` : `${colors.main}80`;
+    return isOpen ? colors.main : "rgba(255,255,255,0.09)";
   };
   const getBorderClasses = () => {
-    if (variant === "3d") return "border-2 border-b-4";
-    return "border border-b-2";
+    if (variant === "3d") return "border";
+    return "border";
   };
 
   const getBoxShadow = () => {
     if (variant !== "3d") return "none";
 
     return isHovered || isOpen
-      ? `0 6px 0 rgba(0,0,0,0.25), 0 8px 12px rgba(0,0,0,0.4), inset 0 1px 0 ${colors.light}40, inset 0 0 0 1px ${colors.main}20`
-      : `0 4px 0 rgba(0,0,0,0.3), 0 6px 10px rgba(0,0,0,0.35), inset 0 1px 0 ${colors.light}40, inset 0 0 0 1px ${colors.main}20`;
+      ? `0 0 0 3px ${colors.main}26`
+      : "none";
   };
 
   const buttonContent = (
@@ -155,7 +154,7 @@ export function Select({
       <div
         className="flex items-center gap-2 truncate transition-transform duration-200"
         style={{
-          transform: isHovered && !disabled ? "scale(1.05)" : "scale(1)",
+          transform: "none",
         }}
       >
         {selectedOption?.icon && (
@@ -250,7 +249,7 @@ export function Select({
         )}        style={{
           backgroundColor: getBackgroundColor(),
           borderColor: getBorderColor(),
-          borderBottomColor: isHovered || isOpen ? colors.light : colors.dark,
+          
           boxShadow: getBoxShadow(),
           filter:
             (isHovered || isOpen) && !disabled
@@ -259,17 +258,7 @@ export function Select({
           ...createRadiusStyle(borderRadius),
         }}
         disabled={disabled}
-      >        {variant === "3d" && (
-          <span
-            className="absolute inset-x-0 top-0 h-[2px] transition-colors duration-200"
-            style={{
-              backgroundColor:
-                isHovered || isOpen ? `${colors.light}` : `${colors.light}80`,
-              opacity: isHovered || isOpen ? 1 : 0.8,              borderTopLeftRadius: borderRadius === 0 ? "0" : `${borderRadius}px`,
-              borderTopRightRadius: borderRadius === 0 ? "0" : `${borderRadius}px`,
-            }}
-          />
-        )}
+      >        
 
         {buttonContent}
       </button>

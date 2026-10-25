@@ -168,6 +168,8 @@ pub async fn begin_login<R: Runtime>(
                                 error: None,
                             }).await?;
 
+                            reconcile_skin_in_background(account.id);
+
                             // Report referral code with account if available
                             if let Err(e) = referral_utils::report_referral_after_login(account.id).await {
                                 warn!("[Login] Failed to report referral: {}", e);
@@ -291,6 +293,8 @@ pub async fn begin_login<R: Runtime>(
                             .login_finish(&code, flow)
                             .await?;
 
+                        reconcile_skin_in_background(account.id);
+
                         // Report referral code with account if available
                         if let Err(e) = referral_utils::report_referral_after_login(account.id).await {
                             warn!("[Login] Failed to report referral: {}", e);
@@ -378,6 +382,13 @@ pub async fn set_active_account(account_id: Uuid) -> Result<(), CommandError> {
         .set_active_account(account_id)
         .await?;
 
+    reconcile_skin_in_background(account_id);
+    Ok(())
+}
+
+/// Loads the account's current Mojang skin into the active-skin cache, which the player on the start page reads.
+/// Needed after a switch and after a fresh sign-in, otherwise the player stays untextured until the next start.
+fn reconcile_skin_in_background(account_id: Uuid) {
     tokio::spawn(async move {
         if let Ok(state) = State::get().await {
             match state.active_skin_manager.reconcile(&account_id.to_string()).await {
@@ -386,12 +397,10 @@ pub async fn set_active_account(account_id: Uuid) -> Result<(), CommandError> {
                         let _ = state.event_state.skin_changed(Some(account_id)).await;
                     }
                 }
-                Err(e) => log::warn!("Skin reconcile after account switch failed: {}", e),
+                Err(e) => log::warn!("Skin reconcile for {} failed: {}", account_id, e),
             }
         }
     });
-
-    Ok(())
 }
 
 /// Get all Minecraft accounts

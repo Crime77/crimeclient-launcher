@@ -109,7 +109,7 @@ export default function EffectPreviewCard({
       ref={cardRef}
       className={cn(
         "relative overflow-hidden transition-all duration-300 p-3 rounded-md h-40",
-        "border border-b-2 cursor-pointer",
+        "border cursor-pointer",
         "bg-black/20 backdrop-blur-md",
         isActive ? "ring-2 ring-white/30" : "hover:bg-black/40",
       )}

@@ -1,3 +1,4 @@
+import "./dev/installMock";
 import "./polyfills";
 import { initializeClipSupport } from "./utils/platform";
 import ReactDOM from "react-dom/client";

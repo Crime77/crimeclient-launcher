@@ -52,14 +52,14 @@ export const NavButton = forwardRef<HTMLButtonElement, NavButtonProps>(
       "font-smallcaps relative overflow-hidden transition-all duration-300",
       "w-16 rounded-md text-white flex items-center justify-center",
       label ? "py-2" : "h-16",
-      variant !== "ghost" && "border-2 border-b-4 border-transparent",
+      variant !== "ghost" && "border border-transparent",
       "text-shadow-sm",
       "focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-1 focus-visible:ring-offset-black/20",
     );
 
     const activeStateClasses = cn(
       variant !== "ghost" && [
-        "border-2 border-b-4",
+        "border",
         "shadow-[0_6px_0_rgba(0,0,0,0.25),0_8px_15px_rgba(0,0,0,0.3)]",
         "hover:translate-y-[-2px] hover:shadow-[0_8px_0_rgba(0,0,0,0.2),0_10px_20px_rgba(0,0,0,0.25)]",
         "active:translate-y-[2px] active:shadow-[0_3px_0_rgba(0,0,0,0.15),0_4px_8px_rgba(0,0,0,0.2)]",
