@@ -325,6 +325,11 @@ impl MinecraftLauncher {
         info!("Adding RAM JVM argument: -Xmx{}M", params.memory_max_mb);
         command.arg(format!("-Xmx{}M", params.memory_max_mb));
 
+        // Trust the Windows certificate store: virus scanners that inspect HTTPS sign with their own root, which Java's
+        // bundled store doesn't know, and then authlib can't reach Mojang ("Failed to authenticate" on every server).
+        #[cfg(target_os = "windows")]
+        command.arg("-Djavax.net.ssl.trustStoreType=WINDOWS-ROOT");
+
         // Check if custom JVM args contain a custom GC setting
         //fix for https://github.com/NoRiskClient/issues/issues/2357
         let custom_gc_patterns = [
