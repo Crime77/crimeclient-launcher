@@ -14,7 +14,6 @@ use tauri::Manager;
 use tauri_plugin_deep_link::DeepLinkExt;
 use utils::updater_utils;
 
-use crate::commands::analytics_command::track_analytics_event;
 use crate::commands::font_command::list_system_fonts;
 use crate::commands::process_command::{
     fetch_crash_report, focus_main_window, get_process, get_process_log_cursor,
@@ -24,10 +23,6 @@ use crate::commands::process_command::{
 use commands::crime_store_command::crime_store_request;
 use commands::minecraft_auth_command::{
     begin_login, cancel_login, get_accounts, get_active_account, is_flatpak, remove_account, set_active_account
-};
-use commands::twitch_command::{
-    twitch_available_scopes, twitch_begin_device_login, twitch_cancel_login, twitch_is_linked,
-    twitch_unlink,
 };
 use commands::minecraft_command::{
     add_skin,
@@ -92,7 +87,6 @@ use commands::file_command::{
 
 // Import config commands
 use commands::config_commands::{get_app_version, get_launcher_config, set_launcher_config};
-use commands::legal_commands::{acknowledge_legal_documents, acknowledge_legal_notice, get_legal_status};
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
@@ -100,13 +94,6 @@ use tauri::{
 
 // Import path commands
 use commands::path_commands::{get_launcher_directory, resolve_image_path};
-
-// Import cape commands
-use commands::cape_command::{
-    browse_capes, check_is_moderator, delete_cape, download_template_and_open_explorer, equip_cape,
-    get_player_capes, unequip_cape, upload_cape, add_favorite_cape, remove_favorite_cape,
-    get_capes_by_hashes, get_owned_capes_list,
-};
 
 use commands::cosmetic_command::{
     get_equipped_cosmetics, get_equipped_cosmetics_cached, get_random_local_emote,
@@ -125,7 +112,7 @@ use commands::vanilla_cape_command::{
 use commands::assets_command::get_or_download_asset_model;
 
 // Import NRC commands
-use commands::nrc_commands::{check_update_available_command, download_and_install_update_command, get_news_and_changelogs_command};
+use commands::nrc_commands::{check_update_available_command, download_and_install_update_command};
 
 // Import Content commands
 use commands::content_command::{
@@ -143,16 +130,6 @@ use commands::java_command::{
     invalidate_java_cache_command, validate_java_path_command,
 };
 
-use commands::friends_command::{
-    get_friends, get_pending_requests, get_friends_user, send_friend_request,
-    accept_friend_request, deny_friend_request, remove_friend, set_online_status,
-    toggle_friend_ping, update_privacy_setting, connect_friends_websocket,
-    disconnect_friends_websocket, is_friends_websocket_connected, get_or_create_chat,
-    get_private_chats, get_chat_messages, send_chat_message, edit_chat_message,
-    delete_chat_message, send_typing_indicator, add_message_reaction,
-    remove_message_reaction,
-};
-
 #[tokio::main]
 async fn main() {
     #[cfg(target_os = "linux")]
@@ -162,7 +139,7 @@ async fn main() {
         eprintln!("FEHLER: Logging konnte nicht initialisiert werden: {}", e);
     }
 
-    info!("Starting NoRiskClient Launcher...");
+    info!("Starting CrimeClient Launcher...");
 
     tauri::Builder::default()
         .plugin(tauri_plugin_process::init())
@@ -219,14 +196,14 @@ async fn main() {
             }
 
             // --- Initialize System Tray (Tauri 2.0) ---
-            let show_item = MenuItem::with_id(app, "show", "Show NoRisk Launcher", true, None::<&str>)?;
-            let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+            let show_item = MenuItem::with_id(app, "show", "CrimeClient Launcher öffnen", true, None::<&str>)?;
+            let quit_item = MenuItem::with_id(app, "quit", "Beenden", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&show_item, &quit_item])?;
 
             let _tray = TrayIconBuilder::new()
                 .menu(&menu)
                 .show_menu_on_left_click(false)
-                .tooltip("NoRisk Client Launcher")
+                .tooltip("CrimeClient Launcher")
                 .icon(app.default_window_icon().unwrap().clone())
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "show" => {
@@ -340,20 +317,6 @@ async fn main() {
             }
             // --- End Deep Link Setup ---
 
-            // --- Handle .noriskpack file opening on initial startup (all platforms) ---
-            // The single-instance plugin does not handle the *very first* launch with arguments.
-            // We still need to check std::env::args() here for that first launch.
-            /*info!("Checking for startup file arguments...");
-            let startup_args: Vec<String> = std::env::args().collect();
-            if startup_args.len() > 1 { // args[0] is exe path, check if there are more
-                let handle_clone = app_handle.clone();
-                tauri::async_runtime::spawn(async move {
-                    // Pass all startup_args; handle_noriskpack_file_paths will skip the exe path if needed
-                    norisk_packs::handle_noriskpack_file_paths(&handle_clone, startup_args).await;
-                });
-            }*/
-            // --- End .noriskpack handling on startup ---
-
             // Task for State Init and Updater Window
             let state_init_app_handle = app_handle.clone();
             tauri::async_runtime::spawn(async move {
@@ -389,7 +352,7 @@ async fn main() {
                             .dialog()
                             .message(
                                 [
-                                    "The NoRisk Launcher could not start.".to_string(),
+                                    "The CrimeClient Launcher could not start.".to_string(),
                                     String::new(),
                                     e.to_string(),
                                     String::new(),
@@ -401,12 +364,12 @@ async fn main() {
                                     )
                                     .to_string(),
                                     String::new(),
-                                    "Support: https://discord.norisk.gg".to_string(),
+                                    format!("Support: {}", config::CRIMECLIENT_DISCORD_URL),
                                 ]
                                 .join("\n"),
                             )
                             .kind(MessageDialogKind::Error)
-                            .title("NoRisk Launcher - Startup Failed")
+                            .title("CrimeClient Launcher - Startup Failed")
                             .buttons(MessageDialogButtons::OkCancelCustom(
                                 "Reset database and restart".to_string(),
                                 "Quit".to_string(),
@@ -425,7 +388,7 @@ async fn main() {
                                         .dialog()
                                         .message(format!("{}", err))
                                         .kind(MessageDialogKind::Error)
-                                        .title("NoRisk Launcher - Reset Failed")
+                                        .title("CrimeClient Launcher - Reset Failed")
                                         .blocking_show();
                                 }
                             }
@@ -468,10 +431,8 @@ async fn main() {
                     Ok(state_manager_instance) => {
                         let config = state_manager_instance.config_manager.get_config().await;
                         let check_beta_channel = config.check_beta_channel;
-                        // CrimeClient: NoRisk's self-updater would download and run the NoRisk installer; it stays
-                        // off until CrimeClient has its own update feed.
-                        let _ = config.auto_check_updates;
-                        let mut auto_check_updates_enabled = false;
+                        // checks CrimeClient's own signed feed (updater_utils::CRIMECLIENT_UPDATE_URL)
+                        let mut auto_check_updates_enabled = config.auto_check_updates;
 
                         // Disable auto-updates when running in Flatpak
                         if updater_utils::is_flatpak() {
@@ -524,11 +485,13 @@ async fn main() {
                                 use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
                                 let _ = state_init_app_handle
                                     .dialog()
-                                    .message("The NoRisk Launcher encountered a critical error.\n\n\
-                                        Please join our Discord for support:\n\
-                                        https://discord.norisk.gg")
+                                    .message(format!(
+                                        "The CrimeClient Launcher encountered a critical error.\n\n\
+                                        Please join our Discord for support:\n{}",
+                                        config::CRIMECLIENT_DISCORD_URL
+                                    ))
                                     .kind(MessageDialogKind::Error)
-                                    .title("NoRisk Launcher - Critical Error")
+                                    .title("CrimeClient Launcher - Critical Error")
                                     .blocking_show();
                             }
 
@@ -543,11 +506,13 @@ async fn main() {
                         use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
                         let _ = state_init_app_handle
                             .dialog()
-                            .message("The NoRisk Launcher encountered a critical error.\n\n\
-                                Please join our Discord for support:\n\
-                                https://discord.norisk.gg")
+                            .message(format!(
+                                "The CrimeClient Launcher encountered a critical error.\n\n\
+                                Please join our Discord for support:\n{}",
+                                config::CRIMECLIENT_DISCORD_URL
+                            ))
                             .kind(MessageDialogKind::Error)
-                            .title("NoRisk Launcher - Critical Error")
+                            .title("CrimeClient Launcher - Critical Error")
                             .blocking_show();
                     }
 
@@ -560,8 +525,6 @@ async fn main() {
                 // --- Test Unified Mod Versions ---
                 //debug_utils::debug_unified_mod_versions().await;
             });
-
-            utils::screen_time::spawn(app_handle.clone());
 
             // --- Register Focus Event Listener for Discord RPC ---
             if let Some(main_window) = app.get_webview_window("main") {
@@ -586,7 +549,6 @@ async fn main() {
                 // --- Handle window close request (from taskbar, etc.) ---
                 main_window.listen("tauri://close-requested", move |_event| {
                     info!("Window close requested via system (taskbar, etc.). Exiting application.");
-                    utils::screen_time::report_before_exit();
                     std::process::exit(0);
                 });
             } else {
@@ -630,11 +592,6 @@ async fn main() {
             set_active_account,
             get_accounts,
             crime_store_request,
-            twitch_available_scopes,
-            twitch_begin_device_login,
-            twitch_cancel_login,
-            twitch_unlink,
-            twitch_is_linked,
             search_modrinth_mods,
             search_modrinth_projects,
             search_mods_unified_command,
@@ -688,9 +645,6 @@ async fn main() {
             copy_profile,
             export_profile,
             get_launcher_config,
-            get_legal_status,
-            acknowledge_legal_documents,
-            acknowledge_legal_notice,
             set_launcher_config,
             get_launcher_directory,
             resolve_image_path,
@@ -709,22 +663,12 @@ async fn main() {
             remove_skin,
             update_skin_properties,
             set_discord_state,
-            browse_capes,
-            get_player_capes,
             get_active_creator_code,
             get_selected_player_icon,
             get_selected_player_icon_cached,
             get_equipped_cosmetics,
             get_equipped_cosmetics_cached,
             get_random_local_emote,
-            get_owned_capes_list,
-            equip_cape,
-            delete_cape,
-            check_is_moderator,
-            upload_cape,
-            unequip_cape,
-            add_favorite_cape,
-            remove_favorite_cape,
             refresh_norisk_packs,
             refresh_standard_versions,
             is_content_installed,
@@ -753,7 +697,6 @@ async fn main() {
             open_file,
             read_file_bytes,
             get_app_version,
-            get_news_and_changelogs_command,
             check_update_available_command,
             download_and_install_update_command,
             get_modrinth_tags_command,
@@ -772,7 +715,6 @@ async fn main() {
             commands::minecraft_command::add_skin_locally,
             commands::minecraft_command::get_base64_from_skin_source_command,
             commands::file_command::get_image_preview,
-            download_template_and_open_explorer,
             get_all_profiles_and_last_played,
             get_local_content,
             install_local_content_to_profile,
@@ -780,29 +722,10 @@ async fn main() {
             commands::minecraft_command::get_face_avatar,
             commands::skin_render_command::get_cached_skin_render,
             commands::skin_render_command::store_skin_render,
-            commands::applixir_command::applixir_show_ad,
-            commands::applixir_command::applixir_mint_session,
-            commands::applixir_command::get_afkpoints_balance,
-            commands::applixir_command::afk_shop_catalog,
-            commands::applixir_command::afk_shop_purchase,
-            commands::applixir_command::afk_daily_state,
-            commands::applixir_command::afk_daily_claim,
-            commands::nrc_commands::discord_auth_link,
-            commands::nrc_commands::discord_auth_status,
-            commands::nrc_commands::discord_auth_unlink,
-            commands::nrc_commands::github_auth_link,
-            commands::nrc_commands::github_auth_status,
-            commands::nrc_commands::github_auth_unlink,
             commands::nrc_commands::check_crash_log_command,
             commands::crash_fix_command::apply_crash_fix,
             commands::crash_fix_command::revert_crash_fix,
             commands::nrc_commands::log_message_command,
-            commands::flagsmith_commands::set_blocked_mods_config,
-            commands::flagsmith_commands::get_blocked_mods_config,
-            commands::flagsmith_commands::is_filename_blocked,
-            commands::flagsmith_commands::is_mod_id_blocked,
-            commands::flagsmith_commands::is_modrinth_project_id_blocked,
-            commands::flagsmith_commands::refresh_blocked_mods_config,
             commands::pack_rollout_commands::set_pack_rollout_config,
             commands::pack_rollout_commands::get_pack_rollout_config,
             commands::pack_rollout_commands::get_pack_rollout_status,
@@ -815,28 +738,11 @@ async fn main() {
             commands::permission_commands::get_cached_permissions,
             commands::permission_commands::has_permission,
             commands::permission_commands::get_granted_permissions,
-            commands::tester_command::fetch_tester_queue_count,
-            commands::tester_command::fetch_tester_queue,
-            commands::tester_command::submit_tester_vote,
-            commands::tester_command::open_tester_window,
-            commands::nrc_commands::get_mobile_app_token,
-            commands::nrc_commands::reset_mobile_app_token,
-            commands::nrc_commands::get_advent_calendar_command,
-            commands::nrc_commands::claim_advent_calendar_day_command,
-            commands::nrc_commands::get_unique_players_24h_command,
-            commands::nrc_commands::get_referral_info,
-            commands::nrc_commands::get_notifications,
-            commands::nrc_commands::mark_all_notifications_read,
-            commands::nrc_commands::mark_notification_read,
-            get_capes_by_hashes,
             get_owned_vanilla_capes,
             get_currently_equipped_vanilla_cape,
             equip_vanilla_cape,
             get_vanilla_cape_info,
             refresh_vanilla_cape_data,
-            track_analytics_event,
-            commands::analytics_command::get_system_os_info,
-            commands::analytics_command::set_screen_time_tab,
             commands::profile_command::launch_profile_with_overrides,
             commands::profile_command::launch_temp_profile,
             commands::profile_command::add_profile_symlink,
@@ -883,36 +789,8 @@ async fn main() {
             commands::profile_command::get_default_profile_path,
             commands::profile_command::get_profile_disk_size,
             get_or_download_asset_model,
-            get_friends,
-            get_pending_requests,
-            get_friends_user,
-            send_friend_request,
-            accept_friend_request,
-            deny_friend_request,
-            remove_friend,
-            set_online_status,
-            toggle_friend_ping,
-            update_privacy_setting,
-            connect_friends_websocket,
-            disconnect_friends_websocket,
-            is_friends_websocket_connected,
-            get_or_create_chat,
-            get_private_chats,
-            get_chat_messages,
-            send_chat_message,
-            edit_chat_message,
-            delete_chat_message,
-            send_typing_indicator,
-            add_message_reaction,
-            remove_message_reaction,
             commands::deep_link_handler::confirm_auth_bridge,
             commands::deep_link_handler::take_pending_deep_links,
-            commands::support_command::support_request_fetch,
-            commands::support_command::support_request_prepare,
-            commands::support_command::support_request_execute_action,
-            commands::support_command::support_request_submit,
-            commands::support_command::support_request_decline,
-            commands::support_command::support_request_close,
             commands::clip_commands::capture_apply_settings,
             commands::clip_commands::capture_release_hotkeys,
             commands::clip_commands::capture_status,
@@ -946,10 +824,6 @@ async fn main() {
         .run(
             #[allow(unused_variables)]
             |app_handle, event| {
-                if matches!(event, tauri::RunEvent::Exit) {
-                    utils::screen_time::report_before_exit();
-                }
-
                 #[cfg(target_os = "macos")]
                 if let tauri::RunEvent::ExitRequested { api, code, .. } = event {
                     use std::sync::atomic::{AtomicBool, Ordering};

@@ -20,19 +20,6 @@ pub struct AuthBridgeResult {
     pub message: String,
 }
 
-#[derive(Clone, Serialize)]
-pub struct TwitchDeepLinkRequest {
-    pub action: String,
-}
-
-#[derive(Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SupportDeepLinkRequest {
-    pub code: String,
-}
-
-pub const SUPPORT_REQUEST_EVENT: &str = "deep-link-support-request";
-
 #[derive(Clone, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct PendingDeepLinkEvent {
@@ -113,14 +100,6 @@ pub async fn handle_deep_link(app_handle: &AppHandle, urls: Vec<Url>) {
                     warn!("[DeepLink] Unknown auth path: {}", url.path());
                 }
             }
-            Some("twitch") => handle_twitch_deep_link(app_handle, &url).await,
-            Some("support") => {
-                if url.path() == "/request" {
-                    handle_support_request(app_handle, &url);
-                } else {
-                    warn!("[DeepLink] Unknown support path: {}", url.path());
-                }
-            }
             Some(host) => {
                 warn!("[DeepLink] Unknown deep link host: {}", host);
             }
@@ -133,43 +112,6 @@ pub async fn handle_deep_link(app_handle: &AppHandle, urls: Vec<Url>) {
             }
         }
     }
-}
-
-fn handle_support_request(app_handle: &AppHandle, url: &Url) {
-    let raw_code = url
-        .query_pairs()
-        .find(|(key, _)| key == "code")
-        .map(|(_, value)| value.to_string());
-
-    let Some(code) = raw_code.as_deref().and_then(crate::support::normalize_code) else {
-        warn!("[DeepLink] Support request link with missing or invalid code ignored");
-        return;
-    };
-
-    info!("[DeepLink] Support request received");
-    focus_main_window(app_handle);
-    deliver(app_handle, SUPPORT_REQUEST_EVENT, SupportDeepLinkRequest { code });
-}
-
-async fn handle_twitch_deep_link(app_handle: &AppHandle, url: &Url) {
-    let action = match url.path() {
-        "/link" => "link",
-        "/unlink" => "unlink",
-        "/change" => "change",
-        path => {
-            warn!("[DeepLink] Unknown Twitch path: {}", path);
-            return;
-        }
-    };
-    focus_main_window(app_handle);
-    info!("[DeepLink] Twitch {} request received", action);
-    deliver(
-        app_handle,
-        "deep-link-twitch-request",
-        TwitchDeepLinkRequest {
-            action: action.to_string(),
-        },
-    );
 }
 
 pub fn is_deep_link_launch(argv: &[String]) -> bool {

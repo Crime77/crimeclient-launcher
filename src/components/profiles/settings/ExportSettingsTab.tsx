@@ -28,12 +28,6 @@ const EXPORT_FORMATS: {
   disabled?: boolean;
 }[] = [
   {
-    value: "noriskpack",
-    labelKey: "export.format_noriskpack",
-    extension: "noriskpack",
-    image: "/logo.png",
-  },
-  {
     value: "mrpack",
     labelKey: "export.format_mrpack",
     extension: "mrpack",
@@ -43,7 +37,7 @@ const EXPORT_FORMATS: {
     value: "curseforge",
     labelKey: "export.format_curseforge",
     extension: "zip",
-    image: "https://cdn.norisk.gg/misc/curseforge.webp",
+    image: "/icons/curseforge.svg",
   },
 ];
 
@@ -72,7 +66,7 @@ export function ExportSettingsTab({
   const { t } = useTranslation();
   const [exportFilename, setExportFilename] = useState(profile.name);
   const [exportFormat, setExportFormat] =
-    useState<ExportPackFormat>("noriskpack");
+    useState<ExportPackFormat>("mrpack");
   const [selectedExportPaths, setSelectedExportPaths] = useState<Set<string>>(
     new Set()
   );

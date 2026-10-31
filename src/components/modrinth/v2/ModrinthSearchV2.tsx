@@ -21,7 +21,6 @@ import type {
   UnifiedVersion
 } from '../../../types/unified';
 import { ModPlatform, UnifiedSortType, UnifiedProjectType } from '../../../types/unified';
-import { getBlockedModsConfig, getModNoRiskStatus } from '../../../services/flagsmith-service';
 import type {
   ModrinthProjectType,
   ModrinthSearchResponse,
@@ -205,9 +204,6 @@ export function ModrinthSearchV2({
     { value: UnifiedSortType.Updated, label: t('content.search.sort.updated'), icon: 'solar:refresh-bold' },
   ];
 
-  // State for blocked mods configuration
-  const [blockedModsConfigLoaded, setBlockedModsConfigLoaded] = useState(false);
-
   const [allCategoriesData, setAllCategoriesData] = useState<ModrinthCategory[]>([]);
   const [gameVersionsData, setGameVersionsData] = useState<ModrinthGameVersion[]>([]);
   const [allLoadersData, setAllLoadersData] = useState<ModrinthLoader[]>([]);
@@ -307,25 +303,6 @@ export function ModrinthSearchV2({
         applyTags(tags);
       })
       .catch((err) => console.error("Failed to load filter data:", err));
-  }, []);
-
-  // Load blocked mods config on mount (cached from nrc-service if already loaded)
-  useEffect(() => {
-    const loadBlockedModsConfig = async () => {
-      try {
-        console.log('[ModrinthSearchV2] Getting blocked mods config (cached if already loaded)...');
-        const config = await getBlockedModsConfig();
-        console.log('[ModrinthSearchV2] Blocked mods config available:', config);
-        setBlockedModsConfigLoaded(true);
-      } catch (error) {
-        console.error('[ModrinthSearchV2] Failed to load blocked mods config:', error);
-        console.error('[ModrinthSearchV2] Error details:', error);
-        // Set to true anyway so we can use the hardcoded test ID
-        console.log('[ModrinthSearchV2] Setting blockedModsConfigLoaded to true anyway for hardcoded IDs');
-        setBlockedModsConfigLoaded(true);
-      }
-    };
-    loadBlockedModsConfig();
   }, []);
 
   // Define preferred loader order
@@ -716,19 +693,8 @@ export function ModrinthSearchV2({
         project_id: projectId
       });
       
-      // Add NoRisk status to each version
-      const versionsWithNoRiskStatus = response.versions.map(version => {
-        const primaryFile = version.files.find(file => file.primary) || version.files[0];
-        const filename = primaryFile?.filename || '';
-        const noRiskStatus = getModNoRiskStatus(filename, projectId, version.id);
-        
-        return {
-          ...version,
-          noRiskStatus // Add this property ('blocked' | 'warning' | null)
-        };
-      });
-      
-      const sortedVersions = versionsWithNoRiskStatus.sort((a, b) => new Date(b.date_published).getTime() - new Date(a.date_published).getTime());
+      // CrimeClient has no NoRisk block list, so no version is blocked or flagged
+      const sortedVersions = response.versions.map(version => ({ ...version, noRiskStatus: null })).sort((a, b) => new Date(b.date_published).getTime() - new Date(a.date_published).getTime());
 
       setExpandedVersions(prev => ({ ...prev, [projectId]: sortedVersions }));
       // Initialize the number of displayed versions for this project
@@ -2814,7 +2780,7 @@ export function ModrinthSearchV2({
         console.warn("[ModrinthSearchV2] Unhandled project_type for NrContentType mapping in toggle:", project.project_type);
     }
 
-    // Check if this is a NoRisk Pack item
+    // Check if this is a CrimeClient pack item
     if (currentVersionStatus?.norisk_pack_item_details?.norisk_mod_identifier) {
       const noriskIdentifier = currentVersionStatus.norisk_pack_item_details.norisk_mod_identifier;
       
@@ -2882,12 +2848,12 @@ export function ModrinthSearchV2({
           return { versionName: version.version_number };
         },
         {
-          loading: `${toastMessage} NoRisk Pack item: ${project.title} (${version.version_number})...`,
-          success: ({ versionName }) => `Successfully ${successMessage} NoRisk Pack item: ${project.title} (${versionName})`,
-          error: (err) => `Failed to ${toastMessage.toLowerCase()} NoRisk Pack item: ${err.message || parseErrorMessage(err)}`
+          loading: `${toastMessage} CrimeClient pack item: ${project.title} (${version.version_number})...`,
+          success: ({ versionName }) => `Successfully ${successMessage} CrimeClient pack item: ${project.title} (${versionName})`,
+          error: (err) => `Failed to ${toastMessage.toLowerCase()} CrimeClient pack item: ${err.message || parseErrorMessage(err)}`
         }
       ).catch(err => {
-        console.error(`Error ${toastMessage.toLowerCase()} NoRisk Pack item:`, err);
+        console.error(`Error ${toastMessage.toLowerCase()} CrimeClient pack item:`, err);
       });
       
       return; // Exit after handling NoRisk pack item
@@ -2968,20 +2934,8 @@ export function ModrinthSearchV2({
     norisk_pack_item_details: null,
   };
 
-  // Helper function to get NoRisk status for a project
-  const getProjectNoRiskStatus = (project: UnifiedModSearchResult): 'blocked' | 'warning' | null => {
-    console.log('[getProjectNoRiskStatus] Checking project:', project.title, 'ID:', project.project_id);
-    console.log('[getProjectNoRiskStatus] Config loaded:', blockedModsConfigLoaded);
-    
-    if (!blockedModsConfigLoaded) {
-      console.log('[getProjectNoRiskStatus] Config not loaded yet, returning null');
-      return null;
-    }
-    
-    const result = getModNoRiskStatus('', project.project_id, null);
-    console.log('[getProjectNoRiskStatus] Result for', project.project_id, ':', result);
-    return result;
-  };
+  // CrimeClient has no NoRisk block list, so no project is blocked or flagged
+  const getProjectNoRiskStatus = (_project: UnifiedModSearchResult): 'blocked' | 'warning' | null => null;
 
   // Helper function to check if a project is blocked (for backward compatibility)
   const isProjectBlocked = (project: UnifiedModSearchResult): boolean => {

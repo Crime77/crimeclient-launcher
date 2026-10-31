@@ -1,6 +1,7 @@
 "use client";
 
 import { toast } from "react-hot-toast";
+import { DISCORD_INVITE_URL } from "../../config/links";
 import { parseErrorMessage } from "../../utils/error-utils";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -24,7 +25,6 @@ import { FloatingActionBar, type FABActionConfig } from "../profiles/v3/shared/F
 import { useSyncPacks } from "./useSyncPacks";
 import { BetaNotice } from "../ui/BetaNotice";
 
-const SYNC_PACKS_DISCORD_URL = "https://discord.norisk.gg";
 
 preloadIcons([
   "solar:arrow-left-linear",
@@ -241,7 +241,7 @@ export function SyncPacksPage() {
           tag={t("syncPacks.betaTag")}
           hint={t("syncPacks.description")}
           feedbackLabel={t("syncPacks.betaFeedbackLink")}
-          feedbackUrl={SYNC_PACKS_DISCORD_URL}
+          feedbackUrl={DISCORD_INVITE_URL}
         />
 
         {conflicts.length > 0 && (

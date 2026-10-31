@@ -15,7 +15,6 @@ import { useGlobalModal } from "../../../hooks/useGlobalModal";
 import { useLauncherTheme } from "../../../hooks/useLauncherTheme";
 import { usePermission } from "../../../hooks/usePermission";
 import { PERMISSION } from "../../../constants/permissions";
-import { invalidateAnalyticsCache } from "../../../services/analytics-service";
 import { LANGUAGE_OPTIONS, type SupportedLanguage } from "../../../i18n";
 import { useSettingsConfig, useSettingsKeywords } from "./settings-context";
 import { isWindows } from "../../../utils/platform";
@@ -24,7 +23,7 @@ export function GeneralTab() {
   const { t } = useTranslation();
   const kw = useSettingsKeywords();
   const { config, tempConfig, setTempConfig, saving } = useSettingsConfig();
-  const { language, setLanguage, accentColor, borderRadius, setBorderRadius, setAnalyticsConsent } =
+  const { language, setLanguage, accentColor, borderRadius, setBorderRadius } =
     useThemeStore();
   const { showModal, hideModal } = useGlobalModal();
   const { isThemeActive } = useLauncherTheme();
@@ -182,19 +181,7 @@ export function GeneralTab() {
             size="md"
           />
         </SettingRow>
-        <SettingRow
-          label={t("settings.beta_updates")}
-          description={t("settings.beta_updates.tooltip")}
-          searchKeywords={kw("settings.beta_updates", "beta", "update", "channel", "kanal")}
-          disabled={saving}
-        >
-          <ToggleSwitch
-            checked={tempConfig?.check_beta_channel || false}
-            onChange={(checked) => tempConfig && setTempConfig({ ...tempConfig, check_beta_channel: checked })}
-            disabled={saving}
-            size="md"
-          />
-        </SettingRow>
+        {/* no beta channel: CrimeClient has one update feed (latest.json) */}
         {canShowExperimental && (
           <SettingRow
             label={t("settings.experimental_mode")}
@@ -232,28 +219,6 @@ export function GeneralTab() {
           <ToggleSwitch
             checked={tempConfig?.hide_on_process_start || false}
             onChange={(checked) => tempConfig && setTempConfig({ ...tempConfig, hide_on_process_start: checked })}
-            disabled={saving}
-            size="md"
-          />
-        </SettingRow>
-        <SettingRow
-          label={t("analytics.settings.label")}
-          description={t("analytics.settings.tooltip")}
-          searchKeywords={kw("analytics.settings.label", "analytics", "analyse", "telemetry", "telemetrie", "tracking")}
-          disabled={saving}
-        >
-          <ToggleSwitch
-            checked={tempConfig?.enable_analytics || false}
-            onChange={(checked) => {
-              if (tempConfig) {
-                setTempConfig({ ...tempConfig, enable_analytics: checked });
-                setAnalyticsConsent({
-                  hasMadeDecision: true,
-                  decision: checked ? 'accepted' : 'declined',
-                });
-                invalidateAnalyticsCache();
-              }
-            }}
             disabled={saving}
             size="md"
           />

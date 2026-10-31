@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>de.crime77.CrimeClientLauncher</id>
+
+  <name>CrimeClient Launcher</name>
+  <summary>Launcher for CrimeClient and the CraftAttack server</summary>
+
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-only</project_license>
+
+  <developer id="de.crime77">
+    <name>crime77</name>
+  </developer>
+
+  <description>
+    <p>
+      Installs and starts Minecraft with CrimeClient. Based on the NoRisk Client Launcher (GPL-3.0).
+    </p>
+  </description>
+
+  <launchable type="desktop-id">de.crime77.CrimeClientLauncher.desktop</launchable>
+
+  <url type="homepage">https://crime77.duckdns.org/</url>
+  <url type="contribute">https://github.com/Crime77/crimeclient-launcher</url>
+  <url type="bugtracker">https://discord.gg/aWetZdEnce</url>
+
+  <content_rating type="oars-1.1" />
+
+  <releases>
+    <release version="0.2.0" date="2026-10-30" />
+  </releases>
+</component>

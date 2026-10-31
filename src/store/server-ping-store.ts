@@ -115,6 +115,8 @@ export const useServerPingStore = create<ServerPingState>()(
           set((state) => ({
             pinging: new Set([...state.pinging].filter(a => a !== address))
           }));
+          // subscribers still hear about it, so a status card can show the server as offline
+          get().subscribers[address]?.forEach(callback => callback(info));
         }
       })
       .catch((err) => {
@@ -122,6 +124,12 @@ export const useServerPingStore = create<ServerPingState>()(
         set((state) => ({
           pinging: new Set([...state.pinging].filter(a => a !== address))
         }));
+        const failed: ServerPingInfo = {
+          description: null, description_json: null, version_name: null, version_protocol: null,
+          players_online: null, players_max: null, favicon_base64: null, latency_ms: null,
+          error: String(err),
+        };
+        get().subscribers[address]?.forEach(callback => callback(failed));
       });
   },
 

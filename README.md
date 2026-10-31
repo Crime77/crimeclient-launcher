@@ -15,8 +15,12 @@ seinerseits auf [LiquidLauncher](https://github.com/CCBlueX/LiquidLauncher) aufb
 Geändert gegenüber dem Original (Details in der Git-Historie, Branch `crimeclient`):
 
 - eigene Oberfläche (Startseite, Navigation, Glas-Design, Schriften Inter und Sora), Name, Icon und Datenordner
-- eigener Microsoft-Login (direktes OAuth), keine Verbindung zu NoRisk-Servern, kein Selbst-Updater, keine Analytics
-- Profile und Modpack kommen von der CrimeClient-API, News aus dem CrimeClient-Changelog
+- eigener Microsoft-Login (direktes OAuth), keine Verbindung zu NoRisk-Servern, keine Analytics, kein Freunde-/Chat-System
+- Profile und Modpack kommen von der CrimeClient-API, News aus dem CrimeClient-Changelog, der Server auf der
+  Startseite aus `launcher/servers.json`
+- eigener Selbst-Updater: `latest.json` der CrimeClient-API, signiert mit einem eigenen Schlüssel
+  (`CRIMECLIENT_UPDATE_URL` überschreibt die Adresse zum Testen)
+- Discord-Status über die CrimeClient-App; CrimeClient im Spiel übergibt seinen Text an den Launcher
 - Shard-Shop für CrimeClient-Cosmetics (`src-tauri/src/commands/crime_store_command.rs`, `src/components/tabs/ShopTab.tsx`)
 - Fehlerbehebungen: Classpath-Pfade kanonisieren, Skin nach dem ersten Login laden,
   Windows-Zertifikatsspeicher für das Spiel (`-Djavax.net.ssl.trustStoreType=WINDOWS-ROOT`)
@@ -36,6 +40,10 @@ npx yarn install
 npx yarn tauri dev                         # Entwicklung
 npx yarn tauri build --bundles nsis        # Installer nach src-tauri/target/release/bundle/nsis/
 ```
+
+Der Build signiert das Update (`.sig` neben dem Installer) und braucht dafür den privaten Schlüssel, z. B.
+`TAURI_SIGNING_PRIVATE_KEY=~/.tauri/crimeclient-launcher.key TAURI_SIGNING_PRIVATE_KEY_PASSWORD=""`. Wer selbst baut,
+erzeugt mit `npx tauri signer generate` ein eigenes Paar und trägt den öffentlichen Schlüssel in `tauri.conf.json` ein.
 
 `yarn native-deps` lädt beim ersten Start die FFmpeg- und Graphics-Hook-Bündel für die Clip-Aufnahme (Hash-geprüft).
 

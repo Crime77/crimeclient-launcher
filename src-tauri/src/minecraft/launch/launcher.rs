@@ -370,6 +370,11 @@ impl MinecraftLauncher {
 
         // Pass meta dir to game client for shared Discord state file
         command.arg(format!("-Dnorisk.meta.dir={}", crate::config::LAUNCHER_DIRECTORY.meta_dir().display()));
+        // With the launcher's own activity on, CrimeClient writes its texts to <meta>/discord/client.<pid>.json
+        // instead of connecting to Discord itself, so Discord shows one activity
+        if state.discord_manager.hands_off_to_launcher().await {
+            command.arg("-Dcrimeclient.launcher.discord=true");
+        }
 
         // Hand off asset management to the in-game client only for packs whose
         // client owns asset management (see `client_managed_assets`). Every

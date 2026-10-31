@@ -70,14 +70,28 @@ pub fn is_flatpak() -> bool {
 /// # Returns
 ///
 /// * `Result<Option<UpdateCheckResult>>` - Detailed update information with updater instance, or None if up to date.
-/// Set once CrimeClient serves its own signed launcher updates.
-const CRIMECLIENT_UPDATE_FEED: bool = false;
+/// The launcher checks CrimeClient's own signed update feed.
+const CRIMECLIENT_UPDATE_FEED: bool = true;
+
+/// The launcher's update manifest in Tauri's static format ({version, notes, pub_date, platforms}), written by
+/// tools/publish_launcher.sh in CraftCosmetics. There is one feed; the beta channel setting is not used.
+const CRIMECLIENT_UPDATE_URL: &str = "https://crime77.duckdns.org/mod/api/launcher/latest.json";
+
+/// `CRIMECLIENT_UPDATE_URL` in the environment overrides the feed, e.g. for testing against a local manifest.
+fn update_endpoint() -> std::result::Result<tauri::Url, String> {
+    let url = std::env::var("CRIMECLIENT_UPDATE_URL")
+        .ok()
+        .filter(|u| !u.trim().is_empty())
+        .unwrap_or_else(|| CRIMECLIENT_UPDATE_URL.to_string());
+    url.trim()
+        .parse()
+        .map_err(|e| format!("Failed to parse update URL '{}': {}", url, e))
+}
 
 pub async fn check_update_available_detailed(
     app_handle: &AppHandle,
     is_beta_channel: bool,
 ) -> AppResult<Option<UpdateCheckResult>> {
-    // CrimeClient: no update feed yet. NoRisk's feed would hand out the NoRisk launcher installer.
     if !CRIMECLIENT_UPDATE_FEED {
         return Ok(None);
     }
@@ -89,40 +103,8 @@ pub async fn check_update_available_detailed(
         current_version, channel
     );
 
-    // Determine the base part of the URL and the platform-specific segment template
-    let base_repo_url = if is_beta_channel {
-        "https://api-staging.norisk.gg/api/v1/launcher/releases-v2"
-    } else {
-        "https://api.norisk.gg/api/v1/launcher/releases-v2"
-    };
-
-    let mut platform_specific_target = "{{target}}".to_string(); // Default: Tauri replaces {{target}}
-
-    if cfg!(target_os = "linux") {
-        if std::env::var("APPIMAGE").is_ok() {
-            info!("Linux AppImage detected. Updater will use default target for manifest URL.");
-            // platform_specific_target remains "{{target}}" for AppImage
-        } else {
-            // Not an AppImage, assume .deb or similar package manager context.
-            let deb_target_identifier = "debian";
-            info!(
-                "Linux non-AppImage (e.g., .deb) detected. Modifying manifest URL to use target: {}",
-                deb_target_identifier
-            );
-            platform_specific_target = deb_target_identifier.to_string();
-        }
-    }
-
-    // Construct the final update URL string
-    let update_url_str = format!(
-        "{}/{}/{{{{arch}}}}/{{{{current_version}}}}",
-        base_repo_url, platform_specific_target
-    );
-
-    trace!("Using update endpoint template: {}", update_url_str);
-
-    let update_url = update_url_str.parse()
-        .map_err(|e| AppError::Other(format!("Failed to parse update URL '{}': {}", update_url_str, e)))?;
+    let update_url = update_endpoint().map_err(AppError::Other)?;
+    trace!("Using update endpoint: {}", update_url);
 
     let updater_builder = app_handle.updater_builder()
         .configure_client(|c| c.connect_timeout(HTTP_CONNECT_TIMEOUT))
@@ -275,7 +257,7 @@ pub async fn create_updater_window(app_handle: &AppHandle) -> tauri::Result<Webv
         "updater",                              // Unique label
         WebviewUrl::App("updater.html".into()), // Load local HTML file
     )
-    .title("NoRiskClient Updater")
+    .title("CrimeClient Launcher Update")
     .inner_size(325.0, 400.0)
     .resizable(false)
     .center()
@@ -430,8 +412,6 @@ async fn handle_update(
     } else {
         info!("DEBUG: Installation block active (no extra delay added here).");
     }
-    // Remove the line below if install block is active
-    info!("Skipping actual installation (commented out).");
     /* END INSTALL BLOCK */
 
     // Emit final statuses after successful install (or after download if install is commented out)
@@ -474,6 +454,11 @@ pub async fn check_for_updates(
     let final_status: String;
     let final_message: String;
 
+    if !CRIMECLIENT_UPDATE_FEED {
+        emit_status(&app_handle, "close", "No update feed.".to_string(), None);
+        return;
+    }
+
     info!(
         "Checking for updates (Current: {}). Channel: {}",
         current_version, channel
@@ -481,59 +466,22 @@ pub async fn check_for_updates(
     emit_status(
         &app_handle,
         "checking",
-        format!("Checking for {} updates...", channel),
+        "Checking for updates...".to_string(),
         None,
     );
 
-    // Determine the base part of the URL and the platform-specific segment template
-    let base_repo_url = if is_beta_channel {
-        "https://api-staging.norisk.gg/api/v1/launcher/releases-v2"
-    } else {
-        "https://api.norisk.gg/api/v1/launcher/releases-v2"
-    };
-
-    let mut platform_specific_target = "{{target}}".to_string(); // Default: Tauri replaces {{target}}
-
-    if cfg!(target_os = "linux") {
-        if std::env::var("APPIMAGE").is_ok() {
-            info!("Linux AppImage detected. Updater will use default target for manifest URL.");
-            // platform_specific_target remains "{{target}}" for AppImage
-        } else {
-            // Not an AppImage, assume .deb or similar package manager context.
-            // The server must be configured to serve a .deb manifest for this specific target string.
-            // IMPORTANT: "debian" is a placeholder. Confirm with your backend/server team
-            // what target string they expect for .deb packages (e.g., "debian", "linux-deb").
-            let deb_target_identifier = "debian";
-            info!(
-                "Linux non-AppImage (e.g., .deb) detected. Modifying manifest URL to use target: {}",
-                deb_target_identifier
-            );
-            platform_specific_target = deb_target_identifier.to_string();
-        }
-    }
-
-    // Construct the final update URL string
-    // Tauri will replace {{arch}} and {{current_version}}.
-    // {{target}} will also be replaced by Tauri *if* platform_specific_target is "{{target}}".
-    // Otherwise, our specific target (e.g., "debian") is used directly.
-    let update_url_str = format!(
-        "{}/{}/{{{{arch}}}}/{{{{current_version}}}}",
-        base_repo_url, platform_specific_target
-    );
-
-    info!("Using update endpoint template: {}", update_url_str);
-
-    let update_url = match update_url_str.parse() {
+    let update_url = match update_endpoint() {
         Ok(url) => url,
         Err(e) => {
-            error!("Failed to parse update URL '{}': {}", update_url_str, e);
+            error!("{}", e);
             final_status = "error".to_string();
-            final_message = format!("Failed to parse update URL: {}", e);
+            final_message = e;
             emit_status(&app_handle, &final_status, final_message.clone(), None);
             emit_status(&app_handle, "close", final_message.clone(), None);
             return;
         }
     };
+    info!("Using update endpoint: {}", update_url);
 
     let updater_result = app_handle
         .updater_builder()

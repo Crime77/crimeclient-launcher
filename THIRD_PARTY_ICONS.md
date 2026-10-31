@@ -1,6 +1,6 @@
 # Third-party icon artwork
 
-The launcher bundles 315 icons from the sets below. The artwork is redistributed
+The launcher bundles 262 icons from the sets below. The artwork is redistributed
 unmodified; only the icons actually used are included, extracted from the `@iconify-json/*`
 packages by `scripts/generate-icon-bundle.mjs`.
 
@@ -8,19 +8,19 @@ GENERATED — run `yarn icons` to refresh.
 
 ## Solar (`solar`)
 
-- 250 icons used of 7401
+- 223 icons used of 7401
 - Author: [480 Design](https://www.figma.com/community/file/1166831539721848736)
 - Licence: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) (`CC-BY-4.0`)
 
 ## Pixel Icon (`pixel`)
 
-- 9 icons used of 578
+- 6 icons used of 578
 - Author: [HackerNoon](https://github.com/hackernoon/pixel-icon-library)
 - Licence: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) (`CC-BY-4.0`)
 
 ## Material Design Icons (`mdi`)
 
-- 18 icons used of 7447
+- 4 icons used of 7447
 - Author: [Pictogrammers](https://github.com/Templarian/MaterialDesign)
 - Licence: [Apache 2.0](https://github.com/Templarian/MaterialDesign/blob/master/LICENSE) (`Apache-2.0`)
 
@@ -38,15 +38,9 @@ GENERATED — run `yarn icons` to refresh.
 
 ## Phosphor (`ph`)
 
-- 7 icons used of 9072
+- 2 icons used of 9072
 - Author: [Phosphor Icons](https://github.com/phosphor-icons/core)
 - Licence: [MIT](https://github.com/phosphor-icons/core/blob/main/LICENSE) (`MIT`)
-
-## Material Symbols (`material-symbols`)
-
-- 1 icon used of 15457
-- Author: [Google](https://github.com/google/material-design-icons)
-- Licence: [Apache 2.0](https://github.com/google/material-design-icons/blob/master/LICENSE) (`Apache-2.0`)
 
 ## MingCute Icon (`mingcute`)
 
@@ -56,15 +50,9 @@ GENERATED — run `yarn icons` to refresh.
 
 ## SVG Spinners (`svg-spinners`)
 
-- 4 icons used of 46
+- 3 icons used of 46
 - Author: [Utkarsh Verma](https://github.com/n3r4zzurr0/svg-spinners)
 - Licence: [MIT](https://github.com/n3r4zzurr0/svg-spinners/blob/main/LICENSE) (`MIT`)
-
-## Noto Emoji (`noto`)
-
-- 1 icon used of 3710
-- Author: [Google Inc](https://github.com/googlefonts/noto-emoji)
-- Licence: [Apache 2.0](https://github.com/googlefonts/noto-emoji/blob/main/svg/LICENSE) (`Apache-2.0`)
 
 ## Lucide (`lucide`)
 
@@ -83,12 +71,6 @@ GENERATED — run `yarn icons` to refresh.
 - 1 icon used of 10955
 - Author: [Material Design Authors](https://github.com/material-icons/material-icons)
 - Licence: [Apache 2.0](https://github.com/material-icons/material-icons/blob/master/LICENSE) (`Apache-2.0`)
-
-## Fluent UI System Icons (`fluent`)
-
-- 1 icon used of 19583
-- Author: [Microsoft Corporation](https://github.com/microsoft/fluentui-system-icons)
-- Licence: [MIT](https://github.com/microsoft/fluentui-system-icons/blob/main/LICENSE) (`MIT`)
 
 ## EOS Icons (`eos-icons`)
 

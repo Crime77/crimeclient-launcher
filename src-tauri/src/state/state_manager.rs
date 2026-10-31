@@ -7,7 +7,6 @@ use crate::state::content_cache_state::ContentCacheManager;
 use crate::state::cosmetic_pack_state::CosmeticPackManager;
 use crate::state::discord_state::DiscordManager;
 use crate::state::event_state::{EventPayload, EventState};
-use crate::state::friends_state::FriendsState;
 use crate::state::norisk_packs_state::{default_norisk_packs_path, NoriskPackManager};
 use crate::state::norisk_versions_state::{default_norisk_versions_path, NoriskVersionManager};
 use crate::state::post_init::PostInitializationHandler;
@@ -15,7 +14,6 @@ use crate::state::process_state::{default_processes_path, ProcessManager};
 use crate::state::profile_state::ProfileManager;
 use crate::state::skin_state::{default_skins_path, SkinManager};
 use crate::state::sync_pack_state::SyncPackManager;
-use crate::utils::referral_utils;
 use std::sync::Arc;
 use tokio::sync::{OnceCell, Mutex, Semaphore};
 use tokio::task::JoinHandle;
@@ -36,7 +34,6 @@ pub struct State {
     pub active_skin_manager: ActiveSkinManager,
     pub discord_manager: DiscordManager,
     pub cosmetic_pack_manager: CosmeticPackManager,
-    pub friends_state: FriendsState,
     pub content_cache: ContentCacheManager,
     pub capture_supervisor: Arc<crate::state::capture_state::CaptureSupervisor>,
     pub sync_pack_manager: SyncPackManager,
@@ -79,7 +76,6 @@ impl State {
                 let process_manager = ProcessManager::new(default_processes_path(), app.clone()).await?;
 
                 log::trace!("State::init - Primary initialization of managers complete (Phase 1). Constructing State struct with initialized: false.");
-                let friends_state = FriendsState::new();
                 let cosmetic_pack_manager = CosmeticPackManager::new();
                 let content_cache = ContentCacheManager::new(db.clone())?;
                 let sync_pack_manager = SyncPackManager::new(db.clone())?;
@@ -96,7 +92,6 @@ impl State {
                     active_skin_manager,
                     discord_manager,
                     cosmetic_pack_manager,
-                    friends_state,
                     content_cache,
                     capture_supervisor: Arc::new(
                         crate::state::capture_state::CaptureSupervisor::new(),
@@ -200,12 +195,6 @@ impl State {
             final_config.enable_discord_presence,
             final_config.concurrent_downloads
         );
-
-        // Check for referral code from installer (affiliate/friend links)
-        if let Err(e) = referral_utils::check_and_process_referral_code().await {
-            log::warn!("State::init - Failed to process referral code: {}", e);
-            // Don't fail initialization, just log the error
-        }
 
         log::info!("State ready in {}ms", init_start.elapsed().as_millis());
 

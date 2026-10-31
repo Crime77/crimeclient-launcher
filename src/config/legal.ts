@@ -1,16 +1,11 @@
-export type LegalLocale = "de" | "en";
+import { WEBSITE_URL } from "./links";
 
+/**
+ * The CrimeClient Launcher is free software under the GPL-3.0 (a fork of the NoRisk launcher, credited in the README).
+ * It has no terms to accept and collects no data, so the only documents are the licence and the source code.
+ */
 export const LEGAL_DOCUMENT_URLS = {
-  terms: { en: "https://norisk.gg/tos", de: "https://norisk.gg/de/agbs" },
-  privacy: { en: "https://norisk.gg/privacy", de: "https://norisk.gg/de/datenschutzerklaerung" },
-  licenses: { en: "https://norisk.gg/licenses", de: "https://norisk.gg/de/lizenzen" },
-} satisfies Record<string, Record<LegalLocale, string>>;
-
-export const legalLocale = (language: string | undefined): LegalLocale =>
-  language?.startsWith("de") ? "de" : "en";
-
-export const legalDocumentUrl = (slug: string, locale: LegalLocale): string | undefined =>
-  LEGAL_DOCUMENT_URLS[slug as keyof typeof LEGAL_DOCUMENT_URLS]?.[locale];
-
-export const formatLegalDate = (timestamp: number, language: string): string =>
-  new Date(timestamp).toLocaleDateString(language, { day: "2-digit", month: "2-digit", year: "numeric" });
+  licenses: "https://github.com/Crime77/crimeclient-launcher/blob/crimeclient/LICENSE",
+  source: "https://github.com/Crime77/crimeclient-launcher",
+  website: WEBSITE_URL,
+} as const;

@@ -66,13 +66,13 @@ const signedIn = !location.search.includes("noaccount");
 const responses: Record<string, unknown> = {
   get_accounts: signedIn ? [account] : [],
   get_active_account: signedIn ? account : null,
-  get_legal_status: { prompt: null, notice: null },
   get_launcher_config: config,
   set_launcher_config: config,
-  get_app_version: "0.1.0-dev",
+  get_app_version: "0.2.0-dev",
   list_profiles: profiles,
   get_all_profiles_and_last_played: { all_profiles: profiles, last_played_profile_id: "p-crime" },
   get_standard_profiles: { profiles: [] },
+  refresh_standard_versions: [],
   get_processes: [],
   get_system_ram_mb: 16384,
   get_default_memory_max_mb: 4096,
@@ -91,6 +91,22 @@ const responses: Record<string, unknown> = {
   search_modrinth_projects: { hits: [], total_hits: 0, offset: 0, limit: 20 },
   get_selected_player_icon: { url: null, plus: false },
   get_selected_player_icon_cached: { url: null, plus: false },
+  // ?offline shows the server card's offline state
+  ping_minecraft_server: location.search.includes("offline")
+    ? {
+        description: null, description_json: null, version_name: null, version_protocol: null,
+        players_online: null, players_max: null, favicon_base64: null, latency_ms: null,
+        error: "Connection refused",
+      }
+    : {
+        description: "§c§lCraftAttack §8| §7Season 3\n§fJetzt mit §cCrimeClient §fspielen",
+        description_json: null, version_name: "26.3", version_protocol: 790,
+        players_online: 7, players_max: 50, favicon_base64: null, latency_ms: 38, error: null,
+      },
+  // ?update shows the update button in the title bar
+  check_update_available_command: location.search.includes("update")
+    ? { version: "0.2.1", date: "2026-10-30 18:00:00 +00:00", body: "Fehlerbehebungen", download_url: null }
+    : null,
 };
 
 // a few real cosmetics so the shop page has something to show
@@ -136,9 +152,7 @@ function storeMock({ method, path, body }: { method: string; path: string; body:
 export function installTauriMock() {
   mockWindows("main");
   mockConvertFileSrc("windows");
-  let nextId = 1;
   mockIPC((cmd, args) => {
-    if (cmd.startsWith("plugin:event|")) return nextId++;
     if (cmd.startsWith("plugin:")) return null;
     if (cmd === "crime_store_request") return storeMock(args as { method: string; path: string; body: { id?: string } | null });
     if (cmd === "get_profile") {
@@ -148,7 +162,19 @@ export function installTauriMock() {
     if (/^(get|list|search)_/.test(cmd) && cmd.endsWith("s")) return [];
     console.debug("[tauriMock] unhandled", cmd, args);
     return null;
-  });
+  }, { shouldMockEvents: true });
+
+  // updater.html?demo plays the updater window's steps (checking, found, downloading)
+  if (location.pathname.includes("updater") && location.search.includes("demo")) {
+    const steps = [
+      { status: "checking", message: "" },
+      { status: "pending", message: "" },
+      { status: "downloading", message: "", progress: 64 },
+    ];
+    steps.forEach((step, i) => {
+      setTimeout(() => void import("@tauri-apps/api/event").then((m) => m.emit("updater_status", step)), 800 + i * 900);
+    });
+  }
 
   // ?settings opens the settings dialog right away (for screenshots)
   if (location.search.includes("settings")) {

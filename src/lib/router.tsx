@@ -4,14 +4,11 @@ import { RouteErrorBoundary } from "../components/RouteErrorBoundary";
 import { PlayTab } from "../components/tabs/PlayTab";
 import ModrinthTabV2 from "../components/tabs/ModrinthTabV2";
 import { SkinsTab } from "../components/tabs/SkinsTab";
-import { StoreTab } from "../components/tabs/StoreTab";
 import { ShopTab } from "../components/tabs/ShopTab";
 import { ClipsPage } from "../components/tabs/ClipsPage";
 import { BrowseTabWrapper } from "../components/profiles/BrowseTabWrapper";
 import { ProfilesTabV2 } from "../components/tabs/ProfilesTabV2";
 import { ProfileDetailViewV2Wrapper } from "../components/profiles/ProfileDetailViewV2Wrapper";
-// DISABLED: Advent Calendar (seasonal feature)
-// import { AdventCalendarTab } from "../components/advent-calendar/AdventCalendarTab";
 import { ModDetailPage } from "../components/mods/ModDetailPage";
 import { SyncPacksPage } from "../components/sync-packs/SyncPacksPage";
 
@@ -70,18 +67,9 @@ export const router = createHashRouter([
         element: <ShopTab />,
       },
       {
-        path: "capes",
-        element: <StoreTab />,
-      },
-      {
         path: "clips",
         element: <ClipsPage />,
       },
-      // DISABLED: Advent Calendar (seasonal feature)
-      // {
-      //   path: "advent-calendar",
-      //   element: <AdventCalendarTab />,
-      // },
     ],
   },
 ]);

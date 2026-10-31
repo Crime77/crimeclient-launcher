@@ -1,4 +1,4 @@
-use crate::config::{ProjectDirsExt, LAUNCHER_DIRECTORY};
+use crate::config::{ProjectDirsExt, CRIMECLIENT_DOWNLOAD_URL, LAUNCHER_DIRECTORY};
 use crate::error::{AppError, Result};
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
 use log::{debug, error, info, trace, warn};
@@ -7,9 +7,13 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tokio::sync::{Mutex, RwLock};
 use uuid::Uuid;
 
-/// Discord application for Rich Presence. Empty: no Rich Presence (the upstream ID is NoRisk's application).
-const DISCORD_APP_ID: &str = "";
+/// Discord application "CrimeClient" (the same one the mod uses when it runs without the launcher).
+const DISCORD_APP_ID: &str = "1565767495040765972";
 const RECONNECT_BACKOFF: Duration = Duration::from_secs(60);
+/// How often the game's hand-off file is checked.
+const CLIENT_POLL: Duration = Duration::from_secs(5);
+/// While a game runs, the activity is sent again at least this often.
+const IN_GAME_REFRESH: Duration = Duration::from_secs(15);
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum DiscordState {
@@ -27,7 +31,10 @@ pub struct DiscordManager {
     current_state: Arc<RwLock<DiscordState>>,
     enabled: Arc<RwLock<bool>>,
     idle_start_timestamp: Arc<RwLock<Option<i64>>>,
-    last_client_state: Arc<RwLock<Option<String>>>,
+    /// When the running game started (seconds); the in-game time counts from here instead of restarting on every refresh
+    game_start_timestamp: Arc<RwLock<Option<i64>>>,
+    /// (details, state) from the game's hand-off file at the last check
+    last_client_state: Arc<RwLock<Option<(String, String)>>>,
     last_connect_failure: Arc<RwLock<Option<Instant>>>,
 }
 
@@ -48,6 +55,7 @@ impl DiscordManager {
             current_state: Arc::new(RwLock::new(DiscordState::Idle)),
             enabled: Arc::new(RwLock::new(enabled)),
             idle_start_timestamp: Arc::new(RwLock::new(initial_timestamp)),
+            game_start_timestamp: Arc::new(RwLock::new(None)),
             last_client_state: Arc::new(RwLock::new(None)),
             last_connect_failure: Arc::new(RwLock::new(None)),
         };
@@ -65,25 +73,29 @@ impl DiscordManager {
             info!("Discord Rich Presence is disabled");
         }
 
-        // Start background poller to watch for client state file changes
+        // Watches the game's hand-off file: changed texts show at once, and while a game runs the activity is sent
+        // again at least every 15 s, so a closed or frozen game (file older than 30 s) falls back to the launcher's texts
         let poller_clone = manager.clone();
         tokio::spawn(async move {
+            let mut last_refresh = Instant::now();
             loop {
-                tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+                tokio::time::sleep(CLIENT_POLL).await;
                 if !*poller_clone.enabled.read().await {
                     continue;
                 }
-                // Check if client state changed
-                let new_client_state = Self::read_active_client_state()
-                    .and_then(|j| j["state"].as_str().map(|s| s.to_string()));
+                let new_client_state = Self::read_active_client_state().map(|j| Self::client_texts(&j));
+                let current = poller_clone.current_state.read().await.clone();
+                let in_game = new_client_state.is_some() || matches!(current, DiscordState::InGame { .. });
                 let mut last = poller_clone.last_client_state.write().await;
-                if *last != new_client_state {
-                    debug!("Client state file changed: {:?} -> {:?}", *last, new_client_state);
+                let changed = *last != new_client_state;
+                if changed || (in_game && last_refresh.elapsed() >= IN_GAME_REFRESH) {
+                    if changed {
+                        debug!("Client state file changed: {:?} -> {:?}", *last, new_client_state);
+                    }
                     *last = new_client_state;
                     drop(last);
-                    // Force re-render current state with new client info
-                    let current = poller_clone.current_state.read().await.clone();
                     poller_clone.set_state_internal(current, true).await.ok();
+                    last_refresh = Instant::now();
                 }
             }
         });
@@ -116,7 +128,6 @@ impl DiscordManager {
     }
 
     async fn connect(&self) -> Result<()> {
-        // NoRisk's Discord application would show "NoRisk Client"; off until CrimeClient has its own
         if DISCORD_APP_ID.is_empty() || !*self.enabled.read().await {
             debug!("Discord Rich Presence is disabled, skipping connection");
             return Ok(());
@@ -271,65 +282,44 @@ impl DiscordManager {
     }
 
     async fn build_and_set_activity(&self, state: &DiscordState, client_ref: &mut DiscordIpcClient) -> std::result::Result<(), AppError> {
-        let icon = "icon_512px";
-        let download_button = activity::Button::new("DOWNLOAD", "https://norisk.gg/");
-        let buttons = vec![download_button];
+        let buttons = vec![activity::Button::new("CrimeClient holen", CRIMECLIENT_DOWNLOAD_URL)];
 
-        let client_state = Self::read_active_client_state();
-        trace!("Building activity for state: {:?}, client_active: {}", state, client_state.is_some());
+        let client_texts = Self::read_active_client_state().map(|j| Self::client_texts(&j));
+        trace!("Building activity for state: {:?}, client_active: {}", state, client_texts.is_some());
 
-        let idle_timestamp = *self.idle_start_timestamp.read().await;
-        let default_time = SystemTime::now()
+        let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map(|d| d.as_secs() as i64)
             .unwrap_or(0);
+        let idle_start = *self.idle_start_timestamp.read().await;
+        let game_start = *self.game_start_timestamp.read().await;
 
-        // Determine line 1 (details) and optional line 2 (state)
-        // Client state file has priority when game is running
-        let (line1, line2, start_time): (String, Option<String>, i64) = match state {
-            DiscordState::Idle => {
-                let time = idle_timestamp.unwrap_or(default_time);
-                if let Some(ref client) = client_state {
-                    let cl_state = client["state"].as_str().unwrap_or("Playing").to_string();
-                    let cl_details = client["details"].as_str().map(|s| s.to_string());
-                    (cl_state, cl_details, time)
-                } else {
-                    ("Idling".to_string(), None, time)
-                }
-            }
-            DiscordState::Custom(text) => {
-                let time = idle_timestamp.unwrap_or(default_time);
-                if let Some(ref client) = client_state {
-                    let cl_state = client["state"].as_str().unwrap_or("Playing").to_string();
-                    let cl_details = client["details"].as_str().map(|s| s.to_string());
-                    (cl_state, cl_details, time)
-                } else {
-                    (text.clone(), None, time)
-                }
-            }
-            DiscordState::InGame { mc_version, .. } => {
-                if let Some(ref client) = client_state {
-                    let cl_state = client["state"].as_str().unwrap_or("In Game").to_string();
-                    let cl_details = client["details"].as_str()
-                        .map(|s| s.to_string())
-                        .or_else(|| Some(format!("On Minecraft {}", mc_version)));
-                    (cl_state, cl_details, default_time)
-                } else {
-                    ("In Game".to_string(), Some(format!("On Minecraft {}", mc_version)), default_time)
-                }
-            }
+        // While the game writes its hand-off file its texts win (details = where the player is, state = the client
+        // version). The time counts from the game start, so a refresh does not reset it.
+        let (details, state_line, start_time): (String, String, i64) = match (client_texts, state) {
+            (Some((details, state_line)), _) => (details, state_line, game_start.or(idle_start).unwrap_or(now)),
+            (None, DiscordState::InGame { mc_version, .. }) => (
+                "Im Spiel".to_string(),
+                format!("Minecraft {}", mc_version),
+                game_start.unwrap_or(now),
+            ),
+            (None, DiscordState::Custom(text)) => (String::new(), text.clone(), idle_start.unwrap_or(now)),
+            (None, DiscordState::Idle) => (String::new(), "Im Launcher".to_string(), idle_start.unwrap_or(now)),
         };
 
-        let mut activity = activity::Activity::new()
-            .state(&line1);
-        if let Some(ref l2) = line2 {
-            activity = activity.details(l2);
+        // Discord rejects texts shorter than two characters, so those lines are left out
+        let mut activity = activity::Activity::new();
+        if details.chars().count() >= 2 {
+            activity = activity.details(&details);
+        }
+        if state_line.chars().count() >= 2 {
+            activity = activity.state(&state_line);
         }
         let activity = activity
             .assets(
                 activity::Assets::new()
-                    .large_image(icon)
-                    .large_text("NoRisk Client"),
+                    .large_image("icon_512px")
+                    .large_text("CrimeClient"),
             )
             .timestamps(activity::Timestamps::new().start(start_time))
             .buttons(buttons);
@@ -354,12 +344,12 @@ impl DiscordManager {
             .unwrap_or(0);
 
         let (state_str, details) = match state {
-            DiscordState::Idle => ("Idling".to_string(), None),
+            DiscordState::Idle => ("Im Launcher".to_string(), None),
             DiscordState::Custom(text) => (text.clone(), None),
             DiscordState::InGame {
                 profile_name,
                 mc_version,
-            } => ("In Game".to_string(), Some(format!("{} {}", profile_name, mc_version))),
+            } => ("Im Spiel".to_string(), Some(format!("{} {}", profile_name, mc_version))),
         };
 
         let json = serde_json::json!({
@@ -369,6 +359,12 @@ impl DiscordManager {
             "timestamp": now
         });
         std::fs::write(&file, json.to_string()).ok();
+    }
+
+    /// (details, state) of a hand-off file, trimmed; a missing text is empty
+    fn client_texts(json: &serde_json::Value) -> (String, String) {
+        let text = |key: &str| json[key].as_str().unwrap_or("").trim().to_string();
+        (text("details"), text("state"))
     }
 
     /// Read the most recent active client state file (not stale, < 30s)
@@ -383,9 +379,10 @@ impl DiscordManager {
             .ok()?
             .filter_map(|e| e.ok())
             .filter(|e| {
+                // client.<pid>.json; the mod writes client.<pid>.json.part first and renames it
                 e.file_name()
                     .to_str()
-                    .map_or(false, |n| n.starts_with("client."))
+                    .map_or(false, |n| n.starts_with("client.") && n.ends_with(".json"))
             })
             .filter_map(|e| {
                 let content = std::fs::read_to_string(e.path()).ok()?;
@@ -484,6 +481,12 @@ impl DiscordManager {
         *self.enabled.read().await
     }
 
+    /// Whether a game started now should hand its Discord texts to the launcher (`-Dcrimeclient.launcher.discord=true`)
+    /// instead of opening a second activity of its own.
+    pub async fn hands_off_to_launcher(&self) -> bool {
+        !DISCORD_APP_ID.is_empty() && self.is_enabled().await
+    }
+
     pub async fn handle_focus_event(&self) -> Result<()> {
         trace!("Handling focus event within DiscordManager.");
 
@@ -514,6 +517,15 @@ impl DiscordManager {
             process_id, profile_name, mc_version
         );
         self.clear_idle_timestamp().await;
+        {
+            let mut game_start = self.game_start_timestamp.write().await;
+            if game_start.is_none() {
+                *game_start = SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .map(|d| d.as_secs() as i64)
+                    .ok();
+            }
+        }
 
         if let (Some(name), Some(version)) = (profile_name, mc_version) {
             self.set_state(
@@ -531,6 +543,7 @@ impl DiscordManager {
     pub async fn notify_game_stop(&self, process_id: Uuid) {
         debug!("Game stop notification for process {}", process_id);
         Self::cleanup_client_files();
+        *self.game_start_timestamp.write().await = None;
         self.ensure_idle_timestamp_set().await;
         self.set_state(DiscordState::Idle, true).await.ok();
     }

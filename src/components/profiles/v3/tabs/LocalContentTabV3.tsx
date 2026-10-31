@@ -16,7 +16,6 @@ import {
 } from "../../../../hooks/useLocalContentManager";
 import { useVersionOptions } from "../../../../hooks/useVersionOptions";
 import { getUpdateIdentifier } from "../../../../utils/update-identifier-utils";
-import * as FlagsmithService from "../../../../services/flagsmith-service";
 import UnifiedService from "../../../../services/unified-service";
 import { useThemeStore } from "../../../../store/useThemeStore";
 import { useAppDragDropStore } from "../../../../store/appStore";
@@ -247,20 +246,6 @@ export function LocalContentTabV3<T extends LocalContentItem>({
   const isNrc = contentType === "NoRiskMod";
   const selectedPackId = profile?.selected_norisk_pack_id ?? null;
 
-  const [isBlockedConfigLoaded, setIsBlockedConfigLoaded] = useState(false);
-  useEffect(() => {
-    if (profile?.selected_norisk_pack_id) {
-      FlagsmithService.getBlockedModsConfig()
-        .then(() => setIsBlockedConfigLoaded(true))
-        .catch((err) => {
-          console.error("[V3] Failed to load NoRisk blocked mods config:", err);
-          setIsBlockedConfigLoaded(false);
-        });
-    } else {
-      setIsBlockedConfigLoaded(false);
-    }
-  }, [profile?.selected_norisk_pack_id]);
-
   const hasUpdate = useCallback((item: LocalContentItem) => {
     const key = getUpdateIdentifier(item);
     return !!(key && manager.contentUpdates[key]);
@@ -277,15 +262,8 @@ export function LocalContentTabV3<T extends LocalContentItem>({
       case "manuallyAdded": list = list.filter(i => !i.modpack_origin && !i.norisk_info); break;
       case "fromSyncPack":  list = []; break;
       case "updatesPaused": list = list.filter(i => i.updates_enabled === false); break;
-      case "noriskIssues":  list = list.filter(i => {
-        if (!isBlockedConfigLoaded) return false;
-        const status = FlagsmithService.getModNoRiskStatus(
-          i.filename,
-          i.modrinth_info?.project_id || i.curseforge_info?.project_id,
-          i.modrinth_info?.version_id || (i.curseforge_info as any)?.file_id,
-        );
-        return status === "blocked" || status === "warning";
-      }); break;
+      // CrimeClient has no NoRisk block list
+      case "noriskIssues":  list = []; break;
     }
 
     const sorted = [...list];
@@ -309,7 +287,7 @@ export function LocalContentTabV3<T extends LocalContentItem>({
         break;
     }
     return sorted;
-  }, [manager.filteredItems, manager.getItemPlatformDisplayName, filter, sortBy, getDisplayFileName, hasUpdate, isBlockedConfigLoaded]);
+  }, [manager.filteredItems, manager.getItemPlatformDisplayName, filter, sortBy, getDisplayFileName, hasUpdate]);
 
   const canBrowse = contentType !== "NoRiskMod";
   const [isBrowseSheetOpen, setBrowseSheetOpen] = useState(false);
@@ -371,10 +349,10 @@ export function LocalContentTabV3<T extends LocalContentItem>({
   );
   const filterDropdownOptions: DropdownOption[] = useMemo(
     () => FILTER_OPTIONS
-      .filter(opt => !opt.nrcOnly || isBlockedConfigLoaded)
+      .filter(opt => !opt.nrcOnly)
       .filter(opt => !opt.syncOnly || sync.mods.length > 0)
       .map(o => ({ value: o.value, label: t(o.labelKey), icon: o.icon, separator: o.separator })),
-    [t, isBlockedConfigLoaded, sync.mods.length],
+    [t, sync.mods.length],
   );
 
   const isWaitingForContent = !sync.ready || (manager.isLoading && gridEntries.length === 0);
@@ -473,13 +451,7 @@ export function LocalContentTabV3<T extends LocalContentItem>({
     const key = localItemKey(item);
     const updateKey = getUpdateIdentifier(item);
     const updateAvailable = updateKey ? manager.contentUpdates[updateKey] ?? null : null;
-    const noRiskStatus = isBlockedConfigLoaded
-      ? FlagsmithService.getModNoRiskStatus(
-          item.filename,
-          item.modrinth_info?.project_id || item.curseforge_info?.project_id,
-          item.modrinth_info?.version_id || (item.curseforge_info as any)?.file_id,
-        )
-      : null;
+    const noRiskStatus = null;
     return (
       <ContentTile
         key={key}

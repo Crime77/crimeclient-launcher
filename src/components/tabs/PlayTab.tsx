@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { CrimeNews } from "../news/CrimeNews";
+import { ServerLaunchCard, useHomeServer } from "../launcher/ServerLaunchCard";
 import { ErrorMessage } from "../ui/ErrorMessage";
 import { useMinecraftAuthStore } from "../../store/minecraft-auth-store";
 import { useProfileStore } from "../../store/profile-store";
@@ -13,16 +14,28 @@ import { setDiscordState } from "../../utils/discordRpc";
 import { PlayerRig } from "../launcher/PlayerRig";
 import { LaunchDock } from "../launcher/LaunchDock";
 
-/** Start page: greeting and the player on a large glass card, the launch dock below it, news on the right. */
+/** Pack id of the CrimeClient standard profile (tools/build_modpack.py in CraftCosmetics). */
+const CRIMECLIENT_PACK = "crimeclient";
+
+/** Start page: greeting and the player on a large glass card, the launch dock below it, server and news on the right. */
 export function PlayTab() {
   const { t } = useTranslation();
   const {
     profiles,
+    standardProfiles,
     selectedProfile,
     loading,
     error: profilesError,
     setSelectedProfile,
   } = useProfileStore();
+  const homeServer = useHomeServer();
+  // "Join" starts the CrimeClient profile (the player's own copy first); without one, whatever the dock shows
+  const serverProfileId = useMemo(() => {
+    const all = [...profiles, ...(standardProfiles ?? [])];
+    const crime =
+      all.find((p) => p.selected_norisk_pack_id === CRIMECLIENT_PACK) ?? all.find((p) => /crimeclient/i.test(p.name));
+    return (crime ?? selectedProfile ?? profiles[0])?.id ?? null;
+  }, [profiles, standardProfiles, selectedProfile]);
   const { activeAccount } = useMinecraftAuthStore();
   const { cosmeticRenderer3d, setCosmeticRenderer3d } = useQualitySettingsStore();
   const webglOk = isWebGLAvailable();
@@ -90,7 +103,16 @@ export function PlayTab() {
         </div>
       </section>
 
-      <CrimeNews className="w-[340px] flex-shrink-0 flex flex-col cc-glass overflow-hidden" style={{ borderRadius: 28 }} />
+      <div className="w-[340px] flex-shrink-0 flex flex-col gap-4 min-h-0">
+        <ServerLaunchCard
+          serverName={homeServer.name}
+          serverAddress={homeServer.address}
+          profileId={serverProfileId}
+          className="cc-glass flex-shrink-0"
+          style={{ borderRadius: 28 }}
+        />
+        <CrimeNews className="flex-1 min-h-0 flex flex-col cc-glass overflow-hidden" style={{ borderRadius: 28 }} />
+      </div>
     </div>
   );
 }

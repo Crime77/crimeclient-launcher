@@ -1,6 +1,6 @@
 [Desktop Entry]
-Name=NoRisk Client Launcher
+Name=CrimeClient Launcher
 Exec=noriskclient-launcher-v3
 Type=Application
-Icon=gg.norisk.NoRiskClientLauncherV3
+Icon=de.crime77.CrimeClientLauncher
 Categories=Game;

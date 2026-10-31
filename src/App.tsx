@@ -22,15 +22,9 @@ import {
 import { GlobalCrashReportModal } from "./components/modals/GlobalCrashReportModal";
 import { ImportPackConfirmModal } from "./components/modals/ImportPackConfirmModal";
 import { DragDropOverlay } from "./components/ui/DragDropOverlay";
-import { AnalyticsConsentBanner } from "./components/modals/AnalyticsConsentBanner";
-import { LegalAcceptanceModal } from "./components/modals/LegalAcceptanceModal";
-import { LegalUpdateBanner } from "./components/modals/LegalUpdateBanner";
-import { legalLocale } from "./config/legal";
 import { MacCapturePermissionMonitor } from "./components/clips/MacCapturePermissionMonitor";
 import { GlobalModalPortal } from "./components/ui/GlobalModalPortal";
 import { useCrashModalStore } from "./store/crash-modal-store";
-import { useLegalStore } from "./store/legal-store";
-import { useThemeStore } from "./store/useThemeStore";
 import { useLaunchStateStore } from "./store/launch-state-store";
 import { useGlobalModal } from "./hooks/useGlobalModal";
 import { Modal } from "./components/ui/Modal";
@@ -39,40 +33,20 @@ import {
   getLauncherConfig,
   setProfileGroupingPreference,
 } from "./services/launcher-config-service";
-import * as ConfigService from "./services/launcher-config-service";
 import { useGlobalDragAndDrop } from './hooks/useGlobalDragAndDrop';
 import { loadIcons } from '@iconify/react';
-import { setScreenTimeTab, trackEvent } from "./services/analytics-service";
 
-let launcherStartTracked = false;
-
-import flagsmith from 'flagsmith';
-import { FlagsmithProvider } from 'flagsmith/react';
 import { Button } from "./components/ui/buttons/Button";
 import { GuardedButton } from "./components/ui/buttons/GuardedButton";
-import { openExternalUrl } from "./services/tauri-service";
-import { ExternalLink } from "lucide-react";
-import { MinecraftAuthService } from "./services/minecraft-auth-service";
-import { LauncherNoticeBanner } from "./components/ui/LauncherNoticeBanner";
 import ChildProtectionModal from "./components/modals/ChildProtectionModal";
-import { NotificationModal } from "./components/modals/NotificationModal";
-import { useNotificationStore } from "./store/notification-store";
 import { useMinecraftAuthStore } from "./store/minecraft-auth-store";
 import { useWelcomeStore } from "./store/welcome-store";
-import { useTwitchDeepLinkRequests } from "./components/account/TwitchLinkCard";
 import { useDeepLinkHandler } from "./hooks/useDeepLinkHandler";
 import { drainPendingDeepLinks } from "./services/deep-link-service";
-import { DEEP_LINK_SUPPORT_REQUEST_EVENT } from "./services/support-request-service";
-import { openSupportRequestDialog } from "./components/support/SupportRequestDialog";
 import { WelcomeScreen } from "./components/welcome/WelcomeScreen";
 import { useSettingsModalStore } from "./store/settings-modal-store";
 import { useSkinStore } from "./store/useSkinStore";
 import { invalidatePlayerAppearance } from "./services/cosmetic-cache";
-import { hasPermission, refreshPermissions } from "./services/permission-service";
-import {
-  fetchTesterQueueCount,
-  openTesterWindow,
-} from "./services/tester-service";
 import { useTranslation } from "react-i18next";
 
 export type ProfilesTabContext = {
@@ -85,16 +59,8 @@ export function App() {
   const location = useLocation();
   const navigate = useNavigate();
   const { openCrashModal } = useCrashModalStore();
-  const {
-    analyticsConsent,
-    language,
-    setAnalyticsConsent,
-    shouldShowAnalyticsBanner,
-    incrementLaunchCount,
-  } = useThemeStore();
   const { showModal, hideModal } = useGlobalModal();
   const { activeAccount } = useMinecraftAuthStore();
-  const { fetchNotifications } = useNotificationStore();
 
   const initializeAccounts = useMinecraftAuthStore((s) => s.initializeAccounts);
   const accountsLoaded = useMinecraftAuthStore((s) => s.accountsLoaded);
@@ -103,24 +69,10 @@ export function App() {
   }, [initializeAccounts]);
 
   const welcomeSkipped = useWelcomeStore((s) => s.skipped);
-  const acceptedLegacyTerms = useThemeStore((s) => s.hasAcceptedTermsOfService);
-  const loadLegalStatus = useLegalStore((s) => s.load);
-  const legalChecked = useLegalStore((s) => s.checked);
-  const legalNotice = useLegalStore((s) => s.notice);
-  useEffect(() => {
-    loadLegalStatus(legalLocale(language), acceptedLegacyTerms);
-  }, [loadLegalStatus, language, acceptedLegacyTerms]);
-
-  const ready = accountsLoaded && legalChecked;
+  const ready = accountsLoaded;
   const showWelcome = ready && !activeAccount && !welcomeSkipped;
 
   const activeTab = location.pathname.substring(1) || "play";
-
-  const settingsOpen = useSettingsModalStore((s) => s.isOpen);
-  const screenTimeTab = settingsOpen ? "settings" : activeTab.split("/")[0];
-  useEffect(() => {
-    setScreenTimeTab(screenTimeTab);
-  }, [screenTimeTab]);
 
   const [currentGroupingCriterion, setCurrentGroupingCriterion] =
       useState<string>("none");
@@ -323,13 +275,6 @@ export function App() {
     },
   );
 
-  useDeepLinkHandler<{ code?: string } | null>(
-    DEEP_LINK_SUPPORT_REQUEST_EVENT,
-    (payload) => openSupportRequestDialog(payload?.code),
-  );
-
-  useTwitchDeepLinkRequests();
-
   useEffect(() => {
     drainPendingDeepLinks();
   }, []);
@@ -337,62 +282,6 @@ export function App() {
   useEffect(() => {
     refreshNrcDataOnMount();
   }, []);
-
-  useEffect(() => {
-    if (analyticsConsent.decision !== 'accepted' || launcherStartTracked) return;
-    launcherStartTracked = true;
-
-    (async () => {
-      try {
-        const launcherVersion = await invoke<string>('get_app_version').catch(() => 'unknown');
-        const javaInfo: any = await invoke('get_java_info_command').catch(() => null);
-        const osInfo = await invoke<{ os: string; os_version: string; arch: string }>(
-          'get_system_os_info',
-        ).catch(() => ({ os: 'unknown', os_version: 'unknown', arch: 'unknown' }));
-        await trackEvent('launcher_started', {
-          launcher_version: launcherVersion,
-          java_version: javaInfo?.version ?? 'unknown',
-          os: osInfo.os,
-          os_version: osInfo.os_version,
-          arch: osInfo.arch,
-          language,
-        });
-      } catch (error) {
-        launcherStartTracked = false;
-        console.error('[App] launcher_started tracking failed:', error);
-      }
-    })();
-  }, [analyticsConsent.decision, language]);
-
-  // Fetch notifications when user is logged in
-  useEffect(() => {
-    if (activeAccount) {
-      fetchNotifications().catch((error) => {
-        console.error("[App.tsx] Failed to fetch notifications:", error);
-      });
-    }
-  }, [activeAccount, fetchNotifications]);
-
-  useEffect(() => {
-    if (!activeAccount) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        await refreshPermissions();
-        if (cancelled) return;
-        const allowed = await hasPermission("norisk.tester");
-        if (cancelled || !allowed) return;
-        const { count } = await fetchTesterQueueCount();
-        if (cancelled || count <= 0) return;
-        await openTesterWindow();
-      } catch (err) {
-        console.warn("[App.tsx] tester queue check skipped:", err);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [activeAccount]);
 
   // Icons beim App-Start vorladen
   useEffect(() => {
@@ -471,118 +360,13 @@ export function App() {
     }
   };
 
-  // Analytics consent banner handlers
-  const handleAnalyticsAccept = async () => {
-    try {
-      // Update ThemeStore state
-      setAnalyticsConsent({
-        hasMadeDecision: true,
-        decision: 'accepted',
-        hasSeenBanner: true,
-        lastShown: new Date().toISOString(),
-      });
-
-      // Enable analytics in launcher config
-      const currentConfig = await ConfigService.getLauncherConfig();
-      await ConfigService.setLauncherConfig({
-        ...currentConfig,
-        enable_analytics: true,
-      });
-
-      // Invalidate analytics cache to reflect the change immediately
-      const { invalidateAnalyticsCache } = await import('./services/analytics-service');
-      invalidateAnalyticsCache();
-
-      toast.success(t('analytics.toast.enabled'));
-    } catch (error) {
-      console.error("Failed to enable analytics:", error);
-      toast.error(t('analytics.toast.enable_failed'));
-    }
-  };
-
-  const handleAnalyticsDecline = async () => {
-    try {
-      // Update ThemeStore state
-      setAnalyticsConsent({
-        hasMadeDecision: true,
-        decision: 'declined',
-        hasSeenBanner: true,
-        lastShown: new Date().toISOString(),
-      });
-
-      // Disable analytics in launcher config
-      const currentConfig = await ConfigService.getLauncherConfig();
-      await ConfigService.setLauncherConfig({
-        ...currentConfig,
-        enable_analytics: false,
-      });
-
-      // Invalidate analytics cache to reflect the change immediately
-      const { invalidateAnalyticsCache } = await import('./services/analytics-service');
-      invalidateAnalyticsCache();
-
-      toast.success(t('analytics.toast.disabled'));
-    } catch (error) {
-      console.error("Failed to disable analytics:", error);
-      toast.error(t('analytics.toast.disable_failed'));
-    }
-  };
-
-  const handleAnalyticsDismiss = () => {
-    const newReminderCount = analyticsConsent.reminderCount + 1;
-    setAnalyticsConsent({
-      hasSeenBanner: true,
-      lastShown: new Date().toISOString(),
-      reminderCount: newReminderCount,
-    });
-    toast(t('analytics.toast.dismissed'));
-  };
-
-  // Sync analytics state with config on app start
-  useEffect(() => {
-    const syncAnalyticsWithConfig = async () => {
-      try {
-        const config = await ConfigService.getLauncherConfig();
-        // Update ThemeStore decision based on config
-        if (config.enable_analytics && analyticsConsent.decision !== 'accepted') {
-          setAnalyticsConsent({
-            hasMadeDecision: true,
-            decision: 'accepted',
-          });
-        } else if (!config.enable_analytics && analyticsConsent.decision === 'accepted') {
-          setAnalyticsConsent({
-            hasMadeDecision: true,
-            decision: 'declined',
-          });
-        }
-      } catch (error) {
-        console.error("Failed to sync analytics with config:", error);
-      }
-    };
-
-    syncAnalyticsWithConfig();
-  }, []); // Only run once on mount
-
-  // Increment launch count on app start
-  useEffect(() => {
-    incrementLaunchCount();
-  }, [incrementLaunchCount]);
-
   const handleNavChange = async (tabId: string) => {
     if (tabId === "settings") {
       useSettingsModalStore.getState().open();
-      if (analyticsConsent.decision === 'accepted') {
-        trackEvent('sidebar_tab_clicked', { tab_name: 'settings' }).catch(console.error);
-      }
       return;
     }
 
     navigate(`/${tabId}`);
-
-    // Track tab clicked only if analytics are enabled
-    if (analyticsConsent.decision === 'accepted') {
-      trackEvent('sidebar_tab_clicked', { tab_name: tabId }).catch(console.error);
-    }
   };
 
   const profilesTabContext: ProfilesTabContext = {
@@ -593,36 +377,23 @@ export function App() {
   useGlobalDragAndDrop();
 
   return (
-    <FlagsmithProvider flagsmith={flagsmith}>
-      <div className="flex flex-col h-screen w-screen overflow-hidden">
-        <ThemeInitializer />
-        <ScrollbarProvider />
-        <GlobalToaster />
-        <LauncherNoticeBanner />
-        <GlobalCrashReportModal />
-        <ImportPackConfirmModal />
-        <DragDropOverlay />
-        <LegalAcceptanceModal />
-        {showWelcome && <WelcomeScreen />}
-        <GlobalModalPortal />
-        <MacCapturePermissionMonitor />
-        <ChildProtectionModal />
-        <NotificationModal />
-        {ready && (
-          <AppLayout activeTab={activeTab} onNavChange={handleNavChange}>
-            <Outlet context={profilesTabContext} />
-          </AppLayout>
-        )}
-        <LegalUpdateBanner />
-        {!legalNotice && shouldShowAnalyticsBanner() && (
-          <AnalyticsConsentBanner
-            onAccept={handleAnalyticsAccept}
-            onDecline={handleAnalyticsDecline}
-            onDismiss={handleAnalyticsDismiss}
-          />
-        )}
-      </div>
-    </FlagsmithProvider>
+    <div className="flex flex-col h-screen w-screen overflow-hidden">
+      <ThemeInitializer />
+      <ScrollbarProvider />
+      <GlobalToaster />
+      <GlobalCrashReportModal />
+      <ImportPackConfirmModal />
+      <DragDropOverlay />
+      {showWelcome && <WelcomeScreen />}
+      <GlobalModalPortal />
+      <MacCapturePermissionMonitor />
+      <ChildProtectionModal />
+      {ready && (
+        <AppLayout activeTab={activeTab} onNavChange={handleNavChange}>
+          <Outlet context={profilesTabContext} />
+        </AppLayout>
+      )}
+    </div>
   );
 }
 

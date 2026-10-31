@@ -10,7 +10,6 @@ import { useVersionSelectionStore } from "../../store/version-selection-store";
 import { useProfileLaunch } from "../../hooks/useProfileLaunch";
 import { LaunchState } from "../../store/launch-state-store";
 import type { Profile } from "../../types/profile";
-import { RolloutIndicator } from "./RolloutIndicator";
 
 const LOADER_NAMES: Record<string, string> = {
   vanilla: "Vanilla",
@@ -192,9 +191,6 @@ export function LaunchDock() {
             )}
           </span>
         </button>
-        <div className="absolute -top-2 -right-2 w-7 h-7 z-10">
-          <RolloutIndicator />
-        </div>
       </div>
     </div>
   );

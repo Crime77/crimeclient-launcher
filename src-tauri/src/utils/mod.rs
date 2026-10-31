@@ -28,7 +28,6 @@ pub mod window_focus;
 pub mod screens;
 pub mod game_detect; // Recognises a game on screen so clips are not Minecraft-only
 pub mod game_watch; // Follows the foreground game and keeps the engine pointed at it
-pub mod screen_time;
 #[cfg(windows)]
 pub mod hotkey_manager;
 #[cfg(target_os = "macos")]
@@ -54,7 +53,6 @@ pub mod world_utils; // <-- Hinzugefügt
 pub mod trash_utils; // <-- New trash module
 pub mod backup_utils; // <-- New backup module for critical files
 pub mod symlink_utils; // <-- Symlink utilities for profile folder sharing
-pub mod referral_utils; // Referral tracking for affiliate/friend links
 pub mod serde_utils; // Serde helpers for flexible deserialization
 pub mod api_utils; // API response parsing helpers with detailed logging
 pub mod http_client; // NrcRequest: fluent request builder over HTTP_CLIENT

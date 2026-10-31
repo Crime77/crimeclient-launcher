@@ -33,7 +33,6 @@ import { RenameClipModal } from "./RenameClipModal";
 import { VerticalExport } from "./VerticalExport";
 import { useClipEngineEvents } from "./useClipEngineEvents";
 import { parseErrorMessage } from "../../utils/error-utils";
-import { trackEvent } from "../../services/analytics-service";
 import { isMacOS } from "../../utils/platform";
 
 export type ClipSort = "newest" | "oldest" | "largest";
@@ -326,7 +325,6 @@ export function ClipGallery({
                 busy={busy === clip.path || gifting.includes(clip.path)}
                 onPlay={() => {
                   setSelected(clip);
-                  void trackEvent("clip_played", { duration_s: clip.durationSeconds });
                 }}
                 onReveal={() =>
                   void revealClip(clip.path).catch((e) => toast.error(parseErrorMessage(e)))

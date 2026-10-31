@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
 import { useTranslation } from "react-i18next";
+import { DISCORD_INVITE_URL } from "../../config/links";
 import { toast } from "react-hot-toast";
 
 import { Button } from "../ui/buttons/Button";
@@ -23,7 +24,6 @@ import { allCapturePermissionsGranted, useCapturePermissionsStore } from "../../
 import { isMacOS, supportsClips } from "../../utils/platform";
 import { useClipsStore } from "../../store/clips-store";
 import { setDiscordState } from "../../utils/discordRpc";
-import { trackEvent } from "../../services/analytics-service";
 import { parseErrorMessage } from "../../utils/error-utils";
 import { cn } from "../../lib/utils";
 
@@ -34,7 +34,7 @@ const WINDOW: CaptureMethod = "window capture";
 const SCREEN: CaptureMethod = "screen capture";
 
 const ALL_GAMES = "__all__";
-const FEEDBACK_URL = "https://discord.norisk.gg";
+const FEEDBACK_URL = DISCORD_INVITE_URL;
 
 type Tone = "live" | "waiting" | "warn" | "off";
 
@@ -182,7 +182,6 @@ export function ClipsPage() {
 
   useEffect(() => {
     setDiscordState("Browsing Clips");
-    void trackEvent("clip_page_opened", { enabled });
   }, [enabled]);
 
   useEffect(() => {

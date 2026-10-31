@@ -14,8 +14,6 @@ export type AccentColor = {
   isCustom?: boolean;
 };
 
-const CRIMECLIENT_ANALYTICS = false;
-
 export const ACCENT_COLORS: Record<string, AccentColor> = {
   crimson: {
     name: "Crimson",
@@ -215,8 +213,6 @@ export const DEFAULT_BORDER_RADIUS = 12;
 export const MIN_BORDER_RADIUS = 0;
 export const MAX_BORDER_RADIUS = 32;
 
-let borderRadiusAnalyticsDebounceId: ReturnType<typeof setTimeout> | null = null;
-
 interface ThemeState {
   accentColor: AccentColor;
   setAccentColor: (color: AccentColor) => void;
@@ -269,18 +265,6 @@ interface ThemeState {
   // Language
   language: SupportedLanguage;
   setLanguage: (lang: SupportedLanguage) => void;
-  // Analytics consent state
-  analyticsConsent: {
-    hasSeenBanner: boolean;
-    hasMadeDecision: boolean;
-    decision: 'accepted' | 'declined' | null;
-    lastShown: string | null;
-    reminderCount: number;
-    launchCount: number;
-  };
-  setAnalyticsConsent: (consent: Partial<ThemeState['analyticsConsent']>) => void;
-  incrementLaunchCount: () => void;
-  shouldShowAnalyticsBanner: () => boolean;
 }
 
 export const useThemeStore = create<ThemeState>()(
@@ -312,39 +296,16 @@ export const useThemeStore = create<ThemeState>()(
       featureMode: false,
       // Language - defaults
       language: "en" as SupportedLanguage,
-      // Analytics consent state - defaults
-      analyticsConsent: {
-        hasSeenBanner: false,
-        hasMadeDecision: false,
-        decision: null,
-        lastShown: null,
-        reminderCount: 0,
-        launchCount: 0,
-      },
 
-      setAccentColor: async (color: AccentColor) => {
+      setAccentColor: (color: AccentColor) => {
         set({ accentColor: color });
         get().applyAccentColorToDOM();
-
-        const { trackEvent } = await import('../services/analytics-service');
-        const name = color.name?.trim() || 'Custom';
-        trackEvent('color_changed', { color: name, color_name: name }).catch(console.error);
       },
 
       setBorderRadius: (radius: number) => {
         const clampedRadius = Math.max(MIN_BORDER_RADIUS, Math.min(MAX_BORDER_RADIUS, radius));
         set({ borderRadius: clampedRadius });
         get().applyBorderRadiusToDOM();
-
-        if (borderRadiusAnalyticsDebounceId !== null) {
-          clearTimeout(borderRadiusAnalyticsDebounceId);
-        }
-        borderRadiusAnalyticsDebounceId = setTimeout(() => {
-          borderRadiusAnalyticsDebounceId = null;
-          void import("../services/analytics-service").then(({ trackEvent }) => {
-            trackEvent('border_radius_changed', { radius: clampedRadius, radius_px: clampedRadius }).catch(console.error);
-          });
-        }, 1000);
       },
 
       setCustomAccentColor: (hexColor: string) => {
@@ -529,42 +490,6 @@ export const useThemeStore = create<ThemeState>()(
       setLanguage: (lang: SupportedLanguage) => {
         set({ language: lang });
         import("../i18n/i18n").then((mod) => mod.default.changeLanguage(lang));
-        void import("../services/analytics-service").then(({ trackEvent }) => {
-          trackEvent("language_changed", { language: lang }).catch(console.error);
-        });
-      },
-
-      // Analytics consent functions
-      setAnalyticsConsent: (consentUpdate) => {
-        set((state) => ({
-          analyticsConsent: { ...state.analyticsConsent, ...consentUpdate }
-        }));
-      },
-
-      incrementLaunchCount: () => {
-        set((state) => ({
-          analyticsConsent: {
-            ...state.analyticsConsent,
-            launchCount: state.analyticsConsent.launchCount + 1
-          }
-        }));
-      },
-
-      shouldShowAnalyticsBanner: () => {
-        // CrimeClient collects no usage statistics, so there is nothing to ask for
-        if (!CRIMECLIENT_ANALYTICS) return false;
-        const state = get();
-        const consent = state.analyticsConsent;
-
-        if (consent.hasMadeDecision) return false;
-        if (consent.launchCount < 6) return false;
-        if (consent.reminderCount >= 3) return false;
-        if (consent.lastShown) {
-          const lastShown = new Date(consent.lastShown);
-          const daysSinceLastShown = (Date.now() - lastShown.getTime()) / (1000 * 60 * 60 * 24);
-          if (daysSinceLastShown < 30) return false;
-        }
-        return true;
       },
     }),    {
       name: "norisk-theme-storage",
@@ -610,18 +535,6 @@ export const useThemeStore = create<ThemeState>()(
             state.featureMode = false;
           }
           delete (state as { featuredLaunchMode?: string }).featuredLaunchMode;
-
-          // Ensure analytics consent state exists for existing users
-          if (!state.analyticsConsent) {
-            state.analyticsConsent = {
-              hasSeenBanner: false,
-              hasMadeDecision: false,
-              decision: null,
-              lastShown: null,
-              reminderCount: 0,
-              launchCount: 0,
-            };
-          }
         }
       },
     },

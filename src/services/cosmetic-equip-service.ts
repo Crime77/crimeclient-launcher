@@ -5,7 +5,6 @@ import {
   type ResolvedCosmetic,
   type ResolvedCosmeticDto,
 } from "../lib/cosmetics/cosmeticRendererAssets";
-import { getCapeImageUrl } from "./cape-service";
 
 export interface EquippedCosmetics {
   cosmetics: ResolvedCosmetic[];
@@ -17,35 +16,9 @@ interface EquippedCosmeticsDto {
   customCapeHash: string | null;
 }
 
-function capeCosmetic(hash: string): ResolvedCosmetic {
-  return {
-    cosmeticId: `cape:${hash}`,
-    name: "Cape",
-    type: "CAPE",
-    urls: {
-      geo: "",
-      texture: getCapeImageUrl(hash, false),
-      metadataJson: {
-        id: `cape:${hash}`,
-        name: "Cape",
-        type: "CAPE",
-        path: "cape",
-        defaultSettings: {
-          scale: 1,
-          previewScale: 1,
-          offset: { x: 0, y: 0, z: 0 },
-          previewOffset: { x: 0, y: 0, z: 0 },
-        },
-      },
-    },
-  };
-}
-
 function fromDto(dto: EquippedCosmeticsDto): EquippedCosmetics {
   const cosmetics = dto.cosmetics.map(toRendererCosmetic);
-
   const customCapeHash = dto.customCapeHash ?? null;
-  if (customCapeHash) cosmetics.push(capeCosmetic(customCapeHash));
 
   return { cosmetics, customCapeHash };
 }
