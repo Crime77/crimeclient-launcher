@@ -149,12 +149,25 @@ function storeMock({ method, path, body }: { method: string; path: string; body:
   return null;
 }
 
+// what the CrimeClient Rust profiles wear (commands/crime_wardrobe_command.rs)
+const wardrobe = { worn: { wings: "bat_wings" } as Record<string, string>, custom_cape: true, custom_skin: false };
+
+function wardrobeMock(cmd: string, args: { slot?: string; id?: string | null }) {
+  if (cmd === "crime_wardrobe_wear" && args.slot) {
+    if (args.id) wardrobe.worn[args.slot] = args.id;
+    else delete wardrobe.worn[args.slot];
+    if (args.slot === "cape") wardrobe.custom_cape = false;
+  }
+  return structuredClone(wardrobe);
+}
+
 export function installTauriMock() {
   mockWindows("main");
   mockConvertFileSrc("windows");
   mockIPC((cmd, args) => {
     if (cmd.startsWith("plugin:")) return null;
     if (cmd === "crime_store_request") return storeMock(args as { method: string; path: string; body: { id?: string } | null });
+    if (cmd.startsWith("crime_wardrobe_")) return wardrobeMock(cmd, args as { slot?: string; id?: string | null });
     if (cmd === "get_profile") {
       return profiles.find((p) => p.id === (args as { id?: string })?.id) ?? profiles[0];
     }

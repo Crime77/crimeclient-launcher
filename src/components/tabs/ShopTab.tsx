@@ -20,6 +20,9 @@ import {
   Backpack,
   Flag,
   HeartPulse,
+  Shirt,
+  Download,
+  X,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { parseErrorMessage } from "../../utils/error-utils";
@@ -30,8 +33,12 @@ import {
   getCatalog,
   getStoreAccount,
   getStoreItems,
+  getWardrobe,
+  importJavaWardrobe,
+  wearCosmetic,
   type CatalogCosmetic,
   type StoreAccount,
+  type Wardrobe,
 } from "../../services/crime-store-service";
 import { Modal } from "../ui/Modal";
 import { Button } from "../ui/buttons/Button";
@@ -67,7 +74,10 @@ interface ShopEntry extends CatalogCosmetic {
 
 const formatShards = (n: number) => n.toLocaleString("de-DE");
 
-/** Spend shards on cosmetics: the same store and account as the wardrobe in the client. */
+/**
+ * Spend shards on cosmetics: the same store and account as the wardrobe in the client. Bought cosmetics are put on
+ * here for CrimeClient Rust, which has no wardrobe screen; the Java client keeps its own in-game wardrobe.
+ */
 export function ShopTab() {
   const { t } = useTranslation();
   const activeAccount = useMinecraftAuthStore((s) => s.activeAccount);
@@ -81,6 +91,8 @@ export function ShopTab() {
   const [confirm, setConfirm] = useState<ShopEntry | null>(null);
   const [buying, setBuying] = useState(false);
   const [claiming, setClaiming] = useState(false);
+  const [wardrobe, setWardrobe] = useState<Wardrobe | null>(null);
+  const [wearing, setWearing] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
@@ -118,6 +130,43 @@ export function ShopTab() {
   useEffect(() => {
     void loadAccount();
   }, [loadAccount]);
+
+  useEffect(() => {
+    getWardrobe()
+      .then(setWardrobe)
+      .catch((err) => console.warn("Wardrobe not loaded", err));
+  }, []);
+
+  /** Puts `entry` on, or takes it off when it is worn already. */
+  const toggleWorn = async (entry: ShopEntry) => {
+    const worn = wardrobe?.worn[entry.slot] === entry.id;
+    setWearing(entry.id);
+    try {
+      setWardrobe(await wearCosmetic(entry.slot, worn ? null : entry.id));
+      toast.success(t(worn ? "shop.taken_off" : "shop.put_on", { name: entry.name }));
+    } catch (err) {
+      toast.error(parseErrorMessage(err));
+    } finally {
+      setWearing(null);
+    }
+  };
+
+  const takeOffCustomCape = async () => {
+    try {
+      setWardrobe(await wearCosmetic("cape", null));
+    } catch (err) {
+      toast.error(parseErrorMessage(err));
+    }
+  };
+
+  const importJava = async () => {
+    try {
+      setWardrobe(await importJavaWardrobe());
+      toast.success(t("shop.java_imported"));
+    } catch {
+      toast.error(t("shop.java_import_failed"));
+    }
+  };
 
   const owned = useMemo(() => new Set(account?.owned ?? []), [account]);
 
@@ -225,6 +274,29 @@ export function ShopTab() {
           })}
         </div>
         <div className="flex-1" />
+        {wardrobe?.custom_cape && (
+          <span
+            className="flex items-center gap-1.5 h-8 pl-3 pr-1.5 text-[12px] text-white/70 cc-glass"
+            style={{ borderRadius: 9999 }}
+          >
+            <Flag size={13} /> {t("shop.custom_cape")}
+            <button
+              onClick={takeOffCustomCape}
+              title={t("shop.take_off")}
+              className="cc-free grid place-items-center w-5 h-5 rounded-full text-white/50 hover:text-white hover:bg-white/10"
+            >
+              <X size={12} />
+            </button>
+          </span>
+        )}
+        <button
+          onClick={importJava}
+          title={t("shop.java_import_hint")}
+          className="cc-free flex items-center gap-1.5 h-8 px-3 text-[13px] font-semibold text-white/60 hover:text-white cc-glass"
+          style={{ borderRadius: 9999 }}
+        >
+          <Download size={14} /> {t("shop.java_import")}
+        </button>
         <label className="flex items-center gap-2 text-[13px] text-white/60 cursor-pointer select-none">
           <input
             type="checkbox"
@@ -275,9 +347,12 @@ export function ShopTab() {
                 key={entry.id}
                 entry={entry}
                 owned={owned.has(entry.id)}
+                worn={wardrobe?.worn[entry.slot] === entry.id}
+                busy={wearing === entry.id}
                 affordable={canAfford(entry.price)}
                 signedIn={!!account}
                 onBuy={() => setConfirm(entry)}
+                onWear={() => toggleWorn(entry)}
               />
             ))}
           </div>
@@ -401,20 +476,29 @@ function ItemArt({ entry, size }: { entry: CatalogCosmetic; size?: number }) {
 function ShopCard({
   entry,
   owned,
+  worn,
+  busy,
   affordable,
   signedIn,
   onBuy,
+  onWear,
 }: {
   entry: ShopEntry;
   owned: boolean;
+  worn: boolean;
+  busy: boolean;
   affordable: boolean;
   signedIn: boolean;
   onBuy: () => void;
+  onWear: () => void;
 }) {
   const { t } = useTranslation();
   return (
     <div
-      className="group flex flex-col gap-3 p-3 bg-white/[0.035] border border-white/[0.07] hover:bg-white/[0.06] hover:border-white/[0.13] transition-all hover:-translate-y-0.5"
+      className={cn(
+        "group flex flex-col gap-3 p-3 bg-white/[0.035] border hover:bg-white/[0.06] transition-all hover:-translate-y-0.5",
+        worn ? "border-[var(--accent)]" : "border-white/[0.07] hover:border-white/[0.13]",
+      )}
       style={{ borderRadius: 20 }}
     >
       <ItemArt entry={entry} />
@@ -425,12 +509,21 @@ function ShopCard({
         <div className="text-xs text-white/40">{t(`shop.slot.${entry.slot}`)}</div>
       </div>
       {owned ? (
-        <div
-          className="flex items-center justify-center gap-1.5 h-9 text-[13px] font-semibold text-emerald-300 bg-emerald-500/10 border border-emerald-400/20"
+        <button
+          onClick={onWear}
+          disabled={busy}
+          title={t(worn ? "shop.take_off" : "shop.wear_hint")}
+          className={cn(
+            "cc-free flex items-center justify-center gap-1.5 h-9 text-[13px] font-semibold border transition-colors disabled:opacity-60",
+            worn
+              ? "text-emerald-300 bg-emerald-500/10 border-emerald-400/20 hover:bg-emerald-500/20"
+              : "text-white/75 bg-white/[0.05] border-white/[0.09] hover:text-white hover:bg-white/[0.1]",
+          )}
           style={{ borderRadius: 12 }}
         >
-          <Check size={15} /> {t("shop.owned")}
-        </div>
+          {busy ? <Loader2 size={15} className="animate-spin" /> : worn ? <Check size={15} /> : <Shirt size={15} />}
+          {t(worn ? "shop.worn" : "shop.wear")}
+        </button>
       ) : (
         <button
           onClick={onBuy}

@@ -31,6 +31,8 @@ pub async fn launch(
     let resources =
         prepare::ensure_prepared(state, profile.id, &release, piston_meta, version_url, java_path).await?;
     progress(state, EventType::LaunchingMinecraft, profile.id, "Starting CrimeClient Rust...", 0.95).await?;
+    // the cosmetics chosen in the launcher's wardrobe (Horizon has no wardrobe screen)
+    crate::commands::crime_wardrobe_command::apply_to(state, game_directory).await;
 
     // The launcher shows the Discord activity (as for Java with -Dcrimeclient.launcher.discord); Horizon's own
     // "Playing Horizon" would replace it.
