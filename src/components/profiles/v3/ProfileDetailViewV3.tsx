@@ -65,6 +65,7 @@ import { LoaderVersionPickerV3 } from "./chips/LoaderVersionPickerV3";
 import { useHeroChipEditors } from "./chips/useHeroChipEditors";
 import { LocalContentTabV3 } from "./tabs/LocalContentTabV3";
 import { WorldsTabV3 } from "./tabs/WorldsTabV3";
+import { CrimeShaderTabV3 } from "./tabs/CrimeShaderTabV3";
 import { ScreenshotsTabV3 } from "./tabs/ScreenshotsTabV3";
 import { LogsTabV3 } from "./tabs/LogsTabV3";
 import type { LocalContentItem } from "../../../hooks/useLocalContentManager";
@@ -776,6 +777,8 @@ export function ProfileDetailViewV3({
               /* Kein Add-CTA: NoRisk-Mods kommen ueber den Pack-Selector, nicht via Browse. */
             />
           )}
+
+          {activeNavItem === "crime_shader" && <CrimeShaderTabV3 profile={currentProfile} />}
 
           {activeNavItem === "worlds" && (
             <WorldsTabV3

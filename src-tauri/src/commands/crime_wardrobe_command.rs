@@ -67,7 +67,7 @@ async fn wardrobe(dir: &Path) -> Wardrobe {
     }
 }
 
-async fn all_profiles(state: &State) -> Vec<Profile> {
+pub(crate) async fn all_profiles(state: &State) -> Vec<Profile> {
     let mut profiles = state.profile_manager.list_profiles().await.unwrap_or_default();
     profiles.extend(state.norisk_version_manager.get_config().await.profiles);
     profiles

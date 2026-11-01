@@ -21,6 +21,7 @@ use crate::commands::process_command::{
     set_discord_state, stop_process,
 };
 use commands::crime_store_command::crime_store_request;
+use commands::crime_shader_command::{crime_shader_get, crime_shader_import_java, crime_shader_set, crime_shader_toggle};
 use commands::crime_wardrobe_command::{crime_wardrobe_get, crime_wardrobe_import_java, crime_wardrobe_wear};
 use commands::minecraft_auth_command::{
     begin_login, cancel_login, get_accounts, get_active_account, is_flatpak, remove_account, set_active_account
@@ -596,6 +597,10 @@ async fn main() {
             crime_wardrobe_get,
             crime_wardrobe_wear,
             crime_wardrobe_import_java,
+            crime_shader_get,
+            crime_shader_set,
+            crime_shader_toggle,
+            crime_shader_import_java,
             search_modrinth_mods,
             search_modrinth_projects,
             search_mods_unified_command,

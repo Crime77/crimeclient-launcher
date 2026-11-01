@@ -13,7 +13,7 @@ import type { Profile } from "../../../types/profile";
 
 export type NavKey =
   | "mods" | "resourcepacks" | "shaderpacks" | "datapacks" | "nrc"
-  | "worlds" | "screenshots" | "logs";
+  | "crime_shader" | "worlds" | "screenshots" | "logs";
 
 export const CONTENT_NAV_KEYS: NavKey[] = ["mods", "resourcepacks", "shaderpacks", "datapacks", "nrc"];
 
@@ -49,6 +49,10 @@ export function ProfileLeftRailV3({ profile, activeNavItem, onNavChange }: Profi
         { key: "shaderpacks",   icon: "solar:sun-bold-duotone",          labelKey: "profiles.content.shaderPacks" },
         { key: "datapacks",     icon: "solar:database-bold-duotone",     labelKey: "profiles.content.dataPacks" },
         { key: "nrc",           icon: "solar:shield-check-bold-duotone", labelKey: "profiles.content.noriskClient" },
+        // CrimeClient Rust: Photon's options (tabs/CrimeShaderTabV3.tsx)
+        ...(profile.game === "horizon"
+          ? [{ key: "crime_shader" as const, icon: "solar:sun-2-bold-duotone", labelKey: "profiles.content.crimeShader" }]
+          : []),
       ],
     },
     {

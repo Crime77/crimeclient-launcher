@@ -39,6 +39,7 @@ const profiles = [
   profile("p-crime", "CrimeClient", "26.3", "fabric"),
   profile("p-craftattack", "CraftAttack", "26.3", "fabric", { playtime_seconds: 120000 }),
   profile("p-vanilla", "Vanilla 1.21.10", "1.21.10", "vanilla", { mod_count: 0, last_played: null }),
+  profile("p-rust", "CrimeClient Rust", "26.3", "vanilla", { game: "horizon", mod_count: 0 }),
 ];
 
 const config = {
@@ -161,6 +162,52 @@ function wardrobeMock(cmd: string, args: { slot?: string; id?: string | null }) 
   return structuredClone(wardrobe);
 }
 
+// Photon's options as the game writes them (commands/crime_shader_command.rs), a few of the real ones
+const switchOption = (on: boolean) => ({ default: String(on), values: ["false", "true"], switch: true, slider: false });
+const shaderPage = {
+  model: {
+    format: 1, pack: "photon_v1.4.zip", size: 3857333,
+    options: {
+      SHADOW: switchOption(true), CLOUDS_CUMULUS: switchOption(true), BLOOM: switchOption(true), VL: switchOption(false),
+      DOF: switchOption(false),
+      SHADOW_RES: { default: "1024", values: ["512", "1024", "2048", "4096"], switch: false, slider: true },
+      SUN_ANGLE: { default: "40", values: ["-60", "-40", "-20", "0", "20", "40", "60"], switch: false, slider: true },
+      TONEMAP: { default: "1", values: ["0", "1", "2"], switch: false, slider: false },
+    },
+    screens: {
+      "": { columns: 2, items: [{ kind: "profile" }, { kind: "empty" }, { kind: "screen", name: "LIGHTING" },
+        { kind: "screen", name: "SKY" }, { kind: "option", name: "BLOOM" }, { kind: "option", name: "TONEMAP" }] },
+      LIGHTING: { columns: 2, items: [{ kind: "option", name: "SHADOW" }, { kind: "option", name: "SHADOW_RES" },
+        { kind: "option", name: "VL" }, { kind: "option", name: "DOF" }] },
+      SKY: { columns: 1, items: [{ kind: "option", name: "CLOUDS_CUMULUS" }, { kind: "option", name: "SUN_ANGLE" }] },
+    },
+    profiles: [
+      { name: "low", values: { SHADOW: "false", BLOOM: "false", SHADOW_RES: "512" } },
+      { name: "medium", values: { SHADOW: "true", BLOOM: "true", SHADOW_RES: "1024" } },
+      { name: "high", values: { SHADOW: "true", BLOOM: "true", SHADOW_RES: "2048" } },
+      { name: "ultra", values: { SHADOW: "true", BLOOM: "true", SHADOW_RES: "4096" } },
+    ],
+    text: {
+      en: {
+        "profile.low": "§cLow", "profile.medium": "§6Medium", "profile.high": "§aHigh", "profile.ultra": "§bUltra",
+        "screen.LIGHTING": "Lighting", "screen.SKY": "Sky", "option.SHADOW": "Shadows", "option.SHADOW_RES": "Shadow Resolution",
+        "option.SHADOW.comment": "Enables shadows from the sun and moon", "option.VL": "§eVolumetric Light",
+        "option.DOF": "Depth of Field", "option.BLOOM": "Bloom", "option.TONEMAP": "Tonemap",
+        "value.TONEMAP.0": "Reinhard", "value.TONEMAP.1": "ACES", "value.TONEMAP.2": "Lottes",
+        "option.CLOUDS_CUMULUS": "Cumulus Clouds", "option.SUN_ANGLE": "Sun Angle", "suffix.SUN_ANGLE": "°",
+      },
+    },
+  },
+  chosen: { SHADOW_RES: "2048" } as Record<string, string>, on: true, running: location.search.includes("running"), java: true,
+};
+
+function shaderMock(cmd: string, args: { chosen?: Record<string, string>; on?: boolean }) {
+  if (cmd === "crime_shader_set" && args.chosen) shaderPage.chosen = args.chosen;
+  if (cmd === "crime_shader_toggle") shaderPage.on = !!args.on;
+  if (cmd === "crime_shader_import_java") shaderPage.chosen = { VL: "true", DOF: "true" };
+  return structuredClone(shaderPage);
+}
+
 export function installTauriMock() {
   mockWindows("main");
   mockConvertFileSrc("windows");
@@ -168,6 +215,7 @@ export function installTauriMock() {
     if (cmd.startsWith("plugin:")) return null;
     if (cmd === "crime_store_request") return storeMock(args as { method: string; path: string; body: { id?: string } | null });
     if (cmd.startsWith("crime_wardrobe_")) return wardrobeMock(cmd, args as { slot?: string; id?: string | null });
+    if (cmd.startsWith("crime_shader_")) return shaderMock(cmd, args as { chosen?: Record<string, string>; on?: boolean });
     if (cmd === "get_profile") {
       return profiles.find((p) => p.id === (args as { id?: string })?.id) ?? profiles[0];
     }
