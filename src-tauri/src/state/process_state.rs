@@ -72,6 +72,25 @@ pub struct ProcessMetadata {
     pub modpack: Option<CrashModpackInfo>,
 }
 
+/// How far the OS start time of a game may lie from `ProcessMetadata::start_time` (taken right before the spawn).
+const PID_START_TOLERANCE_SECS: i64 = 60;
+
+/// Whether `process`, found under a saved PID, is still the game started at `started`. Windows reuses PIDs, so after a
+/// launcher restart an unrelated program may sit there (an old CrimeClient PID once belonged to nvcontainer); it must
+/// never count as a running game or be killed by Stop. Without a start time (no access to the process) only a Java or
+/// Horizon executable counts.
+fn is_same_game(process: &sysinfo::Process, started: DateTime<Utc>) -> bool {
+    let os_start = process.start_time();
+    if os_start > 0 {
+        return (os_start as i64 - started.timestamp()).abs() <= PID_START_TOLERANCE_SECS;
+    }
+    let name = process.name().to_string_lossy().to_ascii_lowercase();
+    matches!(
+        name.strip_suffix(".exe").unwrap_or(&name),
+        "java" | "javaw" | "horizon-client"
+    )
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CrashModpackInfo {
     pub platform: String,
@@ -452,13 +471,17 @@ impl ProcessManager {
                 sys.refresh_processes(ProcessesToUpdate::Some(&pids_to_refresh), false);
 
                 let mut loaded_count = 0;
+                let mut ignored_count = 0;
                 let mut processes_map_writer = self.processes.write().await; // Eine Schreibsperre für die Map
                                                                              // Kein globales State-Objekt hier direkt holen, da wir im &self Kontext sind.
                                                                              // Stattdessen app_handle verwenden oder für ProfileManager den State übergeben.
 
                 for mut metadata in loaded_metadata {
                     let process_pid = Pid::from(metadata.pid as usize);
-                    if sys.process(process_pid).is_some() {
+                    if sys
+                        .process(process_pid)
+                        .is_some_and(|p| is_same_game(p, metadata.start_time))
+                    {
                         if metadata.state == ProcessState::Starting
                             || metadata.state == ProcessState::Stopping
                         {
@@ -534,16 +557,24 @@ impl ProcessManager {
                         loaded_count += 1;
                     } else {
                         log::warn!(
-                            "Ignoring stale process entry {} (PID: {}): Process not found.",
+                            "Ignoring stale process entry {} (PID: {}): Process not found or PID now used by another program.",
                             metadata.id,
                             metadata.pid
                         );
+                        ignored_count += 1;
                     }
                 }
                 log::info!(
                     "Created {} active Process entries from loaded metadata.",
                     loaded_count
                 );
+                drop(processes_map_writer);
+                // Write the file without the stale entries, so they don't come back on the next start
+                if ignored_count > 0 {
+                    if let Err(e) = self.save_processes().await {
+                        log::error!("Failed to save processes after dropping stale entries: {}", e);
+                    }
+                }
             }
             Err(e) => {
                 log::error!(
@@ -1298,7 +1329,10 @@ impl ProcessManager {
             let pid_to_refresh = Pid::from(pid_to_kill as usize);
             sys.refresh_processes(ProcessesToUpdate::Some(&[pid_to_refresh]), false);
 
-            if let Some(sys_process) = sys.process(pid_to_refresh) {
+            if let Some(sys_process) = sys
+                .process(pid_to_refresh)
+                .filter(|p| is_same_game(p, process.metadata.start_time))
+            {
                 if sys_process.kill() {
                     log::info!("Kill signal sent successfully to PID {}.", pid_to_kill);
                     kill_successful = true;
@@ -1307,7 +1341,7 @@ impl ProcessManager {
                 }
             } else {
                 log::warn!(
-                    "Process with PID {} not found by sysinfo during stop attempt. Assuming already stopped.",
+                    "Process with PID {} not found by sysinfo during stop attempt, or the PID now belongs to another program. Assuming already stopped.",
                     pid_to_kill
                 );
                 kill_successful = true;
@@ -1378,7 +1412,7 @@ impl ProcessManager {
             interval.tick().await;
             log::trace!("Running periodic process and watcher check...");
 
-            let mut pids_to_check_in_map: Vec<(Uuid, u32)> = Vec::new();
+            let mut pids_to_check_in_map: Vec<(Uuid, u32, DateTime<Utc>)> = Vec::new();
             {
                 let processes_map_reader = processes_arc.read().await;
                 if processes_map_reader.is_empty() {
@@ -1387,7 +1421,9 @@ impl ProcessManager {
                 } else {
                     pids_to_check_in_map = processes_map_reader
                         .iter()
-                        .map(|(id, process)| (*id, process.metadata.pid))
+                        .map(|(id, process)| {
+                            (*id, process.metadata.pid, process.metadata.start_time)
+                        })
                         .collect();
                 }
             }
@@ -1404,13 +1440,16 @@ impl ProcessManager {
                 let mut sys = System::new();
                 let pids_to_refresh: Vec<Pid> = pids_to_check_in_map
                     .iter()
-                    .map(|(_, pid_u32)| Pid::from(*pid_u32 as usize)) // Dereferenzieren von pid_u32
+                    .map(|(_, pid_u32, _)| Pid::from(*pid_u32 as usize)) // Dereferenzieren von pid_u32
                     .collect();
                 sys.refresh_processes(ProcessesToUpdate::Some(&pids_to_refresh), false);
 
-                for (id, pid) in pids_to_check_in_map {
+                for (id, pid, started) in pids_to_check_in_map {
                     // Hier pids_to_check_in_map verwenden, nicht pids_to_refresh
-                    if sys.process(Pid::from(pid as usize)).is_none() {
+                    if !sys
+                        .process(Pid::from(pid as usize))
+                        .is_some_and(|p| is_same_game(p, started))
+                    {
                         log::warn!("Periodic check found managed process {} (PID: {}) no longer running. Marking for removal.", id, pid);
                         dead_process_ids_from_map.push(id);
                     } else {
@@ -1959,4 +1998,21 @@ impl PostInitializationHandler for ProcessManager {
 
 pub fn default_processes_path() -> PathBuf {
     LAUNCHER_DIRECTORY.root_dir().join(PROCESSES_FILENAME)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn same_game_needs_the_spawn_time() {
+        let pid = sysinfo::get_current_pid().unwrap();
+        let mut sys = System::new();
+        sys.refresh_processes(ProcessesToUpdate::Some(&[pid]), false);
+        let me = sys.process(pid).expect("own process");
+        let started = DateTime::from_timestamp(me.start_time() as i64, 0).unwrap();
+        assert!(is_same_game(me, started));
+        // The game under this PID ended hours ago: whatever runs there now is another program
+        assert!(!is_same_game(me, started - chrono::Duration::hours(7)));
+    }
 }
