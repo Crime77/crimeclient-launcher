@@ -131,8 +131,14 @@ pub struct UniquePlayersResponse {
     pub computed_at_ms: i64,
 }
 
-/// Where the CrimeClient launcher gets its pack list (modpacks.json) and standard profiles (versions.json).
-const CRIMECLIENT_LAUNCHER_API: &str = "https://crime77.duckdns.org/mod/api/launcher";
+/// Where the CrimeClient launcher gets its pack list (modpacks.json), standard profiles (versions.json) and the
+/// Rust client (rust.json). The environment variable `CRIMECLIENT_LAUNCHER_API` points it at a local copy for tests.
+pub fn crimeclient_launcher_api() -> String {
+    std::env::var("CRIMECLIENT_LAUNCHER_API")
+        .ok()
+        .filter(|url| !url.is_empty())
+        .unwrap_or_else(|| "https://crime77.duckdns.org/mod/api/launcher".to_string())
+}
 
 pub struct NoRiskApi;
 
@@ -420,8 +426,8 @@ impl NoRiskApi {
 
     /// CrimeClient: the pack and standard profile lists come from the CrimeClient update API (written by
     /// tools/build_modpack.py in the CraftCosmetics repo on every release), not from NoRisk.
-    async fn get_crimeclient_json<T: for<'de> Deserialize<'de>>(file: &str) -> Result<T> {
-        let url = format!("{}/{}", CRIMECLIENT_LAUNCHER_API, file);
+    pub async fn get_crimeclient_json<T: for<'de> Deserialize<'de>>(file: &str) -> Result<T> {
+        let url = format!("{}/{}", crimeclient_launcher_api(), file);
         trace!("[CrimeClient API] GET {}", url);
         let response = HTTP_CLIENT
             .get(&url)

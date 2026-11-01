@@ -234,6 +234,8 @@ export interface Profile {
   preferred_account_id: string | null;
   playtime_seconds?: number;
   sync_pack_ids: string[];
+  // "horizon": CrimeClient Rust (Horizon) instead of Java Minecraft; lands in the backend's Profile.extra
+  game?: "minecraft" | "horizon";
 }
 
 export interface ProfileGroup {

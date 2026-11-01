@@ -730,8 +730,13 @@ impl ProcessManager {
         memory_max_mb: u32,
         mods: Vec<CrashModInfo>,
         modpack: Option<CrashModpackInfo>,
+        // Written to the game's standard input, which is then closed (Horizon's --session-stdin)
+        stdin: Option<Vec<u8>>,
     ) -> Result<Uuid> {
         log::info!("Attempting to start process for profile {}", profile_id);
+        if stdin.is_some() {
+            command.stdin(std::process::Stdio::piped());
+        }
 
         #[cfg(unix)]
         {
@@ -808,6 +813,14 @@ impl ProcessManager {
             );
             AppError::ProcessSpawnFailed(e.to_string())
         })?;
+
+        if let (Some(data), Some(mut pipe)) = (stdin, child.stdin.take()) {
+            use tokio::io::AsyncWriteExt;
+            // dropping the pipe afterwards closes it, so the game sees the end of its input
+            pipe.write_all(&data).await.map_err(|e| {
+                AppError::ProcessSpawnFailed(format!("Could not write to the game's input: {}", e))
+            })?;
+        }
 
         if let Some(writer) = log_writer_handle.as_ref() {
             if let Some(stdout) = child.stdout.take() {

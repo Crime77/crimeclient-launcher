@@ -659,6 +659,7 @@ impl MinecraftLauncher {
                 params.memory_max_mb,
                 crash_mods,
                 crash_modpack,
+                None,
             )
             .await?;
 

@@ -351,6 +351,12 @@ pub struct CustomModInfo {
 }
 
 impl Profile {
+    /// CrimeClient Rust: `"game": "horizon"` (kept in `extra`) starts Horizon, the Rust client, instead of Java
+    /// (`crate::horizon`).
+    pub fn is_horizon(&self) -> bool {
+        self.extra.get("game").and_then(|v| v.as_str()) == Some("horizon")
+    }
+
     /// Returns whether this profile should actually use a shared Minecraft folder.
     /// This method takes into account both the profile setting and special group logic.
     pub fn should_use_shared_minecraft_folder(&self) -> bool {
@@ -3294,6 +3300,16 @@ impl ProfileManager {
                 changed = true;
             }
             
+            // CrimeClient: which game the profile starts ("game": "horizon" is CrimeClient Rust)
+            if copy.extra.get("game") != standard_profile.extra.get("game") {
+                info!("Updating game for copy {}: {:?} -> {:?}", copy_id, copy.extra.get("game"), standard_profile.extra.get("game"));
+                match standard_profile.extra.get("game") {
+                    Some(game) => copy.extra.insert("game".to_string(), game.clone()),
+                    None => copy.extra.remove("game"),
+                };
+                changed = true;
+            }
+
             // Force update path if different
             if copy.path != standard_profile.path {
                 info!("Updating path for copy {}: '{}' -> '{}'", copy_id, copy.path, standard_profile.path);

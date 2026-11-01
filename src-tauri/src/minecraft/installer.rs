@@ -468,6 +468,26 @@ pub async fn install_minecraft_version(
         client_service.download_client(&piston_meta.downloads.client, &piston_meta.id).await
     }).await?;
 
+    // CrimeClient Rust: Horizon prepares its resources from the files above and starts instead of Java
+    if profile.is_horizon() {
+        timed_step(&state, &summary, EventType::LaunchingMinecraft, profile.id, "launch", || async {
+            crate::horizon::launch(
+                &state,
+                profile,
+                &piston_meta,
+                &version.url,
+                &java_path,
+                &game_directory,
+                credentials.as_ref(),
+                quick_play_singleplayer.clone(),
+                quick_play_multiplayer.clone(),
+            )
+            .await
+        }).await?;
+        summary.log(&profile.name, version_id, "horizon", total_start.elapsed().as_millis());
+        return Ok(());
+    }
+
     // Create and use Minecraft launcher
     let launcher = MinecraftLauncher::new(
         java_path.clone(),
