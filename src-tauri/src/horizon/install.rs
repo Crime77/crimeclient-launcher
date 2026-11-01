@@ -17,8 +17,8 @@ use uuid::Uuid;
 
 /// Marks a complete unpacked release; holds the zip's sha256.
 const INSTALLED: &str = ".installed";
-/// Holds the release's resources key: releases with the same key can share prepared resources.
-const RESOURCES_KEY: &str = ".resources";
+/// What package.py packed into every release: its version, Horizon tag and resources key.
+const INFO: &str = "crimeclient-rust.json";
 /// horizon-prepare's work folder in a release (prepare.rs), the prepared resources included.
 const PREPARED: &str = ".local";
 
@@ -26,19 +26,25 @@ const PREPARED: &str = ".local";
 struct Release {
     version: String,
     horizon: String,
-    /// What the prepared resources depend on; the Horizon tag unless a release changes horizon-prepare or its
-    /// exporters itself.
-    #[serde(default)]
-    resources: Option<String>,
     url: String,
     sha256: String,
     size: u64,
 }
 
-impl Release {
-    fn resources_key(&self) -> &str {
-        self.resources.as_deref().unwrap_or(&self.horizon)
-    }
+/// A release's `crimeclient-rust.json`.
+#[derive(Deserialize)]
+struct Info {
+    horizon: String,
+    /// What the prepared resources depend on; the Horizon tag unless a release changes horizon-prepare or its
+    /// exporters itself (package.py --resources).
+    #[serde(default)]
+    resources: Option<String>,
+}
+
+/// The resources key of the release unpacked in `dir`: releases with the same key can share prepared resources.
+async fn resources_key(dir: &Path) -> Option<String> {
+    let info: Info = serde_json::from_slice(&tokio::fs::read(dir.join(INFO)).await.ok()?).ok()?;
+    Some(info.resources.unwrap_or(info.horizon))
 }
 
 pub fn root() -> PathBuf {
@@ -87,12 +93,11 @@ pub async fn ensure_installed(state: &State, profile_id: Uuid) -> Result<PathBuf
     .await
     .map_err(|e| AppError::Other(e.to_string()))??;
     tokio::fs::remove_file(&zip).await.ok();
-    adopt_prepared(&root(), release.resources_key(), &staging).await;
+    adopt_prepared(&root(), &staging).await;
     if dir.exists() {
         tokio::fs::remove_dir_all(&dir).await?;
     }
     tokio::fs::rename(&staging, &dir).await?;
-    tokio::fs::write(dir.join(RESOURCES_KEY), release.resources_key()).await?;
     tokio::fs::write(&marker, &release.sha256).await?;
     remove_old(&release.version).await;
     progress(state, EventType::DownloadingClient, profile_id, "CrimeClient Rust installed", 1.0).await?;
@@ -167,11 +172,14 @@ async fn newest_installed() -> Option<PathBuf> {
 }
 
 /// Moves the prepared resources (about 1.3 GB, a minute of horizon-prepare) of the newest installed release with the
-/// same resources key into `into`, so an update that keeps the Horizon tag starts without preparing again.
-async fn adopt_prepared(root: &Path, key: &str, into: &Path) {
+/// same resources key into the release unpacked in `into`, so an update that keeps the Horizon tag starts without
+/// preparing again.
+async fn adopt_prepared(root: &Path, into: &Path) {
+    let Some(key) = resources_key(into).await else {
+        return;
+    };
     for (_, path) in installed_in(root).await.into_iter().rev() {
-        let same = tokio::fs::read_to_string(path.join(RESOURCES_KEY)).await.ok();
-        if same.as_deref().map(str::trim) != Some(key) || !path.join(PREPARED).is_dir() {
+        if resources_key(&path).await.as_ref() != Some(&key) || !path.join(PREPARED).is_dir() {
             continue;
         }
         match tokio::fs::rename(path.join(PREPARED), into.join(PREPARED)).await {
@@ -198,32 +206,40 @@ async fn remove_old(current: &str) {
 mod tests {
     use super::*;
 
-    async fn release(root: &Path, version: &str, key: &str) -> PathBuf {
+    /// A release folder as package.py packs it; `resources` is its own key, if it has one.
+    async fn unpacked(dir: &Path, horizon: &str, resources: Option<&str>) {
+        tokio::fs::create_dir_all(dir).await.unwrap();
+        let info = serde_json::json!({ "version": "x", "horizon": horizon, "resources": resources });
+        tokio::fs::write(dir.join(INFO), info.to_string()).await.unwrap();
+    }
+
+    async fn installed_release(root: &Path, version: &str, horizon: &str) {
         let dir = root.join(version);
+        unpacked(&dir, horizon, None).await;
         tokio::fs::create_dir_all(dir.join(PREPARED)).await.unwrap();
         tokio::fs::write(dir.join(PREPARED).join("horizon-resources.json"), version).await.unwrap();
-        tokio::fs::write(dir.join(RESOURCES_KEY), key).await.unwrap();
         tokio::fs::write(dir.join(INSTALLED), "sha").await.unwrap();
-        dir
     }
 
     #[tokio::test]
     async fn update_takes_over_prepared_resources_of_the_same_horizon() {
         let root = tempfile::tempdir().unwrap();
-        release(root.path(), "0.1.0", "nightly-a").await;
-        release(root.path(), "0.1.1", "nightly-b").await;
+        installed_release(root.path(), "0.1.0", "nightly-a").await;
+        installed_release(root.path(), "0.1.1", "nightly-b").await;
         let staging = root.path().join(".0.1.2-1");
-        tokio::fs::create_dir_all(&staging).await.unwrap();
+        unpacked(&staging, "nightly-a", None).await;
 
-        adopt_prepared(root.path(), "nightly-a", &staging).await;
+        adopt_prepared(root.path(), &staging).await;
         let adopted = tokio::fs::read_to_string(staging.join(PREPARED).join("horizon-resources.json")).await;
         assert_eq!(adopted.unwrap(), "0.1.0");
         assert!(!root.path().join("0.1.0").join(PREPARED).exists());
 
-        // another Horizon tag: nothing to take over, prepare.rs prepares again
-        let other = root.path().join(".0.2.0-1");
-        tokio::fs::create_dir_all(&other).await.unwrap();
-        adopt_prepared(root.path(), "nightly-c", &other).await;
-        assert!(!other.join(PREPARED).exists());
+        // another Horizon tag, or the same one with its own resources key: prepare.rs prepares again
+        for (version, horizon, resources) in [(".0.2.0-1", "nightly-c", None), (".0.2.1-1", "nightly-b", Some("own"))] {
+            let other = root.path().join(version);
+            unpacked(&other, horizon, resources).await;
+            adopt_prepared(root.path(), &other).await;
+            assert!(!other.join(PREPARED).exists());
+        }
     }
 }
