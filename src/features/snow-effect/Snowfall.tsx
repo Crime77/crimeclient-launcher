@@ -67,7 +67,6 @@ function Snowflake({ delay, duration, x, size, opacity, rotation }: SnowflakePro
       style={{
         width: size,
         height: size,
-        filter: "drop-shadow(0 0 4px rgba(255, 255, 255, 0.6))",
       }}
     >
       <IceSnowflake />

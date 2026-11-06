@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type React from "react";
-import { Icon } from "@iconify/react";
+import { AlertTriangle, ChevronLeft, ChevronRight, Download, RotateCcw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-hot-toast";
 
@@ -23,6 +23,7 @@ import {
   type ShaderPage,
 } from "../../../../services/crime-shader-service";
 import { parseErrorMessage } from "../../../../utils/error-utils";
+import { cn } from "../../../../lib/utils";
 import { ToggleSwitch } from "../../../ui/ToggleSwitch";
 import { Select } from "../../../ui/Select";
 import { RangeSlider } from "../../../ui/RangeSlider";
@@ -154,7 +155,7 @@ export function CrimeShaderTabV3({ profile }: CrimeShaderTabV3Props) {
   return (
     <div className="flex flex-col min-h-0 flex-1 relative">
       {/* ── Toolbar ─────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-3 px-5 h-12 border-b border-white/5 flex-shrink-0 bg-black/20 sticky top-0 z-10">
+      <div className="flex items-center gap-3 px-5 h-12 border-b border-line flex-shrink-0">
         <ToggleSwitch
           checked={page.on}
           disabled={locked || !model}
@@ -164,7 +165,7 @@ export function CrimeShaderTabV3({ profile }: CrimeShaderTabV3Props) {
         />
         {model && qualitySelect && (
           <div className="flex items-center gap-2">
-            <span className="text-xs font-minecraft uppercase tracking-wide text-white/50">{t("crimeShader.quality")}</span>
+            <span className="cc-eyebrow">{t("crimeShader.quality")}</span>
             <div className="w-40">{qualitySelect}</div>
           </div>
         )}
@@ -173,23 +174,28 @@ export function CrimeShaderTabV3({ profile }: CrimeShaderTabV3Props) {
           onClick={() => void run(() => importJavaShader(profile.id), t("crimeShader.imported"))}
           disabled={locked || !model || !page.java}
           title={t(page.java ? "crimeShader.importJavaHint" : "crimeShader.importJavaNone")}
-          className="h-8 px-2.5 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-minecraft text-white/70 flex items-center gap-1.5 disabled:opacity-40 disabled:pointer-events-none"
+          className={TOOL_BUTTON}
+          style={{ borderRadius: "var(--r-md)" }}
         >
-          <Icon icon="solar:import-bold" className="w-4 h-4" /> {t("crimeShader.importJava")}
+          <Download size={14} strokeWidth={1.75} /> {t("crimeShader.importJava")}
         </button>
         <button
           onClick={() => save({})}
           disabled={locked || !model || Object.keys(page.chosen).length === 0}
-          className="h-8 px-2.5 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-minecraft text-white/70 flex items-center gap-1.5 disabled:opacity-40 disabled:pointer-events-none"
+          className={TOOL_BUTTON}
+          style={{ borderRadius: "var(--r-md)" }}
         >
-          <Icon icon="solar:restart-bold" className="w-4 h-4" /> {t("crimeShader.reset")}
+          <RotateCcw size={14} strokeWidth={1.75} /> {t("crimeShader.reset")}
         </button>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-4">
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-5 py-4 space-y-4">
         {page.running && (
-          <div className="flex items-center gap-2 rounded-md border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-sm text-amber-100">
-            <Icon icon="solar:danger-triangle-bold" className="w-4 h-4 flex-shrink-0" />
+          <div
+            className="flex items-center gap-2.5 border border-warn/35 bg-warn/10 px-3 py-2 text-[12px] text-fg-2"
+            style={{ borderRadius: "var(--r-md)" }}
+          >
+            <AlertTriangle size={14} strokeWidth={1.75} className="flex-shrink-0 text-warn" />
             {t("crimeShader.running")}
           </div>
         )}
@@ -198,23 +204,24 @@ export function CrimeShaderTabV3({ profile }: CrimeShaderTabV3Props) {
           <EmptyStateV3 icon="solar:sun-2-bold-duotone" title={t("crimeShader.noModel")} hint={t("crimeShader.noModelHint")} />
         ) : (
           <>
-            <p className="text-xs text-white/45">{t("crimeShader.credit")}</p>
+            <p className="text-[12px] text-fg-3 leading-[1.5]">{t("crimeShader.credit")}</p>
 
             {path.length > 0 && (
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center gap-2 text-[13px]">
                 <button
                   onClick={() => setPath(path.slice(0, -1))}
-                  className="h-7 px-2 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 flex items-center gap-1"
+                  className="h-7 pl-1.5 pr-2.5 flex items-center gap-1 border border-line-2 text-fg-2 hover:text-fg hover:bg-s3 transition-colors duration-fast"
+                  style={{ borderRadius: "var(--r-sm)" }}
                 >
-                  <Icon icon="solar:alt-arrow-left-linear" className="w-4 h-4" /> {t("crimeShader.back")}
+                  <ChevronLeft size={14} strokeWidth={1.75} /> {t("crimeShader.back")}
                 </button>
-                <button onClick={() => setPath([])} className="text-white/50 hover:text-white">
+                <button onClick={() => setPath([])} className="text-fg-3 hover:text-fg transition-colors duration-fast">
                   Photon
                 </button>
                 {path.map((s, i) => (
-                  <span key={s} className="flex items-center gap-2 text-white/50">
-                    <Icon icon="solar:alt-arrow-right-linear" className="w-3.5 h-3.5" />
-                    <button onClick={() => setPath(path.slice(0, i + 1))} className="hover:text-white">
+                  <span key={s} className="flex items-center gap-2 text-fg-3">
+                    <ChevronRight size={13} strokeWidth={1.75} className="text-fg-4" />
+                    <button onClick={() => setPath(path.slice(0, i + 1))} className="hover:text-fg transition-colors duration-fast">
                       <Legacy text={text(`screen.${s}`) ?? s} />
                     </button>
                   </span>
@@ -222,7 +229,11 @@ export function CrimeShaderTabV3({ profile }: CrimeShaderTabV3Props) {
               </div>
             )}
 
-            <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+            {/* the pack's own column layout, drawn as a 1 px line grid instead of boxes */}
+            <div
+              className="grid gap-px bg-line border border-line overflow-hidden"
+              style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, borderRadius: "var(--r-md)" }}
+            >
               {(shown?.items ?? []).map((item, i) => (
                 <Item
                   key={`${screen}-${i}`}
@@ -243,7 +254,7 @@ export function CrimeShaderTabV3({ profile }: CrimeShaderTabV3Props) {
                 />
               ))}
             </div>
-            <p className="text-xs text-white/40">{t("crimeShader.nextStart")}</p>
+            <p className="text-[12px] text-fg-4">{t("crimeShader.nextStart")}</p>
           </>
         )}
       </div>
@@ -264,16 +275,20 @@ interface ItemProps {
   onOpen: (screen: string) => void;
 }
 
-const ROW = "min-h-[44px] rounded-md bg-white/5 border border-white/10 px-3 py-1.5 flex items-center gap-3";
+const ROW = "min-h-[44px] bg-bg px-3 py-1.5 flex items-center gap-3";
+
+const TOOL_BUTTON =
+  "h-8 px-2.5 flex items-center gap-1.5 bg-s3 border border-line-2 text-[12px] font-[520] text-fg-2 " +
+  "hover:text-fg hover:bg-s4 transition-colors duration-fast disabled:opacity-40 disabled:pointer-events-none";
 
 /** One place on a screen: an option with its control, a button to another screen, the quality levels or a gap. */
 function Item({ item, model, text, value, changed, locked, qualitySelect, onValue, onReset, onOpen }: ItemProps) {
   const { t } = useTranslation();
-  if (item.kind === "empty") return <div />;
+  if (item.kind === "empty") return <div className="bg-bg" />;
   if (item.kind === "profile") {
     return (
       <div className={ROW} title={plain(text("profile.comment") ?? "")}>
-        <span className="flex-1 min-w-0 truncate text-sm text-white/85">{t("crimeShader.quality")}</span>
+        <span className="flex-1 min-w-0 truncate text-[13px] text-fg-2">{t("crimeShader.quality")}</span>
         <div className="w-40">{qualitySelect}</div>
       </div>
     );
@@ -283,17 +298,17 @@ function Item({ item, model, text, value, changed, locked, qualitySelect, onValu
       <button
         onClick={() => onOpen(item.name)}
         title={plain(text(`screen.${item.name}.comment`) ?? "")}
-        className={`${ROW} text-left hover:bg-white/10 transition-colors`}
+        className={`${ROW} text-left hover:bg-s2 transition-colors duration-fast`}
       >
-        <span className="flex-1 min-w-0 truncate text-sm text-white/85">
+        <span className="flex-1 min-w-0 truncate text-[13px] text-fg">
           <Legacy text={text(`screen.${item.name}`) ?? item.name} />
         </span>
-        <Icon icon="solar:alt-arrow-right-linear" className="w-4 h-4 text-white/50" />
+        <ChevronRight size={15} strokeWidth={1.75} className="text-fg-4" />
       </button>
     );
   }
   const option = model.options[item.name];
-  if (!option) return <div />;
+  if (!option) return <div className="bg-bg" />;
   return (
     <OptionRow
       name={item.name}
@@ -337,7 +352,7 @@ function OptionRow({ name, option, text, value, changed, locked, onValue, onRese
   } else if (option.slider && option.values.length > 1) {
     control = (
       <div className="flex items-center gap-2">
-        <span className="w-16 text-right text-xs font-minecraft text-white/80 truncate">
+        <span className="w-16 text-right cc-num text-[12px] text-fg-2 truncate">
           <Legacy text={valueText(option.values[draft] ?? value)} />
         </span>
         <div className="w-32 pt-2">
@@ -371,7 +386,8 @@ function OptionRow({ name, option, text, value, changed, locked, onValue, onRese
 
   return (
     <div className={ROW} title={comment ? plain(comment) : undefined}>
-      <span className={`flex-1 min-w-0 truncate text-sm ${changed ? "text-yellow-200" : "text-white/85"}`}>
+      {/* a changed option reads brighter and gets its reset arrow; defaults stay quiet */}
+      <span className={cn("flex-1 min-w-0 truncate text-[13px]", changed ? "text-fg font-[560]" : "text-fg-2")}>
         <Legacy text={text(`option.${name}`) ?? name} />
       </span>
       {changed && (
@@ -379,9 +395,9 @@ function OptionRow({ name, option, text, value, changed, locked, onValue, onRese
           onClick={onReset}
           disabled={locked}
           title={t("crimeShader.resetOption")}
-          className="text-white/40 hover:text-white disabled:opacity-40"
+          className="text-fg-3 hover:text-fg disabled:opacity-40 transition-colors duration-fast"
         >
-          <Icon icon="solar:restart-linear" className="w-3.5 h-3.5" />
+          <RotateCcw size={13} strokeWidth={1.75} />
         </button>
       )}
       {control}

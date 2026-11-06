@@ -6,7 +6,6 @@ import { useThemeStore } from "../../../store/useThemeStore";
 import { ToggleSwitch } from "../../ui/ToggleSwitch";
 import { SettingsRow, SettingsSection } from "./SettingsRow";
 import { SearchStyleInput } from "../../ui/Input";
-import { gsap } from "gsap";
 import { cn } from "../../../lib/utils";
 import { useTranslation } from "react-i18next";
 
@@ -26,31 +25,6 @@ export function WindowSettingsTab({
   const tabRef = useRef<HTMLDivElement>(null);
   const resolutionRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (isBackgroundAnimationEnabled) {
-      if (tabRef.current) {
-        gsap.fromTo(
-          tabRef.current,
-          { opacity: 0 },
-          { opacity: 1, duration: 0.4, ease: "power2.out" },
-        );
-      }
-
-      if (resolutionRef.current) {
-        gsap.fromTo(
-          resolutionRef.current,
-          { opacity: 0, y: 20 },
-          {
-            opacity: 1,
-            y: 0,
-            duration: 0.4,
-            ease: "power2.out",
-            delay: 0.2,
-          },
-        );
-      }
-    }
-  }, [isBackgroundAnimationEnabled]);
 
   const resolutionPresets = [
     { width: 854, height: 480, label: "Default" },
@@ -78,18 +52,6 @@ export function WindowSettingsTab({
   };
 
   const handlePresetClick = (preset: { width: number; height: number }) => {
-    if (isBackgroundAnimationEnabled) {
-      gsap.fromTo(
-        `.preset-${preset.width}x${preset.height}`,
-        { scale: 0.95 },
-        {
-          scale: 1,
-          duration: 0.3,
-          ease: "elastic.out(1.2, 0.4)",
-        },
-      );
-    }
-
     handleResolutionChange(preset.width, preset.height);
   };
 

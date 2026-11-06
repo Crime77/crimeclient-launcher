@@ -90,7 +90,7 @@ export function SearchWithFilters({
       {/* Search with integrated filters */}
       <div
         className={`group flex items-center gap-1 bg-s2 rounded-md border border-line [&:hover:not(:focus-within)]:border-line-2 focus-within:border-line-3 transition-colors duration-fast ${
-          compact ? "h-8 pl-2.5 pr-1 w-full" : "h-9 pl-3 pr-1 flex-1 max-w-md"
+          compact ? "h-8 pl-2.5 pr-1 w-full min-w-0" : "h-9 pl-3 pr-1 flex-1 min-w-0 max-w-md"
         }`}
         onClick={(e) => {
           if (e.target === e.currentTarget) inputRef.current?.focus();

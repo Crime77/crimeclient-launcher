@@ -1,3 +1,4 @@
+import { AlertTriangle, Info } from "lucide-react";
 import * as ProfileService from '../services/profile-service';
 import { toast } from 'react-hot-toast';
 import { Modal } from '../components/ui/Modal';
@@ -313,33 +314,21 @@ export function IrisRequiredModal({
       width="md"
       footer={modalFooter}
     >
-      <div className="p-6">
-        <div className="space-y-6">
-        {/* Main warning section */}
-        <div className="flex items-start gap-4">
-          <div className="flex-shrink-0">
-            <Icon icon="solar:danger-triangle-bold" className="w-8 h-8 text-yellow-400" />
-          </div>
-          <div className="flex-1 space-y-3">
-            <p className="text-white/80 font-minecraft leading-relaxed">
-              {t('iris.warning_title', { projectTitle })}
-            </p>
-            <p className="text-white/70 font-minecraft leading-relaxed">
-              {t('iris.warning_need_iris')}
-            </p>
+      <div className="p-5 space-y-4">
+        <div className="flex items-start gap-3">
+          <AlertTriangle size={16} strokeWidth={1.75} className="text-warn flex-shrink-0 mt-0.5" />
+          <div className="flex-1 space-y-2 text-[13px] leading-[1.55]">
+            <p className="text-fg">{t('iris.warning_title', { projectTitle })}</p>
+            <p className="text-fg-2">{t('iris.warning_need_iris')}</p>
           </div>
         </div>
 
-        {/* Performance warning */}
-        <div className="p-4 rounded-lg bg-yellow-500/10 border-2 border-yellow-500/30">
-          <div className="flex items-center gap-3">
-            <Icon icon="solar:info-circle-bold" className="w-5 h-5 text-yellow-400 flex-shrink-0" />
-            <p className="text-yellow-200 font-minecraft text-sm leading-relaxed">
-              {t('iris.performance_warning')}
-            </p>
-          </div>
-        </div>
-
+        <div
+          className="flex items-start gap-2.5 px-3 py-2.5 border border-warn/35 bg-warn/10"
+          style={{ borderRadius: "var(--r-md)" }}
+        >
+          <Info size={14} strokeWidth={1.75} className="text-warn flex-shrink-0 mt-px" />
+          <p className="text-[12px] text-fg-2 leading-[1.5]">{t('iris.performance_warning')}</p>
         </div>
       </div>
     </Modal>

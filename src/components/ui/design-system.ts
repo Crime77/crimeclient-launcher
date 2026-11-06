@@ -57,8 +57,13 @@ export const getVariantColors = (variant: ComponentVariant, accentColor: AccentC
       return { main: "#8aa4c8", light: "#a6bbd8", dark: "#62799b", text: "#dde5f0" };
     case "success":
       return { main: "#5fb98e", light: "#7fcaa5", dark: "#43906c", text: "#d5ece0" };
+    // only `default` (the one main action of a view) carries the accent; the old flat/3d/elevated
+    // looks are neutral surfaces now, like secondary
     case "secondary":
     case "flat-secondary":
+    case "flat":
+    case "3d":
+    case "elevated":
       return { main: "#6d6a66", light: "#a3a09b", dark: "#3b3a3d", text: "#edebe8" };
     case "ghost":
       return { main: "transparent", light: "transparent", dark: "transparent", text: "#edebe8" };

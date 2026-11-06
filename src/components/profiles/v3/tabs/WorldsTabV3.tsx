@@ -8,10 +8,12 @@
  * 1:1 switchen kann.
  */
 
-import { Trash2 } from "lucide-react";
+import {
+  AlertTriangle, ClipboardCopy, Copy, FolderOpen, Globe, HeartCrack, Loader2, Lock, LogIn,
+  MoreHorizontal, Play, RefreshCw, Server, Trash2,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
-import { Icon } from "@iconify/react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-hot-toast";
 import { convertFileSrc } from "@tauri-apps/api/core";
@@ -29,12 +31,18 @@ import { useGlobalModal } from "../../../../hooks/useGlobalModal";
 import { useProfileLaunch } from "../../../../hooks/useProfileLaunch.tsx";
 import { useDelayedTrue } from "../../../../hooks/useDelayedTrue";
 import { formatRelativeTime } from "../../../../utils/format-relative-time";
+import { cn } from "../../../../lib/utils";
 import { Tooltip } from "../../../ui/Tooltip";
+import { CheckboxV2 } from "../../../ui/CheckboxV2";
+import { SearchWithFilters } from "../../../ui/SearchWithFilters";
+import { ContentActionButtons, type ContentActionButton } from "../../../ui/ContentActionButtons";
+import type { DropdownOption } from "../../../ui/CustomDropdown";
 import { ConfirmDeleteDialog } from "../../../modals/ConfirmDeleteDialog";
 import { CopyWorldDialog } from "../../../modals/CopyWorldDialog";
 import { ThemedDropdown, ThemedDropdownItem } from "../shared/ThemedDropdown";
 import { EmptyStateV3 } from "../shared/EmptyStateV3";
 import { FloatingActionBar, type FABActionConfig } from "../shared/FloatingActionBar";
+import { RowIcon, rowSurface } from "./local-content/ContentTile";
 import { parseErrorMessage } from "../../../../utils/error-utils";
 
 interface WorldsTabV3Props {
@@ -55,12 +63,27 @@ const SORT_OPTIONS: { value: SortKey; labelKey: string; icon: string }[] = [
   { value: "name",       labelKey: "worlds.sort.name",        icon: "solar:sort-from-top-to-bottom-bold" },
 ];
 
-const GAME_MODE_ICONS = [
-  "solar:bolt-bold",        // 0 Survival
-  "solar:pallete-2-bold",     // 1 Creative
-  "solar:compass-big-bold",   // 2 Adventure
-  "solar:eye-bold",           // 3 Spectator
-] as const;
+/**
+ * Column layout shared by the world and server rows and the section headers, in the style of the
+ * content rows (local-content/ContentTile.tsx): two text lines per row because worlds carry mode and
+ * difficulty, servers their MOTD.
+ */
+const ROW = {
+  root: "group relative flex items-center gap-3 h-14 px-5 transition-colors duration-fast",
+  check: "w-4 flex-shrink-0 flex items-center justify-center transition-opacity duration-fast",
+  icon: "relative w-9 h-9 flex-shrink-0",
+  main: "flex-1 min-w-0",
+  version: "hidden lg:block w-[104px] flex-shrink-0 truncate cc-num text-[12px] text-fg-3",
+  stat: "w-[96px] flex-shrink-0 text-right cc-num text-[11px] leading-[1.45]",
+  actions: "w-[124px] flex-shrink-0 flex items-center justify-end gap-1",
+};
+
+/** Row action (Play / Join): a small secondary button that shows on row hover. */
+const rowActionClass = (disabled: boolean) => cn(
+  "h-7 px-2.5 inline-flex items-center gap-1.5 border text-[12px] font-[520] flex-shrink-0",
+  "transition-[opacity,background-color,color] duration-fast opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
+  disabled ? "border-line text-fg-4 cursor-not-allowed" : "border-line-2 text-fg hover:bg-s3",
+);
 
 export function WorldsTabV3({ profile, isActive = true, onRefresh, onLaunchRequest }: WorldsTabV3Props) {
   const { t } = useTranslation();
@@ -87,7 +110,6 @@ export function WorldsTabV3({ profile, isActive = true, onRefresh, onLaunchReque
   // ── UI state ──────────────────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortKey>("lastPlayed");
-  const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [hoverMenuId, setHoverMenuId] = useState<string | null>(null);
   const [isBatchDeleting, setIsBatchDeleting] = useState(false);
@@ -179,7 +201,10 @@ export function WorldsTabV3({ profile, isActive = true, onRefresh, onLaunchReque
     return servers.filter(s => (s.name ?? "").toLowerCase().includes(q) || (s.address ?? "").toLowerCase().includes(q));
   }, [servers, searchQuery]);
 
-  const activeSortLabel = t(SORT_OPTIONS.find(o => o.value === sortBy)?.labelKey ?? "worlds.sort.last_played");
+  const sortDropdownOptions: DropdownOption[] = useMemo(
+    () => SORT_OPTIONS.map(o => ({ value: o.value, label: t(o.labelKey), icon: o.icon })),
+    [t],
+  );
 
   // ── Actions ───────────────────────────────────────────────────────────────
   const handleJoin = useCallback((server: ServerInfo) => {
@@ -248,7 +273,7 @@ export function WorldsTabV3({ profile, isActive = true, onRefresh, onLaunchReque
         onConfirm={doDelete}
         isDeleting={false}
         title={t("worlds.delete_title")}
-        message={<p className="text-white/80 font-minecraft">{t("worlds.delete_confirm", { name: displayName })}</p>}
+        message={<p className="text-[13px] text-fg-2 leading-[1.5]">{t("worlds.delete_confirm", { name: displayName })}</p>}
       />
     ));
   }, [profile.id, showModal, hideModal, loadData, t]);
@@ -344,7 +369,7 @@ export function WorldsTabV3({ profile, isActive = true, onRefresh, onLaunchReque
         onConfirm={doBatchDelete}
         isDeleting={isBatchDeleting}
         title={t("worlds.batch_delete_title")}
-        message={<p className="text-white/80 font-minecraft">{t("worlds.batch_delete_confirm", { count: targets.length })}</p>}
+        message={<p className="text-[13px] text-fg-2 leading-[1.5]">{t("worlds.batch_delete_confirm", { count: targets.length })}</p>}
       />
     ));
   }, [selectedIds, worlds, profile.id, showModal, hideModal, loadData, isBatchDeleting, t]);
@@ -385,72 +410,56 @@ export function WorldsTabV3({ profile, isActive = true, onRefresh, onLaunchReque
     },
   ];
 
+  const toolbarActions: ContentActionButton[] = [
+    {
+      id: "refresh",
+      icon: "solar:refresh-bold",
+      variant: "text",
+      disabled: loading,
+      loading,
+      tooltip: t("profiles.v3.toolbar.refresh"),
+      onClick: () => { void handleManualRefresh(); },
+    },
+    {
+      id: "import",
+      label: t("worlds.import_world"),
+      icon: "solar:import-bold",
+      variant: "highlight",
+      tooltip: t("worlds.import_title"),
+      onClick: () => { void handleImport(); },
+    },
+  ];
+
   return (
     <div className="flex flex-col min-h-0 flex-1 relative">
-      {/* ── Sticky Toolbar ─────────────────────────────────────────────── */}
-      <div className="flex items-center gap-2 px-5 h-12 border-b border-white/5 flex-shrink-0 bg-black/20 sticky top-0 z-10">
-        <div className="relative w-64 flex-shrink-0">
-          <Icon icon="solar:magnifer-linear" className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
-          <input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t("worlds.search_placeholder")}
-            className="w-full h-8 pl-8 pr-3 rounded-md bg-white/5 border border-white/10 focus:border-white/25 outline-none text-sm text-white placeholder:text-white/30 font-minecraft"
-          />
-        </div>
-
-        <div className="relative">
-          <button
-            onClick={() => setSortMenuOpen(v => !v)}
-            className="h-8 px-2.5 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-minecraft text-white/70 flex items-center gap-1.5"
-          >
-            <Icon icon="solar:sort-vertical-bold" className="w-3.5 h-3.5" />
-            {activeSortLabel}
-            <Icon icon="solar:alt-arrow-down-linear" className="w-3 h-3 opacity-60" />
-          </button>
-          <ThemedDropdown open={sortMenuOpen} onClose={() => setSortMenuOpen(false)} width="w-48">
-            {SORT_OPTIONS.map(opt => (
-              <ThemedDropdownItem
-                key={opt.value}
-                icon={opt.icon}
-                selected={sortBy === opt.value}
-                onClick={() => { setSortBy(opt.value); setSortMenuOpen(false); }}
-              >
-                {t(opt.labelKey)}
-              </ThemedDropdownItem>
-            ))}
-          </ThemedDropdown>
-        </div>
-
-        <div className="flex-1" />
-
-        <button
-          onClick={handleManualRefresh}
-          disabled={loading}
-          className="h-8 px-2.5 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white disabled:opacity-50 flex items-center transition-colors"
-          title={t("profiles.v3.toolbar.refresh")}
-        >
-          <Icon icon="solar:refresh-bold" className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-        </button>
-
-        <button
-          onClick={handleImport}
-          className="h-8 px-3 rounded-md bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/30 text-emerald-100 text-xs font-minecraft uppercase tracking-wider flex items-center gap-1.5"
-        >
-          <Icon icon="solar:import-bold" className="w-4 h-4" />
-          {t("worlds.import_world")}
-        </button>
+      <div className="flex items-center gap-3 px-5 h-12 border-b border-line flex-shrink-0">
+        <SearchWithFilters
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          placeholder={t("worlds.search_placeholder")}
+          sortOptions={sortDropdownOptions}
+          sortValue={sortBy}
+          onSortChange={(v) => setSortBy(v as SortKey)}
+          showFilter={false}
+          dropdownSize="sm"
+          className="flex-1 min-w-0"
+        />
+        <ContentActionButtons actions={toolbarActions} size="sm" />
       </div>
 
-      {/* ── Content area ───────────────────────────────────────────────── */}
-      <div className={`flex-1 min-h-0 overflow-y-auto p-5 ${selectedIds.size > 0 ? "pb-24" : ""}`}>
+      <div className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar ${hasSelection ? "pb-20" : "pb-4"}`}>
         {error && (
-          <div className="mb-4 flex items-start gap-3 p-3 rounded-lg border border-rose-400/30 bg-rose-500/10">
-            <Icon icon="solar:danger-triangle-bold" className="w-5 h-5 text-rose-300 flex-shrink-0 mt-0.5" />
-            <div className="flex-1 min-w-0 text-xs font-minecraft text-rose-100 break-words">{error}</div>
+          <div
+            className="mx-5 mt-4 flex items-start gap-2.5 px-3 py-2 border border-err/30 bg-err/10"
+            style={{ borderRadius: "var(--r-md)" }}
+          >
+            <AlertTriangle size={14} strokeWidth={1.75} className="text-err flex-shrink-0 mt-px" />
+            <div className="flex-1 min-w-0 text-[12px] text-fg-2 break-words leading-[1.5]">{error}</div>
             <button
+              type="button"
               onClick={() => loadData()}
-              className="flex-shrink-0 h-7 px-2 rounded-md text-[10px] font-minecraft uppercase tracking-wider text-rose-100 hover:bg-rose-500/20 transition-colors"
+              className="flex-shrink-0 h-6 px-2 text-[12px] font-[520] text-err hover:bg-err/10 transition-colors duration-fast"
+              style={{ borderRadius: "var(--r-sm)" }}
             >
               {t("profiles.v3.content.retry")}
             </button>
@@ -459,8 +468,8 @@ export function WorldsTabV3({ profile, isActive = true, onRefresh, onLaunchReque
 
         {loading && worlds.length === 0 && servers.length === 0 ? (
           shouldShowLoading ? (
-            <div className="flex items-center justify-center h-40 text-white/40 font-minecraft text-sm animate-in fade-in duration-300">
-              <Icon icon="svg-spinners:ring-resize" className="w-4 h-4 mr-2" />
+            <div className="flex items-center justify-center gap-2 h-40 text-[12px] text-fg-3 animate-in fade-in duration-300">
+              <Loader2 size={14} className="animate-spin" />
               {t("profiles.v3.content.loading")}
             </div>
           ) : (
@@ -473,49 +482,68 @@ export function WorldsTabV3({ profile, isActive = true, onRefresh, onLaunchReque
             hint={searchQuery ? undefined : t("worlds.create_in_minecraft")}
           />
         ) : (
-          // Eine gemischte Liste: Worlds zuerst (sortiert), Servers danach
-          // in servers.dat-Reihenfolge. Keine expliziten Section-Header —
-          // Planet- vs Server-Icon differenzieren visuell schon.
-          <div className="flex flex-col gap-2">
-            {visibleWorlds.map((world) => (
-              <WorldTile
-                key={`world:${world.folder_name}`}
-                world={world}
-                accentColor={accentColor.value}
-                isSelected={selectedIds.has(world.folder_name)}
-                selectMode={selectedIds.size > 0}
-                isLaunching={isLaunching}
-                onToggleSelection={() => toggleSelection(world.folder_name)}
-                onPlay={() => handlePlay(world)}
-                onCopy={() => handleCopy(world)}
-                onOpenFolder={() => handleOpenFolder(world)}
-                onDelete={() => handleDelete(world)}
-                menuOpen={hoverMenuId === world.folder_name}
-                onMenuToggle={(open) => setHoverMenuId(open ? world.folder_name : null)}
-              />
-            ))}
-            {visibleServers.map((server) => {
-              const address = server.address ?? "";
-              const pingState = address ? serverPings[address] : undefined;
-              return (
-                <ServerTile
-                  key={`server:${address || server.name || ""}`}
-                  server={server}
-                  pingState={pingState}
-                  isLaunching={isLaunching}
-                  menuOpen={hoverMenuId === `server:${address}`}
-                  onMenuToggle={(open) => setHoverMenuId(open ? `server:${address}` : null)}
-                  onJoin={() => handleJoin(server)}
-                  onReping={() => address && handleRepingServer(address)}
+          // Worlds first (sorted), then the servers in servers.dat order, each under a column header.
+          <>
+            {visibleWorlds.length > 0 && (
+              <section>
+                <SectionHeader
+                  label={t("profiles.tabs.worlds")}
+                  count={visibleWorlds.length}
+                  statLabel={t("profiles.columns.lastPlayed")}
                 />
-              );
-            })}
-          </div>
+                <div className="divide-y divide-line border-b border-line">
+                  {visibleWorlds.map((world) => (
+                    <WorldRow
+                      key={`world:${world.folder_name}`}
+                      world={world}
+                      isSelected={selectedIds.has(world.folder_name)}
+                      selectMode={hasSelection}
+                      isLaunching={isLaunching}
+                      onToggleSelection={() => toggleSelection(world.folder_name)}
+                      onPlay={() => handlePlay(world)}
+                      onCopy={() => handleCopy(world)}
+                      onOpenFolder={() => handleOpenFolder(world)}
+                      onDelete={() => handleDelete(world)}
+                      menuOpen={hoverMenuId === world.folder_name}
+                      onMenuToggle={(open) => setHoverMenuId(open ? world.folder_name : null)}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+            {visibleServers.length > 0 && (
+              <section className={visibleWorlds.length > 0 ? "mt-6" : undefined}>
+                <SectionHeader
+                  label={t("profiles.v3.servers.title")}
+                  count={visibleServers.length}
+                  statLabel={t("profiles.v3.servers.ping")}
+                />
+                <div className="divide-y divide-line border-b border-line">
+                  {visibleServers.map((server) => {
+                    const address = server.address ?? "";
+                    const pingState = address ? serverPings[address] : undefined;
+                    return (
+                      <ServerRow
+                        key={`server:${address || server.name || ""}`}
+                        server={server}
+                        pingState={pingState}
+                        isLaunching={isLaunching}
+                        menuOpen={hoverMenuId === `server:${address}`}
+                        onMenuToggle={(open) => setHoverMenuId(open ? `server:${address}` : null)}
+                        onJoin={() => handleJoin(server)}
+                        onReping={() => address && handleRepingServer(address)}
+                      />
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+          </>
         )}
       </div>
 
       <FloatingActionBar
-        visible={selectedIds.size > 0}
+        visible={hasSelection}
         count={selectedIds.size}
         totalCount={visibleWorlds.length}
         accent={accentColor.value}
@@ -529,10 +557,46 @@ export function WorldsTabV3({ profile, isActive = true, onRefresh, onLaunchReque
   );
 }
 
-// ─── World Tile ─────────────────────────────────────────────────────────────
-interface WorldTileProps {
+// ─── Section header ─────────────────────────────────────────────────────────
+const SectionHeader: React.FC<{ label: string; count: number; statLabel: string }> = ({ label, count, statLabel }) => {
+  const { t } = useTranslation();
+  return (
+    <div className="flex items-center gap-3 h-8 px-5 border-b border-line">
+      <div className="w-4 flex-shrink-0" />
+      <div className="w-9 flex-shrink-0" />
+      <div className="flex-1 min-w-0 cc-eyebrow truncate">
+        {label}
+        <span className="cc-num normal-case tracking-normal text-fg-4 ml-1.5">{count}</span>
+      </div>
+      <div className="hidden lg:block w-[104px] flex-shrink-0 cc-eyebrow">{t("profiles.columns.version")}</div>
+      <div className="w-[96px] flex-shrink-0 cc-eyebrow text-right">{statLabel}</div>
+      <div className="w-[124px] flex-shrink-0" />
+    </div>
+  );
+};
+
+/** The ⋯ button of a row; shows on row hover or while its menu is open. */
+const RowMenuButton: React.FC<{ open: boolean; onToggle: (open: boolean) => void }> = ({ open, onToggle }) => {
+  const { t } = useTranslation();
+  return (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); onToggle(!open); }}
+      aria-label={t("profiles.moreOptions")}
+      className={cn(
+        "w-7 h-7 flex items-center justify-center text-fg-3 hover:text-fg hover:bg-s3 transition-[opacity,color,background-color] duration-fast",
+        open ? "opacity-100 bg-s3 text-fg" : "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
+      )}
+      style={{ borderRadius: "var(--r-sm)" }}
+    >
+      <MoreHorizontal size={15} strokeWidth={1.75} />
+    </button>
+  );
+};
+
+// ─── World row ──────────────────────────────────────────────────────────────
+interface WorldRowProps {
   world: WorldInfo;
-  accentColor: string;
   isSelected: boolean;
   selectMode: boolean;
   isLaunching: boolean;
@@ -545,137 +609,92 @@ interface WorldTileProps {
   onMenuToggle: (open: boolean) => void;
 }
 
-const WorldTile: React.FC<WorldTileProps> = ({
-  world, accentColor, isSelected, selectMode, isLaunching, onToggleSelection,
+const WorldRow: React.FC<WorldRowProps> = ({
+  world, isSelected, selectMode, isLaunching, onToggleSelection,
   onPlay, onCopy, onOpenFolder, onDelete, menuOpen, onMenuToggle,
 }) => {
   const { t } = useTranslation();
   const displayName = world.display_name ?? world.folder_name;
   const lastPlayedIso = world.last_played ? new Date(world.last_played).toISOString() : null;
-  const gameMode = world.game_mode ?? 0;
-  const gameModeLabel = WorldService.getGameModeString(gameMode);
+  const gameModeLabel = WorldService.getGameModeString(world.game_mode ?? 0);
   const difficultyLabel = WorldService.getDifficultyString(world.difficulty ?? 0);
   const iconUrl = world.icon_path ? convertFileSrc(world.icon_path) : null;
 
   return (
-    <div
-      style={isSelected ? { backgroundColor: `${accentColor}1a`, borderColor: `${accentColor}66` } : undefined}
-      className={`group relative flex items-center gap-3 p-3 rounded-lg border transition-colors ${
-        isSelected
-          ? ""
-          : "bg-white/[0.03] border-white/10 hover:border-white/20 hover:bg-white/[0.06]"
-      }`}
-    >
-      <button
-        onClick={(e) => { e.stopPropagation(); onToggleSelection(); }}
-        className={`flex-shrink-0 transition-opacity ${selectMode || isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
-        title={isSelected ? t("profiles.v3.tile.deselect") : t("profiles.v3.tile.select")}
-      >
-        <div
-          style={isSelected ? { backgroundColor: accentColor, borderColor: accentColor } : undefined}
-          className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
-            isSelected ? "" : "border-white/30 hover:border-white/60"
-          }`}
-        >
-          {isSelected && <Icon icon="solar:check-read-linear" className="w-3 h-3 text-black" />}
-        </div>
-      </button>
-
-      {/* World Icon */}
-      <div className="relative w-16 h-16 flex-shrink-0 rounded-md bg-white/10 ring-1 ring-white/10 overflow-hidden flex items-center justify-center">
-        {iconUrl ? (
-          <img
-            src={iconUrl}
-            alt=""
-            className="w-full h-full object-cover"
-            style={{ imageRendering: "pixelated" }}
-            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-          />
-        ) : (
-          <Icon icon="solar:planet-bold-duotone" className="w-8 h-8 text-white/40" />
-        )}
-        {world.is_hardcore && (
-          <div className="absolute top-0.5 right-0.5 bg-rose-500/80 text-white rounded-sm p-0.5">
-            <Icon icon="solar:heart-broken-bold" className="w-3 h-3" />
-          </div>
-        )}
+    <div className={cn(ROW.root, rowSurface(isSelected))} onDoubleClick={() => { if (!isLaunching) onPlay(); }}>
+      <div className={cn(ROW.check, selectMode || isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100")}>
+        <CheckboxV2
+          size="sm"
+          checked={isSelected}
+          onChange={() => onToggleSelection()}
+          tooltip={isSelected ? t("profiles.v3.tile.deselect") : t("profiles.v3.tile.select")}
+        />
       </div>
 
-      {/* Identity + meta */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          <div className="text-sm text-white font-minecraft truncate normal-case" title={displayName}>
-            {displayName}
-          </div>
+      <div className={ROW.icon}>
+        <RowIcon src={iconUrl} fallback={<Globe size={16} strokeWidth={1.75} className="text-fg-4" />} />
+      </div>
+
+      <div className={ROW.main}>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="min-w-0 truncate text-[13px] font-[520] text-fg" title={displayName}>{displayName}</span>
+          {world.is_hardcore && (
+            <Tooltip content={t("worlds.hardcore")}>
+              <HeartCrack size={12} strokeWidth={1.75} className="text-err flex-shrink-0" />
+            </Tooltip>
+          )}
           {world.difficulty_locked && (
             <Tooltip content={t("worlds.difficulty_locked")}>
-              <Icon icon="solar:lock-bold" className="w-3 h-3 text-white/30 flex-shrink-0" />
+              <Lock size={11} strokeWidth={1.75} className="text-fg-4 flex-shrink-0" />
             </Tooltip>
           )}
         </div>
-
-        <div className="flex items-center gap-1.5 mt-1 text-[11px] font-minecraft">
-          <span className="inline-flex items-center gap-1 px-1.5 h-5 rounded text-white/70 bg-white/5">
-            <Icon icon={GAME_MODE_ICONS[gameMode]} className="w-3 h-3" />
-            {gameModeLabel}
-          </span>
-          <span className="text-white/40">·</span>
-          <span className="text-white/60">{difficultyLabel}</span>
-          {world.version_name && (
-            <>
-              <span className="text-white/40">·</span>
-              <span className="text-white/50">{world.version_name}</span>
-            </>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2 mt-1 text-xs font-minecraft text-white/40">
-          <Icon icon="solar:clock-circle-linear" className="w-3 h-3 flex-shrink-0" />
-          <span>{formatRelativeTime(lastPlayedIso)}</span>
+        <div className="mt-0.5 text-[12px] text-fg-3 truncate">
+          {gameModeLabel}
+          <span className="text-fg-4 mx-1.5">·</span>
+          {difficultyLabel}
         </div>
       </div>
 
-      <button
-        onClick={onPlay}
-        disabled={isLaunching}
-        className={`h-8 px-3 rounded-md border flex items-center gap-1.5 flex-shrink-0 transition-colors text-xs font-minecraft uppercase tracking-wider ${
-          isLaunching
-            ? "bg-emerald-500/10 border-emerald-400/20 text-emerald-200/60 cursor-wait"
-            : "bg-emerald-500/20 hover:bg-emerald-500/30 border-emerald-400/30 text-emerald-100"
-        }`}
-      >
-        <Icon
-          icon={isLaunching ? "solar:refresh-bold" : "solar:play-bold"}
-          className={`w-4 h-4 ${isLaunching ? "animate-spin" : ""}`}
-        />
-        {t("profiles.play")}
-      </button>
+      <div className={ROW.version} title={world.version_name ?? undefined}>{world.version_name ?? "—"}</div>
 
-      <div className="relative flex-shrink-0">
+      <div className={cn(ROW.stat, "text-fg-3")}>{formatRelativeTime(lastPlayedIso)}</div>
+
+      <div className={ROW.actions}>
         <button
-          onClick={(e) => { e.stopPropagation(); onMenuToggle(!menuOpen); }}
-          className="p-1.5 rounded text-white/40 hover:text-white hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onPlay(); }}
+          disabled={isLaunching}
+          className={cn(rowActionClass(false), isLaunching && "cursor-wait text-fg-2")}
+          style={{ borderRadius: "var(--r-sm)" }}
+          title={t("worlds.play_this_world")}
         >
-          <Icon icon="solar:menu-dots-bold" className="w-4 h-4" />
+          {isLaunching
+            ? <Loader2 size={12} className="animate-spin" />
+            : <Play size={12} strokeWidth={2} />}
+          {t("profiles.play")}
         </button>
-        <ThemedDropdown open={menuOpen} onClose={() => onMenuToggle(false)} width="w-52">
-          <ThemedDropdownItem icon="solar:copy-bold" onClick={() => { onCopy(); onMenuToggle(false); }}>
-            {t("worlds.copy")}
-          </ThemedDropdownItem>
-          <ThemedDropdownItem icon="solar:folder-linear" onClick={() => { onOpenFolder(); onMenuToggle(false); }}>
-            {t("profiles.v3.tile.openFolder")}
-          </ThemedDropdownItem>
-          <ThemedDropdownItem icon="solar:trash-bin-trash-linear" tone="danger" onClick={() => { onDelete(); onMenuToggle(false); }}>
-            {t("profiles.v3.tile.delete")}
-          </ThemedDropdownItem>
-        </ThemedDropdown>
+        <div className="relative flex-shrink-0">
+          <RowMenuButton open={menuOpen} onToggle={onMenuToggle} />
+          <ThemedDropdown open={menuOpen} onClose={() => onMenuToggle(false)} width="w-52">
+            <ThemedDropdownItem icon={Copy} onClick={() => { onCopy(); onMenuToggle(false); }}>
+              {t("worlds.copy")}
+            </ThemedDropdownItem>
+            <ThemedDropdownItem icon={FolderOpen} onClick={() => { onOpenFolder(); onMenuToggle(false); }}>
+              {t("profiles.v3.tile.openFolder")}
+            </ThemedDropdownItem>
+            <ThemedDropdownItem icon={Trash2} tone="danger" onClick={() => { onDelete(); onMenuToggle(false); }}>
+              {t("profiles.v3.tile.delete")}
+            </ThemedDropdownItem>
+          </ThemedDropdown>
+        </div>
       </div>
     </div>
   );
 };
 
-// ─── Server Tile ────────────────────────────────────────────────────────────
-interface ServerTileProps {
+// ─── Server row ─────────────────────────────────────────────────────────────
+interface ServerRowProps {
   server: ServerInfo;
   pingState: ServerPingInfo | "pending" | "error" | undefined;
   isLaunching: boolean;
@@ -685,137 +704,108 @@ interface ServerTileProps {
   onReping: () => void;
 }
 
-const latencyDotColor = (ms: number): string => {
-  if (ms < 80)  return "bg-emerald-400";
-  if (ms < 150) return "bg-white/50";
-  if (ms < 250) return "bg-amber-400";
-  return "bg-rose-400";
-};
-const latencyTextColor = (ms: number): string => {
-  if (ms < 80)  return "text-emerald-400";
-  if (ms < 150) return "text-white/60";
-  if (ms < 250) return "text-amber-400";
-  return "text-rose-400";
+/** Muted state colours for the latency: good, normal, slow, bad. */
+const latencyTone = (ms: number): { dot: string; text: string } => {
+  if (ms < 80)  return { dot: "bg-ok", text: "text-ok" };
+  if (ms < 150) return { dot: "bg-fg-3", text: "text-fg-2" };
+  if (ms < 250) return { dot: "bg-warn", text: "text-warn" };
+  return { dot: "bg-err", text: "text-err" };
 };
 
-const ServerTile: React.FC<ServerTileProps> = ({ server, pingState, isLaunching, menuOpen, onMenuToggle, onJoin, onReping }) => {
+const ServerRow: React.FC<ServerRowProps> = ({ server, pingState, isLaunching, menuOpen, onMenuToggle, onJoin, onReping }) => {
   const { t } = useTranslation();
   const name = server.name ?? server.address ?? "—";
   const address = server.address ?? "";
   const isPending = pingState === "pending";
   const isError = pingState === "error" || (pingState && typeof pingState === "object" && pingState.error);
   const ping = (pingState && typeof pingState === "object" && !pingState.error) ? pingState : null;
+  const joinDisabled = !!isError || !address;
 
   // Favicon: ping liefert aktuelles (base64), fallback auf server.icon_base64 (aus servers.dat).
   const iconBase64 = ping?.favicon_base64 ?? server.icon_base64 ?? null;
   // MOTD: description_json hat Priority (enthaelt Chat-Component mit Farben),
   // description ist der plain-string-Fallback (oft ohne §-Codes).
   const motdInput = ping?.description_json ?? ping?.description ?? "";
+  const tone = ping?.latency_ms != null ? latencyTone(ping.latency_ms) : null;
 
   return (
-    <div
-      className={`group relative flex items-center gap-3 p-3 rounded-lg border transition-colors bg-white/[0.03] border-white/10 hover:border-white/20 hover:bg-white/[0.06] ${
-        isError ? "opacity-60" : ""
-      }`}
-    >
-      <div className="relative w-16 h-16 flex-shrink-0 rounded-md bg-white/10 ring-1 ring-white/10 overflow-hidden flex items-center justify-center">
-        {iconBase64 ? (
-          <img
-            src={`data:image/png;base64,${iconBase64}`}
-            alt=""
-            className="w-full h-full object-cover"
-            style={{ imageRendering: "pixelated" }}
-          />
-        ) : (
-          <Icon icon="solar:server-bold-duotone" className="w-8 h-8 text-white/40" />
-        )}
+    <div className={cn(ROW.root, "hover:bg-s2")} onDoubleClick={() => { if (!joinDisabled && !isLaunching) onJoin(); }}>
+      <div className={ROW.check} />
+
+      <div className={ROW.icon}>
+        <RowIcon
+          src={iconBase64 ? `data:image/png;base64,${iconBase64}` : null}
+          dim={!!isError}
+          fallback={<Server size={16} strokeWidth={1.75} className="text-fg-4" />}
+        />
       </div>
 
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <div className="text-sm text-white font-minecraft truncate normal-case" title={name}>{name}</div>
-          {address && <span className="text-xs text-white/35 font-minecraft truncate">· {address}</span>}
+      <div className={ROW.main}>
+        <div className="flex items-baseline gap-2 min-w-0">
+          <span className={cn("min-w-0 truncate text-[13px] font-[520]", isError ? "text-fg-3" : "text-fg")} title={name}>
+            {name}
+          </span>
+          {address && <span className="min-w-0 truncate cc-num text-[11px] text-fg-4" title={address}>{address}</span>}
         </div>
-
         {isError ? (
-          <div className="mt-1 text-xs text-rose-300/80 font-minecraft truncate">
-            {t("profiles.v3.servers.offline")}
-          </div>
+          <div className="mt-0.5 text-[12px] text-err truncate">{t("profiles.v3.servers.offline")}</div>
         ) : isPending ? (
-          <div className="mt-1 text-xs text-white/35 font-minecraft flex items-center gap-1.5">
-            <Icon icon="svg-spinners:ring-resize" className="w-3 h-3" />
+          <div className="mt-0.5 text-[12px] text-fg-3 flex items-center gap-1.5">
+            <Loader2 size={11} className="animate-spin" />
             {t("profiles.v3.servers.pinging")}
           </div>
         ) : motdInput ? (
+          // the MOTD's two lines become one, the row has room for a single line
           <div
-            className="mt-1 text-xs font-minecraft whitespace-pre-line line-clamp-2 leading-snug"
-            dangerouslySetInnerHTML={{ __html: parseMotdToHtml(motdInput) }}
+            className="mt-0.5 text-[12px] text-fg-2 truncate"
+            dangerouslySetInnerHTML={{ __html: parseMotdToHtml(motdInput).replace(/<br\s*\/?>/gi, " ") }}
           />
         ) : null}
-
-        {ping && !isError && (
-          <div className="flex items-center gap-2 mt-1 text-xs font-minecraft">
-            {ping.players_online != null && ping.players_max != null && (
-              <>
-                <span className="inline-flex items-center gap-1 text-white/60">
-                  <Icon icon="solar:users-group-rounded-bold" className="w-3 h-3" />
-                  <span className="tabular-nums">{ping.players_online}/{ping.players_max}</span>
-                </span>
-                <span className="text-white/20">·</span>
-              </>
-            )}
-            {ping.latency_ms != null && (
-              <span className={`inline-flex items-center gap-1 tabular-nums ${latencyTextColor(ping.latency_ms)}`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${latencyDotColor(ping.latency_ms)}`} />
-                {ping.latency_ms}ms
-              </span>
-            )}
-            {ping.version_name && (
-              <>
-                <span className="text-white/20">·</span>
-                <span className="text-white/40 truncate">{ping.version_name}</span>
-              </>
-            )}
-          </div>
-        )}
       </div>
 
-      <button
-        onClick={onJoin}
-        disabled={!!isError || isLaunching || !address}
-        className={`h-8 px-3 rounded-md border flex items-center gap-1.5 flex-shrink-0 transition-colors text-xs font-minecraft uppercase tracking-wider ${
-          isError || !address
-            ? "bg-white/5 border-white/10 text-white/30 cursor-not-allowed"
-            : isLaunching
-              ? "bg-emerald-500/10 border-emerald-400/20 text-emerald-200/60 cursor-wait"
-              : "bg-emerald-500/20 hover:bg-emerald-500/30 border-emerald-400/30 text-emerald-100"
-        }`}
-      >
-        <Icon
-          icon={isLaunching ? "solar:refresh-bold" : "solar:login-2-bold"}
-          className={`w-4 h-4 ${isLaunching ? "animate-spin" : ""}`}
-        />
-        {t("profiles.v3.servers.joinShort")}
-      </button>
+      <div className={ROW.version} title={ping?.version_name ?? undefined}>{ping?.version_name ?? "—"}</div>
 
-      <div className="relative flex-shrink-0">
+      <div className={ROW.stat}>
+        {ping && ping.players_online != null && ping.players_max != null && (
+          <div className="text-fg-2">{ping.players_online}/{ping.players_max}</div>
+        )}
+        {ping && tone && (
+          <div className={cn("inline-flex items-center gap-1.5", tone.text)}>
+            <span className={cn("w-1.5 h-1.5 rounded-full", tone.dot)} />
+            {ping.latency_ms} ms
+          </div>
+        )}
+        {!ping && <span className="text-fg-4">—</span>}
+      </div>
+
+      <div className={ROW.actions}>
         <button
-          onClick={(e) => { e.stopPropagation(); onMenuToggle(!menuOpen); }}
-          className="p-1.5 rounded text-white/40 hover:text-white hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onJoin(); }}
+          disabled={joinDisabled || isLaunching}
+          className={cn(rowActionClass(joinDisabled), isLaunching && !joinDisabled && "cursor-wait text-fg-2")}
+          style={{ borderRadius: "var(--r-sm)" }}
+          title={t("profiles.v3.servers.join")}
         >
-          <Icon icon="solar:menu-dots-bold" className="w-4 h-4" />
+          {isLaunching && !joinDisabled
+            ? <Loader2 size={12} className="animate-spin" />
+            : <LogIn size={12} strokeWidth={2} />}
+          {t("profiles.v3.servers.joinShort")}
         </button>
-        <ThemedDropdown open={menuOpen} onClose={() => onMenuToggle(false)} width="w-52">
-          <ThemedDropdownItem icon="solar:refresh-linear" onClick={() => { onReping(); onMenuToggle(false); }}>
-            {t("profiles.v3.servers.reping")}
-          </ThemedDropdownItem>
-          <ThemedDropdownItem
-            icon="solar:clipboard-linear"
-            onClick={() => { if (address) navigator.clipboard.writeText(address); onMenuToggle(false); }}
-          >
-            {t("profiles.v3.servers.copyAddress")}
-          </ThemedDropdownItem>
-        </ThemedDropdown>
+        <div className="relative flex-shrink-0">
+          <RowMenuButton open={menuOpen} onToggle={onMenuToggle} />
+          <ThemedDropdown open={menuOpen} onClose={() => onMenuToggle(false)} width="w-52">
+            <ThemedDropdownItem icon={RefreshCw} onClick={() => { onReping(); onMenuToggle(false); }}>
+              {t("profiles.v3.servers.reping")}
+            </ThemedDropdownItem>
+            <ThemedDropdownItem
+              icon={ClipboardCopy}
+              onClick={() => { if (address) navigator.clipboard.writeText(address); onMenuToggle(false); }}
+            >
+              {t("profiles.v3.servers.copyAddress")}
+            </ThemedDropdownItem>
+          </ThemedDropdown>
+        </div>
       </div>
     </div>
   );

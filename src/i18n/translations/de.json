@@ -811,7 +811,6 @@
   "profiles.wizard.back": "Zurück",
   "profiles.wizard.creating": "Wird erstellt...",
   "profiles.wizard.createProfile": "Profil erstellen",
-  "profiles.wizard.step3Title": "Loader-Version",
   "profiles.wizard.nrcLoaderCompatible": "CrimeClient Loader ist kompatibel",
   "profiles.wizard.nrcLoaderFeatures": "CrimeClient-Funktionen verfügbar",
   "profiles.wizard.loadLoaderVersionsError": "Loader-Versionen konnten nicht geladen werden",
@@ -822,7 +821,6 @@
   "profiles.wizard.selectLoaderVersion": "Loader-Version auswählen...",
   "profiles.wizard.noLoaderVersions": "Keine Loader-Versionen verfügbar",
   "profiles.wizard.next": "Weiter",
-  "profiles.wizard.step2Title": "Spielversion",
   "profiles.wizard.nrcCompatible": "CrimeClient kompatibel",
   "profiles.wizard.nrcFeaturesAvailable": "CrimeClient-Funktionen verfügbar",
   "profiles.wizard.loadVersionsError": "Versionen konnten nicht geladen werden",
@@ -832,7 +830,6 @@
   "profiles.wizard.release": "Release",
   "profiles.wizard.snapshot": "Snapshot",
   "profiles.wizard.noVersionsFound": "Keine Versionen gefunden",
-  "profiles.wizard.step1Title": "Profildetails",
   "common.refreshing": "Aktualisiere...",
   "common.selected": "ausgewählt",
   "common.select_all": "Alle auswählen",
@@ -1871,6 +1868,7 @@
   "profiles.v3.servers.pinging": "Pinge…",
   "profiles.v3.servers.reping": "Erneut pingen",
   "profiles.v3.servers.copyAddress": "Adresse kopieren",
+  "profiles.v3.servers.ping": "Ping",
   "profiles.v3.chips.save": "Speichern",
   "profiles.v3.chips.cancel": "Abbrechen",
   "profiles.v3.chips.group.placeholder": "Keine Gruppe",
@@ -2880,7 +2878,6 @@
   "shop.detail.empty_hint": "Hier erscheinen Bild, Preis und der Kauf-Knopf.",
   "shop.price": "Preis",
   "shop.status": "Status",
-  "shop.not_owned": "Noch nicht gekauft",
   "shop.after_purchase": "Danach",
   "shop.owned": "Gekauft",
   "shop.not_enough": "Nicht genug Shards",
@@ -3000,5 +2997,6 @@
   "mods.quick_profile.more": "{{count}} weitere anzeigen",
   "mods.quick_profile.no_source_hint": "Es gibt keine Profile zum Kopieren. Ohne Quelle wird ein neues, leeres Profil angelegt.",
   "mods.files.expand": "Aufklappen",
-  "mods.files.collapse": "Zuklappen"
+  "mods.files.collapse": "Zuklappen",
+  "worlds.search_placeholder": "Welten und Server suchen…"
 }

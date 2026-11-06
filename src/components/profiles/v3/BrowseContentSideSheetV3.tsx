@@ -6,9 +6,8 @@
  * Deliberately NOT styled like the shared `Modal`: a sheet is a docked
  * surface that extends the parent view, not a floating card demanding
  * focus. So the header uses the V3 profile-detail top-bar vocabulary
- * (h-11 toolbar, font-minecraft uppercase breadcrumb, thin accent
- * indicator on the docked edge) and the backdrop is lighter, signalling
- * "non-blocking side task" instead of "stop everything".
+ * (h-11 toolbar, title / profile breadcrumb) and the backdrop is lighter,
+ * signalling "non-blocking side task" instead of "stop everything".
  *
  * Mod detail is pushed onto a stacked layer inside the sheet (see the
  * `detail` state + `onProjectClick` path below) rather than routing
@@ -17,7 +16,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { Icon } from "@iconify/react";
+import { ArrowLeft, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type { Profile } from "../../../types/profile";
@@ -26,7 +25,6 @@ import type { LocalContentType } from "../../../hooks/useLocalContentManager";
 import type { ModrinthProjectType } from "../../../types/modrinth";
 import { ModrinthSearchV2 } from "../../modrinth/v2/ModrinthSearchV2";
 import { ModDetailPage } from "../../mods/ModDetailPage";
-import { useThemeStore } from "../../../store/useThemeStore";
 import { useModSearchStoreSnapshot } from "./useModSearchStoreSnapshot";
 
 export interface BrowseContentSideSheetV3Props {
@@ -56,13 +54,6 @@ export function BrowseContentSideSheetV3({
   installedOverride,
 }: BrowseContentSideSheetV3Props) {
   const { t } = useTranslation();
-  const accentColor = useThemeStore((s) => s.accentColor);
-  const accent = accentColor.value;
-  // `accent.dark` is a 20%-darkened variant (see `calculateColorVariants`
-  // in useThemeStore). Fallback to `value` so a legacy persisted theme
-  // without that field doesn't turn the whole `background` property into
-  // invalid CSS (which silently wipes every layer).
-  const accentDark = accentColor.dark ?? accent;
   const isPackTarget = installTarget?.type === "syncPack";
   const projectType = isPackTarget
     ? "mod"
@@ -121,112 +112,58 @@ export function BrowseContentSideSheetV3({
 
   return createPortal(
     <>
-      {/* Backdrop — lighter than the Modal spec so the sheet reads as
-          "docked side task", not "blocking dialog". Blurred so focus lands
-          on the sheet while the profile view behind stays readable. */}
+      {/* Backdrop: lighter than a modal, the sheet is a docked side task, not a blocking dialog. */}
       <div
         onClick={onClose}
         aria-hidden="true"
-        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] animate-in fade-in duration-150"
+        className="fixed inset-0 bg-black/45 z-[1000] animate-in fade-in duration-150"
       />
 
-      {/* Sheet: docked to the right edge. Frosted-glass treatment — lower
-          opacity + heavy blur + saturation boost so the app's gradient and
-          particle layers shine through instead of being walled off. A subtle
-          left-to-right gradient gives the surface depth (slightly lighter on
-          the docked edge where the accent stripe sits). */}
+      {/* Sheet: docked to the right edge, a flat page surface with a hairline on the docked side. */}
       <aside
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="fixed right-0 top-0 h-full w-[82vw] min-w-[640px] max-w-[1300px] z-[1001] flex flex-col shadow-[0_0_64px_-8px_rgba(0,0,0,0.7)] animate-in slide-in-from-right duration-200 overflow-hidden"
-        style={{
-          // Light see-through base — a soft dark veil (~0.42 alpha) takes
-          // the edge off what's behind without hiding it, with accent
-          // ellipses layered on top for the themed tint. No blur, so the
-          // profile view stays recognizable through the sheet.
-          // "Soft Gradients 2.0" per 2026 UI consensus, now with real
-          // backdrop-blur. All background layers now carry alpha (incl. the
-          // base) so the backdrop-filter actually has content peeking
-          // through to blur — a fully opaque bottom layer would swallow
-          // the blur entirely. The base alpha is dropped enough to feel
-          // glassy but not so much that text legibility suffers.
-          background: `
-            radial-gradient(ellipse 85% 65% at 12% 15%, ${accent}24 0%,     transparent 60%),
-            radial-gradient(ellipse 75% 60% at 88% 85%, ${accentDark}1e 0%, transparent 60%),
-            linear-gradient(135deg, rgba(14,14,22,0.72) 0%, rgba(10,10,18,0.72) 100%)
-          `,
-          backdropFilter: "blur(22px) saturate(140%)",
-          WebkitBackdropFilter: "blur(22px) saturate(140%)",
-        }}
+        className="fixed right-0 top-0 h-full w-[82vw] min-w-[640px] max-w-[1300px] z-[1001] flex flex-col bg-bg border-l border-line-2 shadow-pop animate-in slide-in-from-right duration-200 overflow-hidden"
       >
-        {/* Subtle white highlight inside the docked edge — the "glass catches
-            light" moment that keeps the panel from looking flat against the
-            viewport edge. */}
-        <div
-          aria-hidden="true"
-          className="absolute left-0 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-white/20 to-transparent pointer-events-none"
-        />
-
-        {/* Accent stripe on the docked edge — thin, luminous, signals which
-            surface the sheet belongs to without screaming for attention. */}
-        <div
-          aria-hidden="true"
-          className="absolute left-0 top-0 bottom-0 w-[2px] pointer-events-none"
-          style={{
-            background: `linear-gradient(to bottom, transparent, ${accent}cc, ${accent}, ${accent}cc, transparent)`,
-            boxShadow: `0 0 18px ${accent}80`,
-          }}
-        />
-
-        {/* Header uses the V3 detail-view top-bar spec (h-11, px-5, border-
-            white/5, font-minecraft uppercase tracking-wider) so the sheet
-            reads as an extension of the detail view's chrome rather than a
-            foreign dialog with its own type scale.
-            When a mod detail is stacked on top, the header morphs into a
-            breadcrumb back-button so the user can pop just the detail layer
-            without closing the whole sheet. */}
-        <div className="flex items-center justify-between px-5 h-11 border-b border-white/5 flex-shrink-0 relative">
-          <div className="flex items-center gap-2 min-w-0">
+        {/* Header in the detail view's top-bar spec. With a mod detail stacked on top it becomes a
+            back button, so the user can pop just the detail layer without closing the sheet. */}
+        <div className="flex items-center justify-between px-5 h-11 border-b border-line flex-shrink-0 relative">
+          <div className="flex items-center gap-2 min-w-0 text-[13px]">
             {detail ? (
               <button
                 onClick={() => setDetail(null)}
-                className="flex items-center gap-2 text-white/70 hover:text-white transition-colors"
+                className="flex items-center gap-1.5 text-fg-2 hover:text-fg transition-colors duration-fast"
                 title={t("common.back")}
               >
-                <Icon icon="solar:arrow-left-linear" className="w-4 h-4" />
-                <span className="text-xs font-minecraft uppercase tracking-wider">
-                  {title}
-                </span>
+                <ArrowLeft size={15} strokeWidth={1.75} />
+                <span className="font-[560]">{title}</span>
               </button>
             ) : (
-              <>
-                <Icon
-                  icon="solar:add-circle-bold"
-                  className="w-4 h-4 flex-shrink-0"
-                  style={{ color: accent }}
-                />
-                <span className="text-xs font-minecraft uppercase tracking-wider text-white/90 truncate">
-                  {title}
-                </span>
-              </>
+              <span className="font-[560] text-fg truncate">{title}</span>
             )}
-            <span className="text-white/25">/</span>
-            <span className="text-xs font-minecraft text-white/55 normal-case truncate max-w-[280px]">
+            <span className="text-fg-4">/</span>
+            <span className="text-fg-3 truncate max-w-[280px]">
               {isPackTarget ? installTarget.packName : profile.name || profile.id}
             </span>
           </div>
-          <div className="flex items-center gap-2 text-[10px] font-minecraft uppercase tracking-wider text-white/30">
-            <span className="hidden sm:inline-flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/50">esc</kbd>
+          <div className="flex items-center gap-2 text-[12px] text-fg-4">
+            <span className="hidden sm:inline-flex items-center gap-1.5">
+              <kbd
+                className="cc-num text-[11px] leading-none px-1.5 py-1 bg-s2 border border-line text-fg-3"
+                style={{ borderRadius: "var(--r-sm)" }}
+              >
+                esc
+              </kbd>
               <span>{t("common.close")}</span>
             </span>
             <button
               onClick={onClose}
-              className="p-2 rounded hover:bg-white/5 text-white/50 hover:text-white transition-colors"
+              className="cc-icon-btn"
               title={t("common.close")}
+              aria-label={t("common.close")}
             >
-              <Icon icon="solar:close-circle-linear" className="w-4 h-4" />
+              <X size={16} strokeWidth={1.75} />
             </button>
           </div>
         </div>

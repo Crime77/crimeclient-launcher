@@ -15,7 +15,6 @@ import type { FileNode } from "../../../types/fileSystem"; // Adjust path as nee
 import * as ProfileService from "../../../services/profile-service"; // Adjust path as needed
 import { toast } from "react-hot-toast";
 import { useThemeStore } from "../../../store/useThemeStore";
-import gsap from "gsap";
 import { listen } from "@tauri-apps/api/event";
 import { EventType, type EventPayload } from "../../../types/events";
 import { parseErrorMessage } from "../../../utils/error-utils";
@@ -232,17 +231,7 @@ export function ExportSettingsTab({
     }
   };
 
-  // GSAP animation for the tab content, similar to other tabs
   const contentRef = React.useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (isBackgroundAnimationEnabled && contentRef.current) {
-      gsap.fromTo(
-        contentRef.current,
-        { opacity: 0, y: 20 },
-        { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" }
-      );
-    }
-  }, [isBackgroundAnimationEnabled]);
 
   // useEffect to pass the export action and disabled state to the parent IF in modal context
   useEffect(() => {

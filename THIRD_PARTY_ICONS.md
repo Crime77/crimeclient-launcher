@@ -1,6 +1,6 @@
 # Third-party icon artwork
 
-The launcher bundles 265 icons from the sets below. The artwork is redistributed
+The launcher bundles 155 icons from the sets below. The artwork is redistributed
 unmodified; only the icons actually used are included, extracted from the `@iconify-json/*`
 packages by `scripts/generate-icon-bundle.mjs`.
 
@@ -8,25 +8,19 @@ GENERATED — run `yarn icons` to refresh.
 
 ## Solar (`solar`)
 
-- 226 icons used of 7401
+- 134 icons used of 7401
 - Author: [480 Design](https://www.figma.com/community/file/1166831539721848736)
-- Licence: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) (`CC-BY-4.0`)
-
-## Pixel Icon (`pixel`)
-
-- 6 icons used of 578
-- Author: [HackerNoon](https://github.com/hackernoon/pixel-icon-library)
 - Licence: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) (`CC-BY-4.0`)
 
 ## Material Design Icons (`mdi`)
 
-- 4 icons used of 7447
+- 1 icon used of 7447
 - Author: [Pictogrammers](https://github.com/Templarian/MaterialDesign)
 - Licence: [Apache 2.0](https://github.com/Templarian/MaterialDesign/blob/master/LICENSE) (`Apache-2.0`)
 
 ## Simple Icons (`simple-icons`)
 
-- 9 icons used of 3447
+- 3 icons used of 3447
 - Author: [Simple Icons Collaborators](https://github.com/simple-icons/simple-icons)
 - Licence: [CC0 1.0](https://github.com/simple-icons/simple-icons/blob/develop/LICENSE.md) (`CC0-1.0`)
 
@@ -42,29 +36,17 @@ GENERATED — run `yarn icons` to refresh.
 - Author: [Phosphor Icons](https://github.com/phosphor-icons/core)
 - Licence: [MIT](https://github.com/phosphor-icons/core/blob/main/LICENSE) (`MIT`)
 
-## MingCute Icon (`mingcute`)
-
-- 1 icon used of 3324
-- Author: [MingCute Design](https://github.com/Richard9394/MingCute)
-- Licence: [Apache 2.0](https://github.com/Richard9394/MingCute/blob/main/LICENSE) (`Apache-2.0`)
-
 ## SVG Spinners (`svg-spinners`)
 
-- 3 icons used of 46
+- 1 icon used of 46
 - Author: [Utkarsh Verma](https://github.com/n3r4zzurr0/svg-spinners)
 - Licence: [MIT](https://github.com/n3r4zzurr0/svg-spinners/blob/main/LICENSE) (`MIT`)
 
 ## Lucide (`lucide`)
 
-- 1 icon used of 1745
+- 2 icons used of 1745
 - Author: [Lucide Contributors](https://github.com/lucide-icons/lucide)
 - Licence: [ISC](https://github.com/lucide-icons/lucide/blob/main/LICENSE) (`ISC`)
-
-## Material Line Icons (`line-md`)
-
-- 1 icon used of 1218
-- Author: [Vjacheslav Trushkin](https://github.com/cyberalien/line-md)
-- Licence: [MIT](https://github.com/cyberalien/line-md/blob/main/license.txt) (`MIT`)
 
 ## Google Material Icons (`ic`)
 

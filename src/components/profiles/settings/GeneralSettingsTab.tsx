@@ -7,7 +7,6 @@ import { useThemeStore } from "../../../store/useThemeStore";
 import { SearchStyleInput } from "../../ui/Input";
 import { ToggleSwitch } from "../../ui/ToggleSwitch";
 import { SettingsRow, SettingsSection } from "./SettingsRow";
-import { gsap } from "gsap";
 import { ProfileIcon } from "../ProfileIcon";
 import { useMinecraftAuthStore } from "../../../store/minecraft-auth-store";
 import { usePlayerAvatar } from "../../../hooks/usePlayerAvatar";
@@ -46,34 +45,6 @@ export function GeneralSettingsTab({
   const accountRef = useRef<HTMLDivElement>(null);
   const { accounts } = useMinecraftAuthStore();
 
-  useEffect(() => {
-    if (isBackgroundAnimationEnabled) {
-      if (tabRef.current) {
-        gsap.fromTo(
-          tabRef.current,
-          { opacity: 0 },
-          { opacity: 1, duration: 0.4, ease: "power2.out" },
-        );
-      }
-
-      if (formRef.current) {
-        gsap.fromTo(
-          formRef.current.children,
-          { opacity: 0, y: 20 },
-          {
-            opacity: 1,
-            y: 0,
-            duration: 0.4,
-            stagger: 0.1,
-            ease: "power2.out",
-            delay: 0.2,
-          },
-        );
-      }
-
-
-    }
-  }, [isBackgroundAnimationEnabled]);
 
   // Component for account avatar with caching
   function AccountAvatar({ account }: { account: MinecraftAccount }) {

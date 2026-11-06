@@ -8,7 +8,6 @@ import { Loader2, TriangleAlert, Wrench } from "lucide-react";
 import { SettingsRow, SettingsSection } from "./SettingsRow";
 import { useThemeStore } from "../../../store/useThemeStore";
 import { Button } from "../../ui/buttons/Button";
-import { gsap } from "gsap";
 import { toast } from "react-hot-toast";
 import * as ProfileService from "../../../services/profile-service";
 import { parseErrorMessage } from "../../../utils/error-utils";
@@ -40,15 +39,6 @@ export function NRCTab({
   );
   const tabRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (isBackgroundAnimationEnabled && tabRef.current) {
-      gsap.fromTo(
-        tabRef.current,
-        { opacity: 0 },
-        { opacity: 1, duration: 0.4, ease: "power2.out" },
-      );
-    }
-  }, [isBackgroundAnimationEnabled]);
 
 
   const selectedPackId = editedProfile.selected_norisk_pack_id || "";

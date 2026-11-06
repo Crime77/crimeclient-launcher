@@ -149,7 +149,7 @@ export function ServerLaunchCard({
       )}
 
       <div
-        className="flex-1 min-w-0 text-xs leading-none font-minecraft truncate text-fg-3 hidden xl:block"
+        className="flex-1 min-w-0 text-xs leading-none truncate text-fg-3 hidden xl:block"
         title={serverInfo?.description || serverAddress}
       >
         {isLaunching && statusMessage ? (

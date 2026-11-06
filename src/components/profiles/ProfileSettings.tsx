@@ -82,8 +82,8 @@ export function ProfileSettings({ profile, onClose }: ProfileSettingsProps) {
     if (isBackgroundAnimationEnabled && contentRef.current) {
       gsap.fromTo(
         contentRef.current,
-        { opacity: 0, y: 20 },
-        { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" },
+        { opacity: 0, y: 6 },
+        { opacity: 1, y: 0, duration: 0.18, ease: "power2.out" },
       );
     }
   }, [activeTab, isBackgroundAnimationEnabled]);
@@ -92,8 +92,8 @@ export function ProfileSettings({ profile, onClose }: ProfileSettingsProps) {
     if (isBackgroundAnimationEnabled && sidebarRef.current) {
       gsap.fromTo(
         sidebarRef.current,
-        { opacity: 0, x: -20 },
-        { opacity: 1, x: 0, duration: 0.4, ease: "power2.out" },
+        { opacity: 0 },
+        { opacity: 1, duration: 0.18, ease: "power2.out" },
       );
     }
   }, [isBackgroundAnimationEnabled]);
@@ -309,19 +309,8 @@ export function ProfileSettings({ profile, onClose }: ProfileSettingsProps) {
   );
 
   const handleTabClick = (tabId: string) => {
-    if (activeTab !== tabId) {
-      if (isBackgroundAnimationEnabled && contentRef.current) {
-        gsap.to(contentRef.current, {
-          opacity: 0,
-          y: 20,
-          duration: 0.2,
-          ease: "power2.in",
-          onComplete: () => setActiveTab(tabId as SettingsTab),
-        });
-      } else {
-        setActiveTab(tabId as SettingsTab);
-      }
-    }
+    // switch at once; the entrance above fades the new section in
+    if (activeTab !== tabId) setActiveTab(tabId as SettingsTab);
   };
 
   return (

@@ -14,7 +14,9 @@ import { ArrowUpRight, ShieldAlert } from "lucide-react";
 import { openExternalUrl } from "../../services/tauri-service";
 
 export default function ChildProtectionModal() {
-  const { t } = useTranslation();
+  // The listener lives for the whole session, so it asks the i18n instance (stable) for the texts at the
+  // moment the error comes in: a `t` captured at mount would keep the language of the first render.
+  const { i18n } = useTranslation();
   const { showModal, hideModal } = useGlobalModal();
 
   useEffect(() => {
@@ -32,6 +34,8 @@ export default function ChildProtectionModal() {
             // Async flow to check active account and show modal
             (async () => {
               try {
+                const t = i18n.t.bind(i18n);
+                const gamertag = encodeURIComponent(event.payload.message ?? "");
                 showModal(
                   "child-protection-modal",
                   <Modal
@@ -52,7 +56,7 @@ export default function ChildProtectionModal() {
                           {t('child_protection.button.ignore')}
                         </Button>
                         <Button
-                          onClick={() => openExternalUrl(`https://www.xbox.com/user/settings/privacy-and-safety?gamertag=${event.payload.message}&activetab=main:privilegetab`)}
+                          onClick={() => openExternalUrl(`https://www.xbox.com/user/settings/privacy-and-safety?gamertag=${gamertag}&activetab=main:privilegetab`)}
                           variant="secondary"
                           size="sm"
                           iconPosition="right"
@@ -88,7 +92,7 @@ export default function ChildProtectionModal() {
     return () => {
       unlisten.then((f) => f());
     };
-    // showModal/hideModal are stable from hook; t is stable from i18next
+    // showModal/hideModal are stable from the hook, i18n is one instance for the app
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

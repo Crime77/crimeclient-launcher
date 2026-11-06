@@ -89,38 +89,6 @@ export function JavaSettingsTab({
   const [isLoadingGlobalJvmArgs, setIsLoadingGlobalJvmArgs] = useState(false);
   
 
-  useEffect(() => {
-    if (isBackgroundAnimationEnabled) {
-      if (tabRef.current) {
-        gsap.fromTo(
-          tabRef.current,
-          { opacity: 0 },
-          { opacity: 1, duration: 0.4, ease: "power2.out" },
-        );
-      }
-
-      const elements = [
-        javaInstallRef.current,
-        memoryRef.current,
-        argsRef.current,
-      ].filter(Boolean);
-
-      if (elements.length > 0) {
-        gsap.fromTo(
-          elements,
-          { opacity: 0, y: 20 },
-          {
-            opacity: 1,
-            y: 0,
-            duration: 0.4,
-            stagger: 0.1,
-            ease: "power2.out",
-            delay: 0.2,
-          },
-        );
-      }
-    }
-  }, [isBackgroundAnimationEnabled]);
 
   const detectJavaInstallations = async () => {
     setIsDetectingJava(true);

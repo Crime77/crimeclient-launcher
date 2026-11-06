@@ -93,36 +93,6 @@ export function InstallationSettingsTab({
     }
   }, [editedProfile.loader, previousLoader, isBackgroundAnimationEnabled]);
 
-  useEffect(() => {
-    if (isBackgroundAnimationEnabled) {
-      if (tabRef.current) {
-        gsap.fromTo(
-          tabRef.current,
-          { opacity: 0 },
-          { opacity: 1, duration: 0.4, ease: "power2.out" },
-        );
-      }
-
-      const elements = [
-        currentInstallRef.current,
-        versionsRef.current,
-        platformsRef.current,
-      ].filter(Boolean);
-
-      gsap.fromTo(
-        elements,
-        { opacity: 0, y: 20 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.4,
-          stagger: 0.1,
-          ease: "power2.out",
-          delay: 0.2,
-        },
-      );
-    }
-  }, [isBackgroundAnimationEnabled]);
 
   useEffect(() => {
     async function fetchMinecraftVersions() {

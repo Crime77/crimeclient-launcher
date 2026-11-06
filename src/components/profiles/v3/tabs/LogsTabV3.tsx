@@ -10,7 +10,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
-import { Icon } from "@iconify/react";
+import {
+  AlertTriangle, ArrowDown, ChevronDown, CloudUpload, FileText, FolderOpen, Loader2, Pin, Settings2,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-hot-toast";
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
@@ -26,9 +28,11 @@ import {
   type LogLevel,
   type ParsedLogLine,
 } from "../../../../services/log-service";
-import { useThemeStore } from "../../../../store/useThemeStore";
 import { useDelayedTrue } from "../../../../hooks/useDelayedTrue";
+import { cn } from "../../../../lib/utils";
 import { Tooltip } from "../../../ui/Tooltip";
+import { ToggleSwitch } from "../../../ui/ToggleSwitch";
+import { SearchWithFilters } from "../../../ui/SearchWithFilters";
 import { ThemedDropdown, ThemedDropdownItem } from "../shared/ThemedDropdown";
 import { EmptyStateV3 } from "../shared/EmptyStateV3";
 import { parseErrorMessage } from "../../../../utils/error-utils";
@@ -39,17 +43,29 @@ interface LogsTabV3Props {
   onRefresh?: () => void;
 }
 
-// ─── Level-Farb-Mapping ─────────────────────────────────────────────────────
-// `text` matches V2 LogViewerCore exactly (important for consistent feel).
-// `pillBg/pillBorder` are only for the toolbar filter pills — those stay in
-// V3-style accent-tinted values.
-const LEVEL_CONFIG: Record<LogLevel, { text: string; pillBg: string; pillBorder: string; pillHover: string }> = {
-  ERROR: { text: "text-red-400",    pillBg: "bg-rose-500/10",   pillBorder: "border-rose-400/30",   pillHover: "hover:bg-rose-500/20" },
-  WARN:  { text: "text-yellow-400", pillBg: "bg-amber-500/10",  pillBorder: "border-amber-400/30",  pillHover: "hover:bg-amber-500/20" },
-  INFO:  { text: "text-blue-400",   pillBg: "bg-sky-500/10",    pillBorder: "border-sky-400/30",    pillHover: "hover:bg-sky-500/20" },
-  DEBUG: { text: "text-cyan-400",   pillBg: "bg-cyan-500/10",   pillBorder: "border-cyan-400/30",   pillHover: "hover:bg-cyan-500/20" },
-  TRACE: { text: "text-purple-400", pillBg: "bg-violet-500/10", pillBorder: "border-violet-400/30", pillHover: "hover:bg-violet-500/20" },
+// ─── Level colours ──────────────────────────────────────────────────────────
+// Same muted scheme as the log windows (components/log/LogViewerCore.tsx): only warnings and errors
+// stand out, info stays on the normal text colour.
+const MESSAGE_CLASS: Record<LogLevel, string> = {
+  ERROR: "text-err",
+  WARN: "text-warn",
+  INFO: "text-fg-2",
+  DEBUG: "text-fg-3",
+  TRACE: "text-fg-3",
 };
+
+const LEVEL_DOT: Record<LogLevel, string> = {
+  ERROR: "bg-err",
+  WARN: "bg-warn",
+  INFO: "bg-fg-3",
+  DEBUG: "bg-fg-4",
+  TRACE: "bg-fg-4",
+};
+
+/** Square icon button of the toolbar. */
+const ICON_BUTTON =
+  "w-8 h-8 flex items-center justify-center flex-shrink-0 text-fg-3 hover:text-fg hover:bg-s2 " +
+  "transition-colors duration-fast disabled:opacity-40 disabled:pointer-events-none";
 
 const DEFAULT_LEVELS: Record<LogLevel, boolean> = {
   ERROR: true, WARN: true, INFO: true, DEBUG: true, TRACE: false,
@@ -61,7 +77,6 @@ function getFilename(path: string): string {
 
 export function LogsTabV3({ profile, isActive = true, onRefresh }: LogsTabV3Props) {
   const { t } = useTranslation();
-  const accentColor = useThemeStore((s) => s.accentColor);
 
   // ── Data ──────────────────────────────────────────────────────────────────
   const [logFiles, setLogFiles] = useState<string[]>([]);
@@ -215,33 +230,37 @@ export function LogsTabV3({ profile, isActive = true, onRefresh }: LogsTabV3Prop
 
   return (
     <div className="flex flex-col min-h-0 flex-1 relative">
-      {/* ── Sticky Toolbar ─────────────────────────────────────────────── */}
-      <div className="flex items-center gap-2 px-5 h-12 border-b border-white/5 flex-shrink-0 bg-black/20 sticky top-0 z-10">
-        <div className="relative w-64 flex-shrink-0">
-          <Icon icon="solar:magnifer-linear" className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
-          <input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t("profiles.v3.logs.searchPlaceholder")}
-            className="w-full h-8 pl-8 pr-3 rounded-md bg-white/5 border border-white/10 focus:border-white/25 outline-none text-sm text-white placeholder:text-white/30 font-minecraft"
-          />
-        </div>
+      <div className="flex items-center gap-2 px-5 h-12 border-b border-line flex-shrink-0">
+        <SearchWithFilters
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          placeholder={t("profiles.v3.logs.searchPlaceholder")}
+          showSort={false}
+          showFilter={false}
+          dropdownSize="sm"
+          className="w-60 flex-shrink-0"
+        />
 
-        <div className="flex items-center gap-1">
+        <div
+          className="flex h-8 flex-shrink-0 items-center gap-px border border-line bg-s2 p-0.5"
+          style={{ borderRadius: "var(--r-md)" }}
+        >
           {LOG_LEVELS.map((lvl) => {
-            const cfg = LEVEL_CONFIG[lvl];
-            const active = enabledLevels[lvl];
+            const on = enabledLevels[lvl];
             return (
               <button
                 key={lvl}
+                type="button"
+                aria-pressed={on}
                 onClick={() => toggleLevel(lvl)}
-                className={`h-8 px-2 rounded-md border text-[10px] font-minecraft uppercase tracking-wider transition-colors ${
-                  active
-                    ? `${cfg.pillBg} ${cfg.pillBorder} ${cfg.text}`
-                    : `bg-white/[0.02] border-white/10 text-white/30 ${cfg.pillHover}`
-                }`}
-                title={active ? t("profiles.v3.logs.hideLevel", { level: lvl }) : t("profiles.v3.logs.showLevel", { level: lvl })}
+                className={cn(
+                  "flex h-full items-center gap-1.5 px-2 cc-num text-[10.5px] transition-colors duration-fast",
+                  on ? "bg-s3 text-fg-2" : "text-fg-4 hover:text-fg-3",
+                )}
+                style={{ borderRadius: "var(--r-sm)" }}
+                title={on ? t("profiles.v3.logs.hideLevel", { level: lvl }) : t("profiles.v3.logs.showLevel", { level: lvl })}
               >
+                <span className={cn("h-1.5 w-1.5 rounded-full", LEVEL_DOT[lvl], !on && "opacity-40")} />
                 {lvl}
               </button>
             );
@@ -250,16 +269,21 @@ export function LogsTabV3({ profile, isActive = true, onRefresh }: LogsTabV3Prop
 
         <div className="flex-1" />
 
-        {/* File-Picker */}
-        <div className="relative">
+        <div className="relative min-w-0">
           <button
+            type="button"
             onClick={() => setFileMenuOpen(v => !v)}
             disabled={logFiles.length === 0}
-            className="h-8 px-2.5 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-minecraft text-white/80 flex items-center gap-1.5 max-w-[220px] disabled:opacity-50"
+            className={cn(
+              "h-8 min-w-0 max-w-[220px] px-2.5 flex items-center gap-1.5 border border-line text-fg-2",
+              "hover:border-line-2 hover:text-fg transition-colors duration-fast disabled:opacity-45",
+              fileMenuOpen ? "bg-s3" : "bg-s2",
+            )}
+            style={{ borderRadius: "var(--r-md)" }}
           >
-            <Icon icon="solar:file-text-bold" className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="truncate">{selectedFilename}</span>
-            <Icon icon="solar:alt-arrow-down-linear" className="w-3 h-3 opacity-60 flex-shrink-0" />
+            <FileText size={13} strokeWidth={1.75} className="flex-shrink-0 text-fg-3" />
+            <span className="truncate cc-num text-[12px]">{selectedFilename}</span>
+            <ChevronDown size={12} strokeWidth={1.75} className="flex-shrink-0 text-fg-4" />
           </button>
           <ThemedDropdown open={fileMenuOpen} onClose={() => setFileMenuOpen(false)} width="w-60" scrollable>
             {logFiles.map((path) => {
@@ -267,7 +291,7 @@ export function LogsTabV3({ profile, isActive = true, onRefresh }: LogsTabV3Prop
               return (
                 <ThemedDropdownItem
                   key={path}
-                  icon={name === "latest.log" ? "solar:pin-bold" : "solar:file-text-linear"}
+                  icon={name === "latest.log" ? Pin : FileText}
                   selected={selectedPath === path}
                   onClick={() => { setSelectedPath(path); setFileMenuOpen(false); }}
                 >
@@ -280,61 +304,71 @@ export function LogsTabV3({ profile, isActive = true, onRefresh }: LogsTabV3Prop
 
         <Tooltip content={t("profiles.v3.logs.uploadTitle")}>
           <button
+            type="button"
             onClick={handleUpload}
             disabled={!rawContent || isUploading}
-            className="h-8 w-8 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white disabled:opacity-50 flex items-center justify-center transition-colors"
+            aria-label={t("profiles.v3.logs.uploadTitle")}
+            className={ICON_BUTTON}
+            style={{ borderRadius: "var(--r-md)" }}
           >
-            <Icon icon={isUploading ? "svg-spinners:ring-resize" : "solar:cloud-upload-bold"} className="w-4 h-4" />
+            {isUploading
+              ? <Loader2 size={15} className="animate-spin" />
+              : <CloudUpload size={15} strokeWidth={1.75} />}
           </button>
         </Tooltip>
         <Tooltip content={t("profiles.v3.logs.openFolderTitle")}>
           <button
+            type="button"
             onClick={handleOpenFolder}
             disabled={!selectedPath}
-            className="h-8 w-8 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white disabled:opacity-50 flex items-center justify-center transition-colors"
+            aria-label={t("profiles.v3.logs.openFolderTitle")}
+            className={ICON_BUTTON}
+            style={{ borderRadius: "var(--r-md)" }}
           >
-            <Icon icon="solar:folder-linear" className="w-4 h-4" />
+            <FolderOpen size={15} strokeWidth={1.75} />
           </button>
         </Tooltip>
 
-        {/* Settings */}
         <div className="relative">
           <button
+            type="button"
             onClick={() => setSettingsOpen(v => !v)}
-            className="h-8 w-8 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white flex items-center justify-center transition-colors"
+            aria-label={t("profiles.v3.logs.settingsTitle")}
             title={t("profiles.v3.logs.settingsTitle")}
+            className={cn(ICON_BUTTON, settingsOpen && "bg-s2 text-fg")}
+            style={{ borderRadius: "var(--r-md)" }}
           >
-            <Icon icon="solar:settings-bold" className="w-4 h-4" />
+            <Settings2 size={15} strokeWidth={1.75} />
           </button>
           <ThemedDropdown open={settingsOpen} onClose={() => setSettingsOpen(false)} width="w-56">
             <SettingsToggle
               label={t("profiles.v3.logs.showThreadPrefix")}
               checked={showThreadPrefix}
               onChange={() => setShowThreadPrefix(v => !v)}
-              accent={accentColor.value}
             />
             <SettingsToggle
               label={t("profiles.v3.logs.wordWrap")}
               checked={wordWrap}
               onChange={() => setWordWrap(v => !v)}
-              accent={accentColor.value}
             />
           </ThemedDropdown>
         </div>
       </div>
 
-      {/* ── Content ────────────────────────────────────────────────────── */}
-      {/* py-3 gives the first/last line breathing room from the toolbar and
-          jump-to-bottom button. Virtuoso needs `flex: 1 + minHeight: 0`, the
-          default would clamp it to ~400px. */}
-      <div className="flex-1 min-h-0 relative flex flex-col py-3">
+      {/* Virtuoso needs `flex: 1 + minHeight: 0`, the default would clamp it to ~400px. */}
+      <div className="flex-1 min-h-0 relative flex flex-col pt-2">
         {error && (
-          <div className="absolute top-3 left-3 right-3 z-20 flex items-start gap-3 p-3 rounded-lg border border-rose-400/30 bg-rose-500/10">
-            <Icon icon="solar:danger-triangle-bold" className="w-5 h-5 text-rose-300 flex-shrink-0 mt-0.5" />
-            <div className="flex-1 min-w-0 text-xs font-minecraft text-rose-100 break-words">{error}</div>
+          <div
+            className="mx-5 mb-2 flex items-start gap-2.5 px-3 py-2 border border-err/30 bg-err/10"
+            style={{ borderRadius: "var(--r-md)" }}
+          >
+            <AlertTriangle size={14} strokeWidth={1.75} className="text-err flex-shrink-0 mt-px" />
+            <div className="flex-1 min-w-0 text-[12px] text-fg-2 break-words leading-[1.5]">{error}</div>
             <button
+              type="button"
               onClick={loadFiles}
-              className="flex-shrink-0 h-7 px-2 rounded-md text-[10px] font-minecraft uppercase tracking-wider text-rose-100 hover:bg-rose-500/20 transition-colors"
+              className="flex-shrink-0 h-6 px-2 text-[12px] font-[520] text-err hover:bg-err/10 transition-colors duration-fast"
+              style={{ borderRadius: "var(--r-sm)" }}
             >
               {t("profiles.v3.content.retry")}
             </button>
@@ -342,8 +376,8 @@ export function LogsTabV3({ profile, isActive = true, onRefresh }: LogsTabV3Prop
         )}
 
         {isLoadingList && logFiles.length === 0 && !error ? (
-          <div className="flex items-center justify-center h-full text-white/40 font-minecraft text-sm">
-            <Icon icon="svg-spinners:ring-resize" className="w-4 h-4 mr-2" />
+          <div className="flex items-center justify-center gap-2 h-full text-[12px] text-fg-3">
+            <Loader2 size={14} className="animate-spin" />
             {t("profiles.v3.content.loading")}
           </div>
         ) : logFiles.length === 0 && !isLoadingList ? (
@@ -354,8 +388,8 @@ export function LogsTabV3({ profile, isActive = true, onRefresh }: LogsTabV3Prop
           />
         ) : isLoadingContent && parsedLines.length === 0 ? (
           shouldShowLoading ? (
-            <div className="flex items-center justify-center h-full text-white/40 font-minecraft text-sm animate-in fade-in duration-300">
-              <Icon icon="svg-spinners:ring-resize" className="w-4 h-4 mr-2" />
+            <div className="flex items-center justify-center gap-2 h-full text-[12px] text-fg-3 animate-in fade-in duration-300">
+              <Loader2 size={14} className="animate-spin" />
               {t("profiles.v3.content.loading")}
             </div>
           ) : null
@@ -377,7 +411,7 @@ export function LogsTabV3({ profile, isActive = true, onRefresh }: LogsTabV3Prop
             ref={virtuosoRef}
             data={visibleLines}
             atBottomStateChange={setAtBottom}
-            className="font-mono text-xs select-text px-3"
+            className="font-mono text-[12px] leading-[1.6] select-text custom-scrollbar"
             style={{ flex: 1, minHeight: 0 }}
             itemContent={(_idx, line) => (
               <LogLine line={line} showThreadPrefix={showThreadPrefix} wordWrap={wordWrap} />
@@ -387,14 +421,15 @@ export function LogsTabV3({ profile, isActive = true, onRefresh }: LogsTabV3Prop
           />
         )}
 
-        {/* Jump-to-bottom */}
         {!atBottom && visibleLines.length > 10 && (
           <button
+            type="button"
             onClick={scrollToBottom}
-            className="absolute bottom-4 right-4 h-9 px-3 rounded-full bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/30 text-emerald-100 text-xs font-minecraft uppercase tracking-wider flex items-center gap-1.5 shadow-lg transition-colors animate-in fade-in duration-200"
+            className="cc-pop absolute bottom-4 right-5 h-8 px-3 inline-flex items-center gap-1.5 bg-s3 border border-line-2 text-[12px] font-[520] text-fg hover:bg-s4 shadow-pop transition-colors duration-fast"
+            style={{ borderRadius: "var(--r-md)" }}
             title={t("profiles.v3.logs.jumpToBottom")}
           >
-            <Icon icon="solar:alt-arrow-down-bold" className="w-4 h-4" />
+            <ArrowDown size={13} strokeWidth={1.75} />
             {t("profiles.v3.logs.jumpToBottom")}
           </button>
         )}
@@ -404,13 +439,9 @@ export function LogsTabV3({ profile, isActive = true, onRefresh }: LogsTabV3Prop
 }
 
 // ─── Log Line ───────────────────────────────────────────────────────────────
-// Format matches V2 LogViewerCore exactly:
-//   `[HH:MM:SS] message`                 (default)
-//   `[HH:MM:SS] [thread/LEVEL] message`  (when showThreadPrefix is on)
-// The prefix takes the level colour at opacity-80; the message itself is
-// white/90 except ERROR/WARN which use the level colour. Continuation lines
-// (no timestamp) span the full width. Hover/padding matches V2:
-// `py-0.5 hover:bg-white/5 px-2 -mx-2 rounded`.
+// Like the log windows: time in fg-3, the optional [thread/LEVEL] prefix in fg-4, the message in its
+// muted level colour; errors and warnings get a 2 px bar at the left edge. Continuation lines (no
+// timestamp, e.g. stack traces) keep the colour of the line they belong to via the filter above.
 interface LogLineProps {
   line: ParsedLogLine;
   showThreadPrefix: boolean;
@@ -418,47 +449,39 @@ interface LogLineProps {
 }
 
 const LogLine: React.FC<LogLineProps> = ({ line, showThreadPrefix, wordWrap }) => {
-  const cfg = line.level ? LEVEL_CONFIG[line.level] : null;
   const wrapClass = wordWrap ? "break-words whitespace-pre-wrap" : "whitespace-pre overflow-x-auto";
-  // Message colour: ERROR/WARN stand out; other levels stay in neutral white/90.
-  const isEmphasizedLevel = line.level === "ERROR" || line.level === "WARN";
-  const messageColor = isEmphasizedLevel && cfg ? cfg.text : "text-white/90";
+  const loud = line.level === "ERROR" || line.level === "WARN";
+  const messageClass = line.level ? MESSAGE_CLASS[line.level] : "text-fg-2";
 
   return (
-    <div className="flex flex-nowrap items-start py-0.5 hover:bg-white/5 px-2 -mx-2 rounded">
-      {line.timestamp ? (
-        <>
-          <span className={`pr-2 select-none ${cfg?.text ?? "text-white/70"}`}>
-            <span className="opacity-80">[{line.timestamp}]</span>
-            {showThreadPrefix && line.thread && (
-              <span className="opacity-80 ml-1">
-                [{line.thread}/{line.level ?? ""}]
-              </span>
-            )}
-          </span>
-          <span className={`flex-1 min-w-0 ${wrapClass} ${messageColor}`}>{line.text}</span>
-        </>
-      ) : (
-        <span className={`flex-1 min-w-0 ${wrapClass} ${messageColor}`}>{line.text}</span>
+    <div className="relative flex flex-nowrap items-start px-5 hover:bg-s1">
+      {loud && (
+        <span
+          aria-hidden
+          className={cn("absolute left-0 top-0 bottom-0 w-[2px]", line.level === "ERROR" ? "bg-err/70" : "bg-warn/70")}
+        />
       )}
+      {line.timestamp && (
+        <span className="flex-shrink-0 select-none pr-3 text-fg-3">
+          {line.timestamp}
+          {showThreadPrefix && line.thread && (
+            <span className="ml-2 text-fg-4">
+              [{line.thread}/<span className={loud ? messageClass : undefined}>{line.level ?? ""}</span>]
+            </span>
+          )}
+        </span>
+      )}
+      <span className={cn("flex-1 min-w-0", wrapClass, messageClass)}>{line.text}</span>
     </div>
   );
 };
 
 // ─── Settings Toggle ────────────────────────────────────────────────────────
-const SettingsToggle: React.FC<{ label: string; checked: boolean; onChange: () => void; accent: string }> = ({
-  label, checked, onChange, accent,
+const SettingsToggle: React.FC<{ label: string; checked: boolean; onChange: () => void }> = ({
+  label, checked, onChange,
 }) => (
-  <button
-    onClick={onChange}
-    className="w-full flex items-center justify-between gap-3 px-3 py-2 text-xs font-minecraft text-white/80 hover:text-white hover:bg-white/5 transition-colors"
-  >
+  <div className="w-full flex items-center justify-between gap-3 h-8 px-2 text-[13px] text-fg-2">
     <span>{label}</span>
-    <div
-      style={checked ? { backgroundColor: accent } : undefined}
-      className={`relative w-8 h-4 rounded-full transition-colors ${checked ? "" : "bg-white/10"}`}
-    >
-      <div className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform ${checked ? "translate-x-4" : ""}`} />
-    </div>
-  </button>
+    <ToggleSwitch size="sm" checked={checked} onChange={() => onChange()} />
+  </div>
 );

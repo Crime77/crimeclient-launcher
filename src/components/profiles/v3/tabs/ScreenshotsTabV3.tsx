@@ -5,10 +5,11 @@
  * Ersetzt V2 ScreenshotsTab. Reused V2 ProfileScreenshotModal unveraendert.
  */
 
-import { Trash2 } from "lucide-react";
+import {
+  AlertTriangle, ArrowUpDown, Check, ChevronDown, Image as ImageIcon, ImageOff, Loader2, RefreshCw, Trash2,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
-import { Icon } from "@iconify/react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-hot-toast";
 import { invoke } from "@tauri-apps/api/core";
@@ -162,7 +163,7 @@ export function ScreenshotsTabV3({ profile, isActive = true }: ScreenshotsTabV3P
         onConfirm={doDelete}
         isDeleting={isBatchDeleting}
         title={t("profiles.v3.screenshots.batchDeleteTitle")}
-        message={<p className="text-white/80 font-minecraft">{t("profiles.v3.screenshots.batchDeleteConfirm", { count: paths.length })}</p>}
+        message={<p className="text-[13px] text-fg-2 leading-[1.5]">{t("profiles.v3.screenshots.batchDeleteConfirm", { count: paths.length })}</p>}
       />
     ));
   }, [selectedPaths, loadData, showModal, hideModal, isBatchDeleting, t]);
@@ -190,15 +191,16 @@ export function ScreenshotsTabV3({ profile, isActive = true }: ScreenshotsTabV3P
   return (
     <div className="flex flex-col min-h-0 flex-1 relative">
       {/* ── Sticky Toolbar ─────────────────────────────────────────────── */}
-      <div className="flex items-center gap-2 px-5 h-12 border-b border-white/5 flex-shrink-0 bg-black/20 sticky top-0 z-10">
+      <div className="flex items-center gap-2 px-5 h-12 border-b border-line flex-shrink-0">
         <div className="relative">
           <button
             onClick={() => setSortMenuOpen(v => !v)}
-            className="h-8 px-2.5 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-minecraft text-white/70 flex items-center gap-1.5"
+            className={`h-8 px-2.5 flex items-center gap-1.5 border border-line text-[12px] text-fg-2 hover:text-fg hover:border-line-2 transition-colors duration-fast ${sortMenuOpen ? "bg-s3" : "bg-s2"}`}
+            style={{ borderRadius: "var(--r-md)" }}
           >
-            <Icon icon="solar:sort-vertical-bold" className="w-3.5 h-3.5" />
+            <ArrowUpDown size={13} strokeWidth={1.75} className="text-fg-3" />
             {activeSortLabel}
-            <Icon icon="solar:alt-arrow-down-linear" className="w-3 h-3 opacity-60" />
+            <ChevronDown size={12} strokeWidth={1.75} className="text-fg-4" />
           </button>
           <ThemedDropdown open={sortMenuOpen} onClose={() => setSortMenuOpen(false)} width="w-48">
             {SORT_OPTIONS.map(opt => (
@@ -216,29 +218,35 @@ export function ScreenshotsTabV3({ profile, isActive = true }: ScreenshotsTabV3P
 
         <div className="flex-1" />
 
-        <span className="text-[10px] text-white/35 font-minecraft tabular-nums">
+        <span className="cc-num text-[11px] text-fg-4">
           {t("profiles.v3.screenshots.count", { count: screenshots.length })}
         </span>
 
         <button
           onClick={loadData}
           disabled={loading}
-          className="h-8 px-2.5 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white disabled:opacity-50 flex items-center transition-colors"
+          className="w-8 h-8 flex items-center justify-center text-fg-3 hover:text-fg hover:bg-s2 disabled:opacity-40 transition-colors duration-fast"
+          style={{ borderRadius: "var(--r-md)" }}
           title={t("profiles.v3.toolbar.refresh")}
+          aria-label={t("profiles.v3.toolbar.refresh")}
         >
-          <Icon icon="solar:refresh-bold" className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+          <RefreshCw size={15} strokeWidth={1.75} className={loading ? "animate-spin" : undefined} />
         </button>
       </div>
 
       {/* ── Content ────────────────────────────────────────────────────── */}
-      <div className={`flex-1 min-h-0 overflow-y-auto p-5 ${selectedPaths.size > 0 ? "pb-24" : ""}`}>
+      <div className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar p-5 ${selectedPaths.size > 0 ? "pb-24" : ""}`}>
         {error && (
-          <div className="mb-4 flex items-start gap-3 p-3 rounded-lg border border-rose-400/30 bg-rose-500/10">
-            <Icon icon="solar:danger-triangle-bold" className="w-5 h-5 text-rose-300 flex-shrink-0 mt-0.5" />
-            <div className="flex-1 min-w-0 text-xs font-minecraft text-rose-100 break-words">{error}</div>
+          <div
+            className="mb-4 flex items-start gap-2.5 px-3 py-2 border border-err/30 bg-err/10"
+            style={{ borderRadius: "var(--r-md)" }}
+          >
+            <AlertTriangle size={14} strokeWidth={1.75} className="text-err flex-shrink-0 mt-px" />
+            <div className="flex-1 min-w-0 text-[12px] text-fg-2 break-words leading-[1.5]">{error}</div>
             <button
               onClick={loadData}
-              className="flex-shrink-0 h-7 px-2 rounded-md text-[10px] font-minecraft uppercase tracking-wider text-rose-100 hover:bg-rose-500/20 transition-colors"
+              className="flex-shrink-0 h-6 px-2 text-[12px] font-[520] text-err hover:bg-err/10 transition-colors duration-fast"
+              style={{ borderRadius: "var(--r-sm)" }}
             >
               {t("profiles.v3.content.retry")}
             </button>
@@ -247,8 +255,8 @@ export function ScreenshotsTabV3({ profile, isActive = true }: ScreenshotsTabV3P
 
         {loading && screenshots.length === 0 ? (
           shouldShowLoading ? (
-            <div className="flex items-center justify-center h-40 text-white/40 font-minecraft text-sm animate-in fade-in duration-300">
-              <Icon icon="svg-spinners:ring-resize" className="w-4 h-4 mr-2" />
+            <div className="flex items-center justify-center gap-2 h-40 text-[12px] text-fg-3 animate-in fade-in duration-300">
+              <Loader2 size={14} className="animate-spin" />
               {t("profiles.v3.content.loading")}
             </div>
           ) : (
@@ -354,15 +362,16 @@ const ScreenshotTile: React.FC<ScreenshotTileProps> = ({
         if (selectMode) { e.stopPropagation(); onToggleSelection(); return; }
         onOpen();
       }}
-      style={isSelected ? { borderColor: `${accentColor}aa`, boxShadow: `0 0 0 1px ${accentColor}aa` } : undefined}
-      className={`group relative aspect-video rounded-md overflow-hidden bg-white/5 border transition-all cursor-pointer ${
-        isSelected ? "" : "border-white/10 hover:border-white/30"
+      // selected = a light 2 px frame (like the checked checkbox), no accent glow
+      className={`group relative aspect-video overflow-hidden bg-s2 border transition-colors duration-fast cursor-pointer ${
+        isSelected ? "border-fg/80 outline outline-1 outline-fg/80" : "border-line hover:border-line-3"
       }`}
+      style={{ borderRadius: "var(--r-md)" }}
     >
       {/* Preview / Placeholder / Error */}
       {previewError ? (
-        <div className="w-full h-full flex items-center justify-center text-white/25">
-          <Icon icon="solar:gallery-remove-bold" className="w-6 h-6" />
+        <div className="w-full h-full flex items-center justify-center text-fg-4">
+          <ImageOff size={20} strokeWidth={1.5} />
         </div>
       ) : previewUrl ? (
         <img
@@ -374,8 +383,8 @@ const ScreenshotTile: React.FC<ScreenshotTileProps> = ({
           style={{ imageRendering: "auto" }}
         />
       ) : (
-        <div className="w-full h-full flex items-center justify-center text-white/20">
-          <Icon icon="solar:gallery-bold-duotone" className="w-7 h-7" />
+        <div className="w-full h-full flex items-center justify-center text-fg-4">
+          <ImageIcon size={20} strokeWidth={1.5} />
         </div>
       )}
 
@@ -397,18 +406,18 @@ const ScreenshotTile: React.FC<ScreenshotTileProps> = ({
         title={isSelected ? t("profiles.v3.tile.deselect") : t("profiles.v3.tile.select")}
       >
         <div
-          style={isSelected ? { backgroundColor: accentColor, borderColor: accentColor } : undefined}
-          className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-            isSelected ? "" : "bg-black/50 border-white/60 hover:border-white"
+          className={`w-5 h-5 border flex items-center justify-center transition-colors duration-fast ${
+            isSelected ? "bg-fg border-fg" : "bg-black/55 border-white/60 hover:border-white"
           }`}
+          style={{ borderRadius: "var(--r-sm)" }}
         >
-          {isSelected && <Icon icon="solar:check-read-linear" className="w-3.5 h-3.5 text-black" />}
+          {isSelected && <Check size={13} strokeWidth={2.5} className="text-bg" />}
         </div>
       </button>
 
       {/* Date-Badge unten links — nur bei Hover sichtbar */}
       <div className="absolute bottom-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
-        <span className="text-[10px] text-white font-minecraft bg-black/60 backdrop-blur-sm px-1.5 py-0.5 rounded">
+        <span className="cc-num text-[10.5px] text-fg bg-black/70 px-1.5 py-0.5" style={{ borderRadius: "var(--r-sm)" }}>
           {formatRelativeTime(screenshot.modified)}
         </span>
       </div>

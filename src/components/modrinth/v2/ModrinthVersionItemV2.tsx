@@ -124,33 +124,6 @@ export const ModrinthVersionItemV2 = React.memo<ModrinthVersionItemV2Props>(
       onMouseLeave();
     };
 
-    useEffect(() => {
-      // GSAP animation is removed as the style will be more static like GenericList
-      // if (cardRef.current) {
-      //   if (isFirstRender) return;
-
-      //   if (isCardHovered) { // isCardHovered is also effectively removed for this
-      //     gsap.to(cardRef.current, {
-      //       backgroundColor: `${accentColor.value}15`,
-      //       borderColor: `${accentColor.value}60`,
-      //       y: -3,
-      //       boxShadow: `0 14px 34px -18px rgba(0,0,0,0.85), inset 0 1px 0 ${accentColor.value}30, inset 0 0 0 1px ${accentColor.value}15`,
-      //       duration: 0.2,
-      //       ease: "power2.out",
-      //     });
-      //   } else {
-      //     gsap.to(cardRef.current, {
-      //       backgroundColor: `${accentColor.value}08`,
-      //       borderColor: `${accentColor.value}30`,
-      //       y: 0,
-      //       boxShadow: `0 2px 0 rgba(0,0,0,0.1), 0 3px 5px rgba(0,0,0,0.1)`,
-      //       duration: 0.2,
-      //       ease: "power2.out",
-      //     });
-      //   }
-      // }
-    }, [isCardHovered, accentColor, isFirstRender]);
-
     const handleButtonClick = () => {
     console.log('Button clicked, localIsInstalling:', localIsInstalling, 'externalIsInstalling:', externalIsInstalling);
     if (isInstalling) return;
@@ -294,6 +267,17 @@ export const ModrinthVersionItemV2 = React.memo<ModrinthVersionItemV2Props>(
             <span className="cc-num text-[11px] text-fg-3 truncate" title={version.version_number}>
               {version.version_number}
             </span>
+            {/* below lg the type column is gone: only beta and alpha say so here */}
+            {version.release_type !== "release" && (
+              <span
+                className={cn(
+                  "lg:hidden cc-num text-[11px] flex-shrink-0",
+                  version.release_type === "beta" ? "text-warn" : "text-err",
+                )}
+              >
+                {version.release_type}
+              </span>
+            )}
             {showInstallBorder && versionStatus?.is_installed && versionStatus?.is_enabled !== false && (
               <span className="inline-flex items-center gap-1 text-[11px] text-ok flex-shrink-0">
                 <Check size={11} strokeWidth={2.25} />
@@ -314,7 +298,7 @@ export const ModrinthVersionItemV2 = React.memo<ModrinthVersionItemV2Props>(
         {/* Release type */}
         <span
           className={cn(
-            "cc-num text-[11px]",
+            "hidden lg:block cc-num text-[11px]",
             version.release_type === "beta" ? "text-warn" : version.release_type === "alpha" ? "text-err" : "text-fg-3",
           )}
         >
@@ -396,9 +380,13 @@ export const ModrinthVersionItemV2 = React.memo<ModrinthVersionItemV2Props>(
   },
 );
 
-/** Shared column template of the version table (search rows and detail page). */
+/**
+ * Shared column template of the version table (search rows and detail page). Below lg (the 1000 px
+ * window) the type column goes and the action column narrows to what Install or Active + delete need, so
+ * the version name and the game versions keep room to be read. Fixed widths, so the header lines up.
+ */
 export const VERSION_GRID =
-  "grid grid-cols-[minmax(0,1.5fr)_52px_minmax(0,1fr)_76px_132px] gap-x-3 items-center";
+  "grid grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_68px_120px] lg:grid-cols-[minmax(0,1.5fr)_52px_minmax(0,1fr)_76px_132px] gap-x-3 items-center";
 
 /** Column heads above the version rows. */
 export function ModrinthVersionTableHeader({ className }: { className?: string }) {
@@ -406,7 +394,7 @@ export function ModrinthVersionTableHeader({ className }: { className?: string }
   return (
     <div className={cn(VERSION_GRID, "h-7 px-2 border-b border-line", className)}>
       <span className="cc-eyebrow">{t('mods.versions.col.version')}</span>
-      <span className="cc-eyebrow">{t('mod_detail.type')}</span>
+      <span className="hidden lg:block cc-eyebrow">{t('mod_detail.type')}</span>
       <span className="cc-eyebrow truncate">{t('mods.versions.col.game')}</span>
       <span className="cc-eyebrow text-right">{t('mods.versions.col.downloads')}</span>
       <span />

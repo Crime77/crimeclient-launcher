@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CrimeNews } from "../news/CrimeNews";
 import { ServerLaunchCard, useHomeServer } from "../launcher/ServerLaunchCard";
@@ -16,6 +16,11 @@ import { LaunchDock } from "../launcher/LaunchDock";
 
 /** Pack id of the CrimeClient standard profile (tools/build_modpack.py in CraftCosmetics). */
 const CRIMECLIENT_PACK = "crimeclient";
+
+/** Height of the PlayerRig box, its scale when the window has room, and the space its nametag takes above it. */
+const RIG_HEIGHT = 450;
+const RIG_SCALE = 0.86;
+const NAMETAG_SPACE = 48;
 
 /** Start page: the home server in one line, greeting and player on the left, news on the right, the launch bar below. */
 export function PlayTab() {
@@ -62,6 +67,21 @@ export function PlayTab() {
   // promo-outline shader settings for the 3D player preview
   const outline = { strength: 4, thickness: 3, sensitivity: 0.1 };
 
+  // The nametag is drawn above the rig box, so the area keeps NAMETAG_SPACE free at the top; on short
+  // windows (1000x640) the rig shrinks to the height that is left instead of running over the greeting.
+  const rigAreaRef = useRef<HTMLDivElement>(null);
+  const [rigScale, setRigScale] = useState(RIG_SCALE);
+  useEffect(() => {
+    const area = rigAreaRef.current;
+    if (!area) return;
+    const observer = new ResizeObserver(([entry]) => {
+      const fit = (entry.contentRect.height - 12) / RIG_HEIGHT;
+      setRigScale(Math.max(0.5, Math.min(RIG_SCALE, fit)));
+    });
+    observer.observe(area);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div className="flex flex-col h-full">
       <div className="h-12 flex-shrink-0 flex items-center px-6 border-b border-line">
@@ -97,9 +117,14 @@ export function PlayTab() {
             </label>
           </div>
 
-          <div className="relative z-0 flex-1 min-h-0 flex items-center justify-center">
-            <div className="scale-[0.86] origin-center -mt-10">
-              <PlayerRig playerName={playerName} outline={outline} />
+          <div className="relative z-0 flex-1 min-h-0 flex flex-col" style={{ paddingTop: NAMETAG_SPACE }}>
+            <div ref={rigAreaRef} className="flex-1 min-h-0 flex items-center justify-center">
+              <div
+                className="origin-center flex-shrink-0"
+                style={{ transform: `scale(${rigScale})`, height: RIG_HEIGHT }}
+              >
+                <PlayerRig playerName={playerName} outline={outline} />
+              </div>
             </div>
           </div>
 
