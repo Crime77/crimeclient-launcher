@@ -971,16 +971,15 @@ impl ProfileManager {
             return Err(AppError::ProfileNotFound(id)); // Return error if profile doesn't exist
         };
 
-        if let Some(profile) = &profile_to_delete {
-            if !profile.sync_pack_ids.is_empty() {
-                if let Err(e) = crate::sync::engine::SyncEngine::detach_all(
-                    id,
-                    crate::sync::model::DetachMode::Drop,
-                )
-                .await
-                {
-                    warn!("Could not detach sync packs from profile {}: {}", id, e);
-                }
+        // always: every profile uses the built-in account pack, whose config link must go before the folder does
+        if profile_to_delete.is_some() {
+            if let Err(e) = crate::sync::engine::SyncEngine::detach_all(
+                id,
+                crate::sync::model::DetachMode::Drop,
+            )
+            .await
+            {
+                warn!("Could not detach sync packs from profile {}: {}", id, e);
             }
         }
 

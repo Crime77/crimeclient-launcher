@@ -21,6 +21,8 @@ impl SyncHandler for FileCopyHandler {
 
         let mut candidates: Vec<(i64, PathBuf)> = Vec::new();
         if let Some(mtime) = modified_millis(&master).await {
+            // the account pack's copy always wins: the profile's file may still be another account's
+            let mtime = if ctx.per_account() { i64::MAX } else { mtime };
             candidates.push((mtime, master.clone()));
         }
         for (_, path) in ctx.subscriber_target_paths() {

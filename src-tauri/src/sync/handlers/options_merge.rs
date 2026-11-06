@@ -53,7 +53,8 @@ impl SyncHandler for OptionsMergeHandler {
         let mut candidates: Vec<(i64, PathBuf)> = Vec::new();
 
         if let Some(mtime) = modified_millis(&master).await {
-            if mtime > own_mtime {
+            // the account pack's copy always wins: the profile's file may still be another account's
+            if mtime > own_mtime || ctx.per_account() {
                 candidates.push((mtime, master.clone()));
             }
         }

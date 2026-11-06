@@ -631,7 +631,15 @@ pub async fn set_profile_sync_mods_excluded(
 pub async fn sync_profile_now(profile_id: Uuid) -> Result<SyncReport, CommandError> {
     let state = State::get().await?;
     let profile = state.profile_manager.get_profile(profile_id).await?;
-    let report = SyncEngine::prepare_for_launch(&profile).await?.report;
+    // with the account the next launch would use
+    let account = state
+        .minecraft_account_manager_v2
+        .get_active_account()
+        .await
+        .ok()
+        .flatten()
+        .map(|c| c.id);
+    let report = SyncEngine::prepare_for_launch(&profile, account).await?.report;
     Ok(report)
 }
 

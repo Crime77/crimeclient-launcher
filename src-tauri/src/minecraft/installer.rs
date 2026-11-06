@@ -395,13 +395,15 @@ pub async fn install_minecraft_version(
     }
     info!("User data import check complete.");
 
+    // the account settings pack brings in the configs of the account this launch plays with
+    let sync_account = credentials.as_ref().map(|c| c.id);
     let sync_result = match timed_step(
         &state,
         &summary,
         EventType::SyncingPacks,
         profile.id,
         "sync packs",
-        || async { crate::sync::engine::SyncEngine::prepare_for_launch(profile).await },
+        || async move { crate::sync::engine::SyncEngine::prepare_for_launch(profile, sync_account).await },
     )
     .await
     {

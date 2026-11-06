@@ -248,10 +248,20 @@ impl SyncPackManager {
         description: Option<String>,
         icon: Option<String>,
     ) -> Result<SyncPack> {
+        self.create_pack_with_id(Uuid::new_v4(), name, description, icon).await
+    }
+
+    /// Like [`Self::create_pack`] with a given id (the built-in account pack has a fixed one).
+    pub async fn create_pack_with_id(
+        &self,
+        id: Uuid,
+        name: String,
+        description: Option<String>,
+        icon: Option<String>,
+    ) -> Result<SyncPack> {
         let pool = self.pool().await?;
         let now = Utc::now();
         let now_ms = now.timestamp_millis();
-        let id = Uuid::new_v4();
 
         let next_order: i64 = sqlx::query("SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM sync_packs")
             .fetch_one(&pool)

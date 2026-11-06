@@ -2,6 +2,7 @@ use crate::error::Result;
 use crate::state::profile_state::Profile;
 use crate::state::state_manager::State;
 use crate::state::sync_pack_state::PACK_LOCK_TIMEOUT;
+use crate::sync::account_pack;
 use crate::sync::context::SyncContext;
 use crate::sync::handlers::{handler_for, SyncHandler};
 use crate::sync::model::{DetachMode, SyncPack, SyncTarget, SyncTargetKind};
@@ -197,6 +198,29 @@ async fn run_handler(
     }
 }
 
+/// The profile's packs plus the built-in account pack, which every profile uses. It comes first, so a pack the
+/// user picked for the same path wins over it.
+fn with_account_pack(ids: &[Uuid]) -> Vec<Uuid> {
+    let mut out = Vec::with_capacity(ids.len() + 1);
+    out.push(account_pack::ACCOUNT_PACK_ID);
+    out.extend(ids.iter().copied().filter(|id| !account_pack::is_account_pack(*id)));
+    out
+}
+
+#[cfg(test)]
+mod account_pack_order {
+    use super::*;
+
+    #[test]
+    fn account_pack_first_and_once() {
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        assert_eq!(with_account_pack(&[]), vec![account_pack::ACCOUNT_PACK_ID]);
+        assert_eq!(with_account_pack(&[a, b]), vec![account_pack::ACCOUNT_PACK_ID, a, b]);
+        assert_eq!(with_account_pack(&[a, account_pack::ACCOUNT_PACK_ID]), vec![account_pack::ACCOUNT_PACK_ID, a]);
+    }
+}
+
 pub struct SyncEngine;
 
 impl SyncEngine {
@@ -284,6 +308,26 @@ impl SyncEngine {
                 continue;
             }
 
+            // the built-in account pack: the account of this launch (or of the last one, for the write back)
+            let account = if account_pack::is_account_pack(pack.id) {
+                let remembered = account_pack::launch_account(profile.id).await;
+                if remembered.is_none() && !matches!(phase, Phase::PreLaunch) {
+                    // never launched through the launcher with it (e.g. a CrimeClient Rust profile): nothing to
+                    // write back or release, and its files must not land in some account's settings
+                    drop(guard);
+                    continue;
+                }
+                let key = remembered.unwrap_or_else(|| account_pack::account_key(None));
+                if matches!(phase, Phase::PreLaunch) {
+                    if let Err(e) = account_pack::seed(&state, &key).await {
+                        warn!("Could not prepare the account settings of '{}': {}", key, e);
+                    }
+                }
+                Some(key)
+            } else {
+                None
+            };
+
             let all = subscribers::of_pack(&state, pack.id).await;
             let instances = subscribers::unique_instances(&all);
             let shared = match phase {
@@ -309,7 +353,8 @@ impl SyncEngine {
                     &plan.linked_dirs,
                     shared,
                     &state,
-                );
+                )
+                .with_account(account.clone());
 
                 let mut target_result = SyncTargetResult {
                     target_path: target.path.clone(),
@@ -356,13 +401,22 @@ impl SyncEngine {
         let profile = state.profile_manager.get_profile(profile_id).await?;
         let ids = match pack_ids {
             Some(ids) => ids.to_vec(),
-            None => profile.sync_pack_ids.clone(),
+            None => with_account_pack(&profile.sync_pack_ids),
         };
         Ok(Self::run(&profile, &ids, phase).await?.report)
     }
 
-    pub async fn prepare_for_launch(profile: &Profile) -> Result<LaunchSyncResult> {
-        let ids = profile.sync_pack_ids.clone();
+    /// Runs the profile's sync packs before a launch with `account` (its Minecraft UUID; `None` offline),
+    /// whose settings the built-in account pack brings into the profile.
+    pub async fn prepare_for_launch(profile: &Profile, account: Option<Uuid>) -> Result<LaunchSyncResult> {
+        let state = State::get().await?;
+        if state.sync_pack_manager.is_available().await && !paths::is_temp_profile_path(&profile.path) {
+            match account_pack::ensure(&state).await {
+                Ok(_) => account_pack::remember_launch(profile.id, &account_pack::account_key(account)).await,
+                Err(e) => warn!("Could not set up the account settings pack: {}", e),
+            }
+        }
+        let ids = with_account_pack(&profile.sync_pack_ids);
         let result = Self::run(profile, &ids, Phase::PreLaunch).await?;
         if !result.report.is_empty() {
             info!(
