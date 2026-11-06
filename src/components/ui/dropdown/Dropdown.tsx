@@ -5,12 +5,7 @@ import { forwardRef, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "../../../lib/utils";
 import { useThemeStore } from "../../../store/useThemeStore";
-import { 
-  getVariantColors,
-  getBorderRadiusClass,
-  createRadiusStyle,
-  getAccessibilityProps
-} from "../design-system";
+import { getAccessibilityProps } from "../design-system";
 
 interface DropdownProps {
   isOpen: boolean;
@@ -50,14 +45,11 @@ export const Dropdown = forwardRef<HTMLDivElement, DropdownProps>(
     const [animationState, setAnimationState] = useState<
       "entering" | "entered" | "exiting" | "exited"
     >("exited");
-    const accentColor = useThemeStore((state) => state.accentColor);
     const borderRadius = useThemeStore((state) => state.borderRadius);
     const previousIsOpen = useRef(isOpen);
     const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const [dropdownHeight, setDropdownHeight] = useState(300);
 
-    const colors = getVariantColors("default", accentColor);
-    const radiusClass = getBorderRadiusClass(borderRadius);
     const accessibilityProps = getAccessibilityProps({
       label: ariaLabel
     });
@@ -226,27 +218,27 @@ export const Dropdown = forwardRef<HTMLDivElement, DropdownProps>(
       switch (position) {
         case "bottom":
           return {
-            entering: "opacity-0 translate-y-[-10px]",
+            entering: "opacity-0 translate-y-[-4px]",
             entered: "opacity-100 translate-y-0",
-            exiting: "opacity-0 translate-y-[-10px]",
+            exiting: "opacity-0 translate-y-[-4px]",
           };
         case "top":
           return {
-            entering: "opacity-0 translate-y-[10px]",
+            entering: "opacity-0 translate-y-[4px]",
             entered: "opacity-100 translate-y-0",
-            exiting: "opacity-0 translate-y-[10px]",
+            exiting: "opacity-0 translate-y-[4px]",
           };
         case "left":
           return {
-            entering: "opacity-0 translate-x-[10px]",
+            entering: "opacity-0 translate-x-[4px]",
             entered: "opacity-100 translate-x-0",
-            exiting: "opacity-0 translate-x-[10px]",
+            exiting: "opacity-0 translate-x-[4px]",
           };
         case "right":
           return {
-            entering: "opacity-0 translate-x-[-10px]",
+            entering: "opacity-0 translate-x-[-4px]",
             entered: "opacity-100 translate-x-0",
-            exiting: "opacity-0 translate-x-[-10px]",
+            exiting: "opacity-0 translate-x-[-4px]",
           };
       }
     };
@@ -265,10 +257,10 @@ export const Dropdown = forwardRef<HTMLDivElement, DropdownProps>(
         }}
         role={role}
         className={cn(
-          "fixed font-smallcaps backdrop-blur-md z-[1001] overflow-hidden",
-          radiusClass,
-          "text-white transition-all duration-200",
-          "border shadow-[0_14px_34px_-18px_rgba(0,0,0,0.85)]",
+          // "Werkzeug" popover: s2, a hairline, r-md, the floating shadow; short fade + 4 px slide
+          "fixed font-smallcaps z-[1001] overflow-hidden text-fg",
+          "bg-s2 border border-line-2 shadow-pop",
+          "transition-[opacity,transform] duration-med ease-out",
           animationState === "entering" && animationClasses.entering,
           animationState === "entered" && animationClasses.entered,
           animationState === "exiting" && animationClasses.exiting,
@@ -278,16 +270,11 @@ export const Dropdown = forwardRef<HTMLDivElement, DropdownProps>(
           top: `${dropdownTop}px`,
           left: `${dropdownLeft}px`,
           width: `${width}px`,
-          backgroundColor: `${colors.main}15`,
-          borderColor: `${colors.main}40`,
-          borderBottomColor: colors.dark,
-          boxShadow: `0 14px 34px -18px rgba(0,0,0,0.85), inset 0 1px 0 ${colors.light}20, inset 0 0 0 1px ${colors.main}10`,
-          ...createRadiusStyle(borderRadius),
+          borderRadius: borderRadius === 0 ? 0 : "var(--r-md)",
         }}
         {...accessibilityProps}
       >
-        <div className="absolute inset-0 opacity-20 bg-gradient-radial from-white/20 via-transparent to-transparent pointer-events-none" />
-        <div className="relative z-10">{children}</div>
+        <div className="relative">{children}</div>
       </div>,
       document.body,
     );

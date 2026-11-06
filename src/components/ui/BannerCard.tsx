@@ -1,10 +1,9 @@
 import type { CSSProperties, ReactNode } from "react";
-import { Icon } from "@iconify/react";
-import { useThemeStore } from "../../store/useThemeStore";
+import { X } from "lucide-react";
 
 interface BannerCardProps {
   children: ReactNode;
-  /** Accent color for the bottom border / inner-glow. Defaults to theme accent. */
+  /** Colour of the 2 px stripe on the left (a state colour). Without it the banner is plain. */
   color?: string;
   /** When set, renders a close button in the top-right corner. */
   onDismiss?: () => void;
@@ -14,9 +13,9 @@ interface BannerCardProps {
 }
 
 /**
- * Shared launcher banner shell: translucent blurred card with the chunky
- * minecraft drop-shadow and an accent bottom-border. Used by the notice,
- * analytics and any future corner banners so the styling lives in one place.
+ * Shared launcher banner shell: a flat raised panel (s2, a hairline, the floating shadow) with an
+ * optional state stripe on the left. Used by the notice, analytics and any future corner banners
+ * so the styling lives in one place.
  */
 export function BannerCard({
   children,
@@ -26,29 +25,23 @@ export function BannerCard({
   className,
   style,
 }: BannerCardProps) {
-  const accentColor = useThemeStore((s) => s.accentColor);
-  const c = color ?? accentColor.value;
-
   return (
     <div
-      className={`relative rounded-lg p-4 cursor-default transition-all duration-200 ${className ?? ""}`}
+      className={`relative p-4 cursor-default bg-s2 border border-line-2 shadow-pop ${className ?? ""}`}
       style={{
-        backgroundColor: "rgba(0,0,0,0.2)",
-        backdropFilter: "blur(12px)",
-        WebkitBackdropFilter: "blur(12px)",
-        border: "1px solid rgba(255,255,255,0.1)",
-        borderBottom: `2px solid ${c}80`,
-        boxShadow: `0 4px 0 rgba(0,0,0,0.3), 0 6px 12px rgba(0,0,0,0.35), inset 0 1px 0 ${c}1A`,
+        borderRadius: "var(--r-lg)",
+        ...(color ? { borderLeftWidth: 2, borderLeftColor: color } : {}),
         ...style,
       }}
     >
       {onDismiss && (
         <button
+          type="button"
           onClick={onDismiss}
-          className="absolute top-3 right-3 p-1 text-gray-400 hover:text-white transition-colors"
+          className="cc-icon-btn absolute top-2.5 right-2.5 w-6 h-6"
           title={dismissTitle}
         >
-          <Icon icon="solar:close-circle-bold" className="w-5 h-5" />
+          <X size={14} strokeWidth={1.75} />
         </button>
       )}
       {children}

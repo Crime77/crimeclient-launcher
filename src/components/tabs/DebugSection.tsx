@@ -1,5 +1,18 @@
-import { useState, useEffect } from "react";
-import { Icon } from "@iconify/react";
+import { useState, useEffect, type ReactNode } from "react";
+import {
+  AlertTriangle,
+  Archive,
+  Check,
+  Copy,
+  FileText,
+  List,
+  Loader2,
+  Play,
+  RefreshCw,
+  RotateCcw,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { toast } from "react-hot-toast";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
@@ -29,9 +42,17 @@ import { useContentCacheStore } from "../../store/content-cache-store";
 import { SettingsSection } from "../ui/settings/SettingsSection";
 import { SettingRow } from "../ui/settings/SettingRow";
 import { Select } from "../ui/Select";
+import { Button } from "../ui/buttons/Button";
+import { cn } from "../../lib/utils";
 import { useSettingsConfig } from "./settings/settings-context";
 import { LOG_LEVELS, type LogLevel } from "../../types/launcherConfig";
 import { logError } from '../../utils/logging-utils';
+
+/** a bordered list of dense rows */
+const LIST = "border border-line overflow-hidden";
+const LIST_STYLE = { borderRadius: "var(--r-md)" } as const;
+/** the small square row actions that show on hover */
+const ROW_ACTION = "cc-icon-btn w-7 h-7 disabled:opacity-40";
 
 export type DebugTab = "launcher" | "minecraft" | "process" | "crashes" | "permissions" | "testing";
 
@@ -68,12 +89,11 @@ const formatDate = (timestamp: number) => {
 interface LogFileSectionProps {
   id: DebugTab;
   title: string;
-  icon: string;
   crash?: boolean;
   loader: () => Promise<FileInfo[]>;
 }
 
-function LogFileSection({ id, title, icon, crash, loader }: LogFileSectionProps) {
+function LogFileSection({ id, title, crash, loader }: LogFileSectionProps) {
   const { t } = useTranslation();
   const [files, setFiles] = useState<FileInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -124,52 +144,57 @@ function LogFileSection({ id, title, icon, crash, loader }: LogFileSectionProps)
   }
 
   return (
-    <SettingsSection id={`settings-section-${id}`} title={title} icon={icon}>
-      <div className="py-2">
-        <div className="bg-black/20 rounded-lg border border-white/10 overflow-hidden">
+    <SettingsSection id={`settings-section-${id}`} title={title}>
+      <div className="pt-2 pb-1">
+        <div className={LIST} style={LIST_STYLE}>
           {loading ? (
-            <div className="p-8 text-center text-white/50">
-              <Icon icon="svg-spinners:ring-resize" className="w-6 h-6 mx-auto mb-2" />
+            <div className="flex items-center gap-2 px-3 h-10 text-[13px] text-fg-3">
+              <Loader2 size={14} strokeWidth={1.75} className="animate-spin" />
               {t("common.loading")}
             </div>
           ) : files.length === 0 ? (
-            <div className="p-8 text-center text-white/50 font-minecraft">{t("debug.no_files")}</div>
+            <div className="px-3 h-10 flex items-center text-[13px] text-fg-3">{t("debug.no_files")}</div>
           ) : (
-            <div className="divide-y divide-white/10">
+            <div className="divide-y divide-line max-h-[320px] overflow-y-auto custom-scrollbar">
               {files.map((file, i) => (
-                <div key={i} className="p-3 hover:bg-white/5 flex items-center gap-4">
-                  <Icon
-                    icon={crash ? "solar:danger-triangle-bold" : "solar:document-text-bold"}
-                    className={`w-5 h-5 flex-shrink-0 ${crash ? "text-red-400" : "text-white/60"}`}
-                  />
+                <div key={i} className="group flex items-center gap-3 px-3 py-2 hover:bg-s2 transition-colors duration-fast">
+                  {crash ? (
+                    <AlertTriangle size={14} strokeWidth={1.75} className="flex-shrink-0 text-err" />
+                  ) : (
+                    <FileText size={14} strokeWidth={1.75} className="flex-shrink-0 text-fg-3" />
+                  )}
                   <div className="flex-1 min-w-0">
-                    <div className="text-white font-minecraft truncate">{file.name}</div>
-                    <div className="text-xs text-white/40 font-sans truncate">{file.path}</div>
+                    <div className="text-[13px] text-fg truncate">{file.name}</div>
+                    <div className="font-mono text-[11px] text-fg-3 truncate" title={file.path}>{file.path}</div>
                   </div>
-                  <div className="text-sm text-white/50 font-sans whitespace-nowrap">
+                  <div className="font-mono text-xs text-fg-3 whitespace-nowrap">
                     {formatSize(file.size)}
                   </div>
-                  <div className="text-sm text-white/50 font-sans whitespace-nowrap hidden lg:block">
+                  <div className="font-mono text-[11px] text-fg-4 whitespace-nowrap hidden lg:block">
                     {formatDate(file.modified)}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-fast">
                     <button
+                      type="button"
                       onClick={() => handleCopyContent(file)}
-                      className="p-2 rounded-md bg-white/10 hover:bg-white/20 transition-colors"
+                      className={ROW_ACTION}
                       title={t("debug.copy_content")}
+                      aria-label={t("debug.copy_content")}
                     >
-                      <Icon icon="solar:copy-bold" className="w-4 h-4 text-white/70" />
+                      <Copy size={14} strokeWidth={1.75} />
                     </button>
                     <button
+                      type="button"
                       onClick={() => handleUpload(file)}
                       disabled={uploadingFile === file.path}
-                      className="p-2 rounded-md bg-white/10 hover:bg-white/20 transition-colors disabled:opacity-50"
+                      className={ROW_ACTION}
                       title={t("debug.upload_mclogs")}
+                      aria-label={t("debug.upload_mclogs")}
                     >
                       {uploadingFile === file.path ? (
-                        <Icon icon="svg-spinners:ring-resize" className="w-4 h-4 text-white/70" />
+                        <Loader2 size={14} strokeWidth={1.75} className="animate-spin" />
                       ) : (
-                        <Icon icon="solar:upload-bold" className="w-4 h-4 text-white/70" />
+                        <Upload size={14} strokeWidth={1.75} />
                       )}
                     </button>
                   </div>
@@ -208,10 +233,10 @@ export function DebugSection() {
   }
 
   return (
-    <div className="space-y-6">
-      <SettingsSection id="settings-section-log-level" title={t("debug.log_level.title")} icon="solar:tuning-2-bold">
+    <div className="space-y-8">
+      <SettingsSection id="settings-section-log-level" title={t("debug.log_level.title")}>
         <SettingRow label={t("debug.log_level.label")} description={t("debug.log_level.tooltip")} disabled={saving}>
-          <div className="w-40">
+          <div className="w-44">
             <Select
               value={tempConfig?.log_level ?? "debug"}
               onChange={(value) => tempConfig && setTempConfig({ ...tempConfig, log_level: value as LogLevel })}
@@ -223,25 +248,21 @@ export function DebugSection() {
           </div>
         </SettingRow>
       </SettingsSection>
-      <LogFileSection id="launcher" title={t("debug.tabs.launcher")} icon="solar:document-text-bold" loader={listLauncherLogs} />
-      <LogFileSection id="minecraft" title={t("debug.tabs.minecraft")} icon="solar:document-text-bold" loader={listAllMcLogs} />
-      <LogFileSection id="process" title={t("debug.tabs.process")} icon="solar:document-text-bold" loader={listProcessLogs} />
-      <LogFileSection id="crashes" title={t("debug.tabs.crashes")} icon="solar:danger-triangle-bold" crash loader={listCrashReports} />
+      <LogFileSection id="launcher" title={t("debug.tabs.launcher")} loader={listLauncherLogs} />
+      <LogFileSection id="minecraft" title={t("debug.tabs.minecraft")} loader={listAllMcLogs} />
+      <LogFileSection id="process" title={t("debug.tabs.process")} loader={listProcessLogs} />
+      <LogFileSection id="crashes" title={t("debug.tabs.crashes")} crash loader={listCrashReports} />
 
-      <SettingsSection id="settings-section-permissions" title={t("debug.permissions.tab")} icon="solar:shield-keyhole-bold">
-        <div className="py-2">
-          <PermissionsList
-            permissions={permissions}
-            refreshing={refreshingPerms}
-            onRefresh={handleRefreshPermissions}
-          />
-        </div>
+      <SettingsSection id="settings-section-permissions" title={t("debug.permissions.tab")}>
+        <PermissionsList
+          permissions={permissions}
+          refreshing={refreshingPerms}
+          onRefresh={handleRefreshPermissions}
+        />
       </SettingsSection>
 
-      <SettingsSection id="settings-section-testing" title={t("debug.tabs.testing")} icon="solar:test-tube-bold">
-        <div className="py-2">
-          <TestingPanel />
-        </div>
+      <SettingsSection id="settings-section-testing" title={t("debug.tabs.testing")}>
+        <TestingPanel />
       </SettingsSection>
     </div>
   );
@@ -377,181 +398,123 @@ function TestingPanel() {
     setClearingCache(false);
   }
 
+  const spin = <Loader2 size={14} strokeWidth={1.75} className="animate-spin" />;
+
   return (
-    <div className="space-y-3">
-      <div className="bg-black/20 rounded-lg border border-white/10 px-4 py-3 flex items-center gap-3">
-        <Icon icon="solar:database-bold" className="w-5 h-5 text-amber-300 shrink-0" />
-        <div className="flex-1 min-w-0">
-          <div className="text-white font-minecraft">{t("debug.testing.keepset_title")}</div>
-          <div className="text-xs text-white/40 font-sans truncate">
-            {t("debug.testing.keepset_desc")}
-          </div>
-        </div>
-        <button
+    <div>
+      <SettingRow label={t("debug.testing.keepset_title")} description={t("debug.testing.keepset_desc")}>
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={runExpectedCacheFilenames}
           disabled={loading}
-          className="px-3 py-2 rounded-md bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 font-minecraft text-sm transition-colors disabled:opacity-50 flex items-center gap-2"
           title="Run debug_list_expected_cache_filenames"
+          icon={loading ? spin : <Play size={14} strokeWidth={1.75} />}
         >
-          {loading ? (
-            <Icon icon="svg-spinners:ring-resize" className="w-4 h-4" />
-          ) : (
-            <Icon icon="solar:play-bold" className="w-4 h-4" />
-          )}
           {t("debug.testing.run")}
-        </button>
-      </div>
+        </Button>
+      </SettingRow>
 
       {filenames !== null && (
-        <div className="bg-black/20 rounded-lg border border-white/10 overflow-hidden">
-          <div className="px-4 py-2 text-xs text-white/50 font-sans border-b border-white/10">
-            {t("debug.testing.filenames_count", { count: filenames.length })}
-          </div>
-          {filenames.length === 0 ? (
-            <div className="p-8 text-center text-white/50 font-minecraft">{t("debug.testing.empty")}</div>
-          ) : (
-            <div className="divide-y divide-white/10 max-h-96 overflow-y-auto">
-              {filenames.map((name) => (
-                <div key={name} className="p-2 px-4 hover:bg-white/5 text-white/80 font-mono text-xs truncate">
-                  {name}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <ResultList
+          head={t("debug.testing.filenames_count", { count: filenames.length })}
+          empty={t("debug.testing.empty")}
+          items={filenames}
+        />
       )}
 
-      <div className="bg-black/20 rounded-lg border border-white/10 px-4 py-3 flex items-center gap-3">
-        <Icon icon="solar:trash-bin-trash-bold" className="w-5 h-5 text-red-300 shrink-0" />
-        <div className="flex-1 min-w-0">
-          <div className="text-white font-minecraft">{t("debug.testing.clean_title")}</div>
-          <div className="text-xs text-white/40 font-sans truncate">
-            {t("debug.testing.clean_desc")}
-          </div>
-        </div>
-        <button
+      <SettingRow label={t("debug.testing.clean_title")} description={t("debug.testing.clean_desc")}>
+        <Button
+          variant="destructive"
+          size="sm"
           onClick={runCleanModCache}
           disabled={cleaning}
-          className="px-3 py-2 rounded-md bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-200 font-minecraft text-sm transition-colors disabled:opacity-50 flex items-center gap-2"
           title="Run clean_mod_cache_command"
+          icon={cleaning ? spin : <Trash2 size={14} strokeWidth={1.75} />}
         >
-          {cleaning ? (
-            <Icon icon="svg-spinners:ring-resize" className="w-4 h-4" />
-          ) : (
-            <Icon icon="solar:trash-bin-trash-bold" className="w-4 h-4" />
-          )}
           {t("debug.testing.clean")}
-        </button>
-      </div>
+        </Button>
+      </SettingRow>
 
-      <div className="bg-black/20 rounded-lg border border-white/10 px-4 py-3 flex items-center gap-3">
-        <Icon icon="solar:database-bold" className="w-5 h-5 text-red-300 shrink-0" />
-        <div className="flex-1 min-w-0">
-          <div className="text-white font-minecraft">{t("debug.testing.clear_cache_title")}</div>
-          <div className="text-xs text-white/40 font-sans truncate">
-            {t("debug.testing.clear_cache_desc")}
-          </div>
-        </div>
-        <button
+      <SettingRow label={t("debug.testing.clear_cache_title")} description={t("debug.testing.clear_cache_desc")}>
+        <Button
+          variant="destructive"
+          size="sm"
           onClick={runClearContentCache}
           disabled={clearingCache}
-          className="px-3 py-2 rounded-md bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-200 font-minecraft text-sm transition-colors disabled:opacity-50 flex items-center gap-2"
           title="Run clear_content_cache_command"
+          icon={clearingCache ? spin : <Trash2 size={14} strokeWidth={1.75} />}
         >
-          {clearingCache ? (
-            <Icon icon="svg-spinners:ring-resize" className="w-4 h-4" />
-          ) : (
-            <Icon icon="solar:trash-bin-trash-bold" className="w-4 h-4" />
-          )}
           {t("debug.testing.clear_cache")}
-        </button>
-      </div>
+        </Button>
+      </SettingRow>
 
       {cleanStats !== null && (
-        <div className="bg-black/20 rounded-lg border border-white/10 overflow-hidden">
-          <div className="px-4 py-2 text-xs text-white/50 font-sans border-b border-white/10">
-            {t("debug.testing.stats", {
-              scanned: cleanStats.scanned,
-              deleted: cleanStats.deleted.length,
-              failed: cleanStats.failed.length,
-              mb: (cleanStats.freed_bytes / (1024 * 1024)).toFixed(1),
-            })}
-            {cleanStats.skipped_empty_keepset && t("debug.testing.stats_skipped")}
-          </div>
-          {cleanStats.deleted.length === 0 ? (
-            <div className="p-6 text-center text-white/50 font-minecraft">{t("debug.testing.no_orphans")}</div>
-          ) : (
-            <div className="divide-y divide-white/10 max-h-96 overflow-y-auto">
-              {cleanStats.deleted.map((name) => (
-                <div key={name} className="p-2 px-4 hover:bg-white/5 text-red-200/80 font-mono text-xs truncate">
-                  {name}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <ResultList
+          head={
+            <>
+              {t("debug.testing.stats", {
+                scanned: cleanStats.scanned,
+                deleted: cleanStats.deleted.length,
+                failed: cleanStats.failed.length,
+                mb: (cleanStats.freed_bytes / (1024 * 1024)).toFixed(1),
+              })}
+              {cleanStats.skipped_empty_keepset && t("debug.testing.stats_skipped")}
+            </>
+          }
+          empty={t("debug.testing.no_orphans")}
+          items={cleanStats.deleted}
+          tone="text-err/90"
+        />
       )}
 
-      <div className="bg-black/20 rounded-lg border border-white/10 px-4 py-3 flex items-center gap-3">
-        <Icon icon="solar:history-bold" className="w-5 h-5 text-emerald-300 shrink-0" />
-        <div className="flex-1 min-w-0">
-          <div className="text-white font-minecraft">{t("settings.backups.title")}</div>
-          <div className="text-xs text-white/40 font-sans truncate">
-            {t("settings.backups.description")}
-          </div>
-        </div>
-        <button
+      <SettingRow label={t("settings.backups.title")} description={t("settings.backups.description")}>
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={loadBackups}
           disabled={loadingBackups}
-          className="px-3 py-2 rounded-md bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-200 font-minecraft text-sm transition-colors disabled:opacity-50 flex items-center gap-2"
           title="Run list_profile_backups"
+          icon={loadingBackups ? spin : <List size={14} strokeWidth={1.75} />}
         >
-          {loadingBackups ? (
-            <Icon icon="svg-spinners:ring-resize" className="w-4 h-4" />
-          ) : (
-            <Icon icon="solar:list-bold" className="w-4 h-4" />
-          )}
           {t("settings.backups.load")}
-        </button>
-      </div>
+        </Button>
+      </SettingRow>
 
       {backups !== null && (
-        <div className="bg-black/20 rounded-lg border border-white/10 overflow-hidden">
-          <div className="px-4 py-2 text-xs text-white/50 font-sans border-b border-white/10">
+        <div className={cn(LIST, "mb-3")} style={LIST_STYLE}>
+          <div className="px-3 h-8 flex items-center cc-num text-[11px] text-fg-3 border-b border-line bg-s2">
             {t("settings.backups.count", { count: backups.length })}
           </div>
           {backups.length === 0 ? (
-            <div className="p-8 text-center text-white/50 font-minecraft">
+            <div className="px-3 h-10 flex items-center text-[13px] text-fg-3">
               {t("settings.backups.empty")}
             </div>
           ) : (
-            <div className="divide-y divide-white/10 max-h-96 overflow-y-auto">
+            <div className="divide-y divide-line max-h-96 overflow-y-auto custom-scrollbar">
               {backups.map((b) => (
-                <div key={b.path} className="p-3 px-4 hover:bg-white/5 flex items-center gap-4">
-                  <Icon icon="solar:archive-bold" className="w-5 h-5 text-white/50 shrink-0" />
+                <div key={b.path} className="flex items-center gap-3 px-3 py-2 hover:bg-s2 transition-colors duration-fast">
+                  <Archive size={14} strokeWidth={1.75} className="text-fg-3 shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <div className="text-white font-minecraft truncate">
+                    <div className="cc-num text-[13px] text-fg truncate">
                       {new Date(b.backup_time * 1000).toLocaleString()}
                     </div>
-                    <div className="text-xs text-white/40 font-sans truncate">
+                    <div className="cc-num text-[11px] text-fg-3 truncate">
                       {t("settings.backups.meta", {
                         count: b.profile_count,
                         size: (b.file_size / 1024).toFixed(1),
                       })}
                     </div>
                   </div>
-                  <button
+                  <Button
+                    variant="secondary"
+                    size="xs"
                     onClick={() => handleRestore(b)}
                     disabled={restoringPath !== null}
-                    className="px-3 py-2 rounded-md bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-200 font-minecraft text-sm transition-colors disabled:opacity-50 flex items-center gap-2"
+                    icon={restoringPath === b.path ? spin : <RotateCcw size={13} strokeWidth={1.75} />}
                   >
-                    {restoringPath === b.path ? (
-                      <Icon icon="svg-spinners:ring-resize" className="w-4 h-4" />
-                    ) : (
-                      <Icon icon="solar:restart-bold" className="w-4 h-4" />
-                    )}
                     {t("settings.backups.restore")}
-                  </button>
+                  </Button>
                 </div>
               ))}
             </div>
@@ -560,6 +523,36 @@ function TestingPanel() {
       )}
 
       {confirmDialog}
+    </div>
+  );
+}
+
+/** what a debug command returned: a count line and the names in mono */
+function ResultList({
+  head,
+  empty,
+  items,
+  tone = "text-fg-2",
+}: {
+  head: ReactNode;
+  empty: string;
+  items: string[];
+  tone?: string;
+}) {
+  return (
+    <div className={cn(LIST, "mb-3")} style={LIST_STYLE}>
+      <div className="px-3 h-8 flex items-center cc-num text-[11px] text-fg-3 border-b border-line bg-s2">{head}</div>
+      {items.length === 0 ? (
+        <div className="px-3 h-10 flex items-center text-[13px] text-fg-3">{empty}</div>
+      ) : (
+        <div className="divide-y divide-line max-h-96 overflow-y-auto custom-scrollbar">
+          {items.map((name) => (
+            <div key={name} className={cn("px-3 py-1.5 font-mono text-xs truncate hover:bg-s2", tone)}>
+              {name}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -579,46 +572,37 @@ function PermissionsList({ permissions, refreshing, onRefresh }: PermissionsList
 
 
   return (
-    <div className="space-y-3">
-      <div className="bg-black/20 rounded-lg border border-white/10 px-4 py-3 flex items-center gap-3">
-        <Icon icon="solar:shield-keyhole-bold" className="w-5 h-5 text-white/60 shrink-0" />
-        <div className="flex-1 min-w-0">
-          <div className="text-white font-minecraft">
-            {t('debug.permissions.count', { n: nodes.length })}
-          </div>
-          {lastFetched && (
-            <div className="text-xs text-white/40 font-sans truncate">
-              {t('debug.permissions.last_refreshed', { time: lastFetched })}
-            </div>
-          )}
-        </div>
-        <button
+    <div>
+      <SettingRow
+        label={t('debug.permissions.count', { n: nodes.length })}
+        description={lastFetched ? t('debug.permissions.last_refreshed', { time: lastFetched }) : undefined}
+      >
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={onRefresh}
           disabled={refreshing}
-          className="p-2 rounded-md bg-white/10 hover:bg-white/20 transition-colors disabled:opacity-50"
           title={t('debug.permissions.refresh')}
+          icon={<RefreshCw size={14} strokeWidth={1.75} className={refreshing ? "animate-spin" : ""} />}
         >
-          <Icon
-            icon="solar:refresh-bold"
-            className={`w-4 h-4 text-white/70 ${refreshing ? "animate-spin" : ""}`}
-          />
-        </button>
-      </div>
+          {t('debug.permissions.refresh')}
+        </Button>
+      </SettingRow>
 
-      <div className="bg-black/20 rounded-lg border border-white/10 overflow-hidden">
+      <div className={cn(LIST, "mt-1")} style={LIST_STYLE}>
         {nodes.length === 0 ? (
-          <div className="p-8 text-center text-white/50 font-minecraft">
+          <div className="px-3 h-10 flex items-center text-[13px] text-fg-3">
             {t('debug.permissions.empty')}
           </div>
         ) : (
-          <div className="divide-y divide-white/10">
+          <div className="divide-y divide-line">
             {nodes.map((node) => (
               <div
                 key={node}
-                className="p-3 hover:bg-white/5 flex items-center gap-3"
+                className="px-3 py-1.5 hover:bg-s2 flex items-center gap-2.5"
               >
-                <Icon icon="solar:check-circle-bold" className="w-4 h-4 text-emerald-400/70 shrink-0" />
-                <div className="text-white/80 font-mono text-sm truncate">{node}</div>
+                <Check size={13} strokeWidth={2} className="text-ok shrink-0" />
+                <div className="text-fg-2 font-mono text-xs truncate">{node}</div>
               </div>
             ))}
           </div>

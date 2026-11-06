@@ -6,8 +6,7 @@
  * Fixed 5-option set (vanilla + 4 loaders). Click = commit.
  */
 
-import { Icon } from "@iconify/react";
-import { useThemeStore } from "../../../../store/useThemeStore";
+import { Check } from "lucide-react";
 import type { LoaderKey } from "./useHeroChipEditors";
 import { loaderIconSrc, loaderLabel } from "../../../../lib/loader-icons";
 
@@ -31,25 +30,21 @@ interface LoaderPickerV3Props {
 }
 
 export function LoaderPickerV3({ currentLoader, onSelect }: LoaderPickerV3Props) {
-  const accent = useThemeStore((s) => s.accentColor);
   const normalized = (currentLoader ?? "vanilla").toLowerCase();
 
   return (
-    <div className="py-1">
+    <div>
       {LOADERS.map((l) => {
         const isCurrent = l.key === normalized;
         return (
           <button
+            type="button"
             key={l.key}
             onClick={() => onSelect(l.key)}
-            style={isCurrent ? { backgroundColor: `${accent.value}33` } : undefined}
-            onMouseEnter={(e) => {
-              if (!isCurrent) e.currentTarget.style.backgroundColor = `${accent.value}40`;
-            }}
-            onMouseLeave={(e) => {
-              if (!isCurrent) e.currentTarget.style.backgroundColor = "transparent";
-            }}
-            className="w-full flex items-center gap-2.5 px-3 py-1.5 text-left transition-colors"
+            className={`w-full h-8 flex items-center gap-2.5 px-2 text-left text-[13px] transition-colors duration-fast ${
+              isCurrent ? "bg-s3 text-fg" : "text-fg-2 hover:bg-s3 hover:text-fg"
+            }`}
+            style={{ borderRadius: "var(--r-sm)" }}
           >
             <img
               src={l.icon}
@@ -57,16 +52,8 @@ export function LoaderPickerV3({ currentLoader, onSelect }: LoaderPickerV3Props)
               className="w-4 h-4 flex-shrink-0"
               style={{ imageRendering: l.key === "vanilla" ? "pixelated" : undefined }}
             />
-            <span className={`flex-1 text-xs font-minecraft ${isCurrent ? "text-white" : "text-white/85"}`}>
-              {l.name}
-            </span>
-            {isCurrent && (
-              <Icon
-                icon="solar:check-circle-bold"
-                className="w-3.5 h-3.5 flex-shrink-0"
-                style={{ color: accent.light }}
-              />
-            )}
+            <span className="flex-1">{l.name}</span>
+            {isCurrent && <Check size={14} strokeWidth={2} className="flex-shrink-0 text-fg-2" />}
           </button>
         );
       })}

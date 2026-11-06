@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { Icon } from "@iconify/react";
-import { useThemeStore } from "../../store/useThemeStore";
+import { FolderOpen } from "lucide-react";
 import { handleIconImgLoad } from "../profiles/IconPicker";
 import { BLOCK_ICONS } from "../../data/block-icons";
 
@@ -29,7 +28,6 @@ export function SyncPackIcon({
   size = "md",
   className = "",
 }: SyncPackIconProps) {
-  const accentColor = useThemeStore((state) => state.accentColor);
   const [failed, setFailed] = useState(false);
 
   const src = icon
@@ -42,25 +40,17 @@ export function SyncPackIcon({
 
   const box =
     size === "xs"
-      ? "h-5 w-5 rounded"
+      ? "h-5 w-5 rounded-sm"
       : size === "sm"
-        ? "h-8 w-8 rounded-lg"
-        : "h-11 w-11 rounded-lg";
+        ? "h-8 w-8 rounded-sm"
+        : "h-10 w-10 rounded-md";
 
   return (
     <div
-      className={`${box} flex flex-shrink-0 items-center justify-center overflow-hidden border ${className}`}
-      style={{
-        backgroundColor: `${accentColor.value}1a`,
-        borderColor: `${accentColor.value}4d`,
-      }}
+      className={`${box} flex flex-shrink-0 items-center justify-center overflow-hidden border border-line bg-s3 ${className}`}
     >
       {failed ? (
-        <Icon
-          icon="solar:folder-with-files-bold"
-          className="h-1/2 w-1/2"
-          style={{ color: accentColor.value }}
-        />
+        <FolderOpen className="h-1/2 w-1/2 text-fg-3" strokeWidth={1.75} />
       ) : (
         <img
           src={src}

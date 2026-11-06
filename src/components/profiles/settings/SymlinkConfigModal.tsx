@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Icon } from "@iconify/react";
+import { ChevronDown, File, Folder, FolderTree, Link2, RotateCcw } from "lucide-react";
+import { cn } from "../../../lib/utils";
 import { Button } from "../../ui/buttons/Button";
 import { Modal } from "../../ui/Modal";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -39,7 +40,7 @@ export function SymlinkConfigModal({
         directory: true,
         multiple: false,
         defaultPath: defaultPath,
-        title: "Select target location in profile",
+        title: t('symlink.select_target_title'),
       });
 
       if (selected && typeof selected === "string") {
@@ -82,124 +83,124 @@ export function SymlinkConfigModal({
     return `${normalizedBase}/${folderName}`;
   };
 
+  const isFile =
+    externalPath.includes('.') && !externalPath.endsWith('/') && !externalPath.endsWith('\\');
+
   return (
     <Modal
       title={t('symlink.configure')}
       onClose={onCancel}
       width="md"
       footer={
-        <div className="flex justify-end gap-3">
+        <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onCancel}>
             {t('common.cancel')}
           </Button>
           <Button
             variant="default"
             onClick={handleConfirm}
+            icon={<Link2 size={15} strokeWidth={1.75} />}
           >
-            <span className="flex items-center gap-2">
-              <Icon icon="solar:link-bold" className="w-4 h-4" />
-              <span>{t('symlink.create')}</span>
-            </span>
+            {t('symlink.create')}
           </Button>
         </div>
       }
     >
-      <div className="p-6 space-y-5">
+      <div className="p-5 space-y-6">
         {/* External Source */}
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Icon 
-              icon={externalPath.includes('.') && !externalPath.endsWith('/') && !externalPath.endsWith('\\') ? "solar:file-bold" : "solar:folder-bold"} 
-              className="w-5 h-5 text-white/70" 
-            />
-            <h4 className="text-sm font-smallcaps text-white">
-              {externalPath.includes('.') && !externalPath.endsWith('/') && !externalPath.endsWith('\\') ? t('symlink.external_file') : t('symlink.external_folder')}
-            </h4>
+        <section>
+          <div className="flex items-center gap-1.5 mb-2 text-fg-3">
+            {isFile ? <File size={13} strokeWidth={1.75} /> : <Folder size={13} strokeWidth={1.75} />}
+            <span className="cc-eyebrow">
+              {isFile ? t('symlink.external_file') : t('symlink.external_folder')}
+            </span>
           </div>
-          <div className="p-3 bg-white/5 rounded border border-white/10">
-            <p className="text-white/80 text-sm break-all font-mono">
+          <div
+            className="px-3 py-2.5 bg-s1 border border-line"
+            style={{ borderRadius: "var(--r-md)" }}
+          >
+            <p className="cc-num text-[12px] text-fg-2 break-all">
               {externalPath}
             </p>
           </div>
-          <p className="text-xs text-white/60 mt-2 font-minecraft tracking-wide select-none">
-            <Icon icon="solar:refresh-bold" className="w-3 h-3 inline mr-1" />
-            {externalPath.includes('.') && !externalPath.endsWith('/') && !externalPath.endsWith('\\') ? t('symlink.file_sync_hint') : t('symlink.folder_sync_hint')}
+          <p className="text-[12px] text-fg-3 mt-2 select-none">
+            {isFile ? t('symlink.file_sync_hint') : t('symlink.folder_sync_hint')}
           </p>
-        </div>
+        </section>
 
         {/* Advanced Settings - Collapsible */}
-        <div className="border border-white/10 rounded bg-white/5">
+        <section className="border-y border-line">
           <button
+            type="button"
             onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
-            className="w-full flex items-center justify-between p-3 hover:bg-white/5 transition-colors"
+            aria-expanded={isAdvancedOpen}
+            className="w-full h-10 flex items-center justify-between gap-3 text-left group"
           >
-            <div className="flex items-center gap-2">
-              <Icon icon="solar:settings-bold" className="w-4 h-4 text-white/70" />
-              <span className="text-sm font-minecraft text-white tracking-wide">
+            <span className="flex items-center gap-2 min-w-0">
+              <span className="text-[13px] font-[560] text-fg">
                 {t('symlink.advanced_custom_location')}
               </span>
               {targetDirectory && (
-                <span className="text-xs text-accent font-minecraft">
-                  ({targetDirectory})
+                <span className="cc-num text-[11px] text-fg-3 truncate">
+                  {targetDirectory}/
                 </span>
               )}
-            </div>
-            <Icon 
-              icon={isAdvancedOpen ? "solar:alt-arrow-up-bold" : "solar:alt-arrow-down-bold"} 
-              className="w-4 h-4 text-white/50" 
+            </span>
+            <ChevronDown
+              size={15}
+              strokeWidth={1.75}
+              className={cn(
+                "text-fg-3 group-hover:text-fg-2 flex-shrink-0 transition-transform duration-med",
+                isAdvancedOpen && "rotate-180",
+              )}
             />
           </button>
 
           {isAdvancedOpen && (
-            <div className="p-4 pt-0 space-y-3">
-              <p className="text-xs text-white/60 font-minecraft tracking-wide select-none">
-                By default, <code className="text-white/80">{folderName}</code> will be placed in the profile root.
-                <br />
-                Change the location if you want to organize it in a subfolder.
+            <div className="pb-4 space-y-3">
+              <p className="text-[12px] text-fg-3 leading-[1.5] select-none">
+                {t('symlink.default_location_hint', { name: folderName })}
               </p>
-              
-              <Button 
+
+              <Button
                 onClick={handleSelectTargetDirectory}
-                variant="secondary" 
-                size="md" 
-                className="w-full font-minecraft text-sm"
+                variant="secondary"
+                size="sm"
+                icon={<FolderTree size={14} strokeWidth={1.75} />}
               >
-                <span className="flex items-center gap-2">
-                  <Icon icon="solar:folder-path-connect-bold" className="w-4 h-4" />
-                  <span>{targetDirectory ? `Current: ${targetDirectory}/` : "Select Custom Location"}</span>
-                </span>
+                {targetDirectory
+                  ? t('symlink.current_location', { path: `${targetDirectory}/` })
+                  : t('symlink.select_custom_location')}
               </Button>
 
               {/* Show final path where symlink will be created */}
-              <div className="p-3 bg-white/5 rounded border border-white/10">
-                <div className="flex items-center gap-2 mb-1">
-                  <Icon icon="solar:map-point-bold" className="w-4 h-4 text-accent" />
-                  <span className="text-xs font-minecraft text-accent tracking-wide">
-                    Symlink will be created at:
-                  </span>
-                </div>
-                <p className="text-white/70 text-xs break-all font-mono pl-6">
+              <div
+                className="px-3 py-2.5 bg-s1 border border-line"
+                style={{ borderRadius: "var(--r-md)" }}
+              >
+                <div className="cc-eyebrow mb-1">{t('symlink.created_at')}</div>
+                <p className="cc-num text-[12px] text-fg-2 break-all">
                   {getFinalAbsolutePath()}
                 </p>
               </div>
 
               {targetDirectory && (
                 <button
+                  type="button"
                   onClick={() => {
                     setTargetDirectory("");
                     setSelectedAbsolutePath(null);
                   }}
-                  className="text-xs text-white/50 hover:text-white transition-colors font-minecraft flex items-center gap-1"
+                  className="text-[12px] text-fg-3 hover:text-fg transition-colors duration-fast flex items-center gap-1.5"
                 >
-                  <Icon icon="solar:restart-bold" className="w-3 h-3" />
-                  Reset to Profile Root
+                  <RotateCcw size={12} strokeWidth={1.75} />
+                  {t('symlink.reset_to_root')}
                 </button>
               )}
             </div>
           )}
-        </div>
+        </section>
       </div>
     </Modal>
   );
 }
-

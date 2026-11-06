@@ -3,13 +3,15 @@
 import { useEffect, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { Icon } from "@iconify/react";
+import { AlertTriangle, Check, Download, Info, Loader2, Package, X } from "lucide-react";
 import { useThemeStore } from "../../store/useThemeStore";
 import { useFontStore } from "../../store/font-store";
 import { cn } from "../../lib/utils";
 import { gsap } from "gsap";
 import { useTranslation } from "react-i18next";
 import { useEntranceAnimation } from "../../hooks/useEntranceAnimation";
+import { getAppVersion } from "../../services/launcher-config-service";
+import { Button } from "../ui/buttons/Button";
 
 interface UpdaterStatusPayload {
   message: string;
@@ -57,10 +59,16 @@ export default function Updater() {
     useFontStore.getState().applyFontToDOM();
   }, []);
 
+  // the installed version, shown in mono in the footer
+  const [version, setVersion] = useState<string | null>(null);
+  useEffect(() => {
+    getAppVersion().then(setVersion).catch(() => setVersion(null));
+  }, []);
+
   useEntranceAnimation(
     containerRef,
-    { opacity: 0, y: 20, scale: 0.95 },
-    { opacity: 1, y: 0, scale: 1, duration: 0.6, ease: "back.out(1.2)" },
+    { opacity: 0, y: 6 },
+    { opacity: 1, y: 0, duration: 0.26, ease: "power2.out" },
   );
 
   useEffect(() => {
@@ -155,20 +163,18 @@ export default function Updater() {
   const getStatusIcon = () => {
     switch (status) {
       case "checking":
-        return (
-          <Icon icon="svg-spinners:ring-resize" className="w-4 h-4" />
-        );
+        return <Loader2 size={14} strokeWidth={1.75} className="animate-spin text-fg-3" />;
       case "downloading":
-        return <Icon icon="solar:download-bold" className="w-4 h-4" />;
+        return <Download size={14} strokeWidth={1.75} className="text-fg-3" />;
       case "installing":
-        return <Icon icon="solar:box-bold" className="w-4 h-4" />;
+        return <Package size={14} strokeWidth={1.75} className="text-fg-3" />;
       case "uptodate":
       case "finished":
-        return <Icon icon="solar:check-circle-bold" className="w-4 h-4 text-emerald-300" />;
+        return <Check size={14} strokeWidth={2} className="text-ok" />;
       case "error":
-        return <Icon icon="solar:danger-triangle-bold" className="w-4 h-4 text-red-300" />;
+        return <AlertTriangle size={14} strokeWidth={1.75} className="text-err" />;
       default:
-        return <Icon icon="solar:info-circle-bold" className="w-4 h-4" />;
+        return <Info size={14} strokeWidth={1.75} className="text-fg-3" />;
     }
   };
 
@@ -182,81 +188,82 @@ export default function Updater() {
 
   if (!isThemeLoaded || !accentColor || !accentColor.value) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center bg-[#0b0b10]">
-        <div className="animate-pulse text-white/60 text-xs">
+      <div className="flex h-screen w-screen items-center justify-center bg-bg">
+        <div className="text-xs text-fg-3">
           {t('updater.loading_theme')}
         </div>
       </div>
     );
   }
 
-  const accent = accentColor.value || "#E8314A";
-  const accentHover = accentColor.hoverValue || accent;
   const done = status === "uptodate" || status === "finished";
+  const isError = status === "error";
+  // the step line; while downloading the percentage stands on its own in mono
+  const stepText = done
+    ? t('updater.complete')
+    : status === "downloading" && progress !== null
+      ? t('updater.downloading_step')
+      : statusMessage || t('updater.initializing');
+  const barWidth = done ? 100 : progress ?? 0;
 
   return (
-    <div className="relative h-screen w-screen overflow-hidden bg-[#0b0b10]">
-      {/* soft accent light behind the logo, like the start page */}
-      <div
-        className="absolute left-1/2 top-[30%] -translate-x-1/2 -translate-y-1/2 w-[360px] h-[360px] rounded-full blur-[80px] opacity-35 pointer-events-none"
-        style={{ background: `radial-gradient(circle, ${accent} 0%, transparent 65%)` }}
-      />
+    <div className="flex h-screen w-screen select-none flex-col overflow-hidden border border-line bg-bg text-fg">
+      {/* drag strip: the window has no frame */}
+      <div className="flex h-9 flex-shrink-0 items-center gap-2 border-b border-line pl-3" data-tauri-drag-region>
+        <img src="/logo.png" alt="" draggable={false} className="pointer-events-none h-3.5 w-3.5 object-contain" />
+        <span className="pointer-events-none text-xs font-[600] text-fg-2">CrimeClient</span>
+        <span className="flex-1 self-stretch" data-tauri-drag-region />
+        {version && (
+          <span className="pointer-events-none pr-3 font-mono text-[11px] text-fg-4">v{version}</span>
+        )}
+        {isError && (
+          <button type="button" className="cc-window-btn is-close h-full" title={t('common.close')} onClick={handleManualClose}>
+            <X size={15} strokeWidth={1.5} />
+          </button>
+        )}
+      </div>
 
-      <div
-        ref={containerRef}
-        className="relative h-full w-full flex flex-col items-center text-center border border-white/[0.08]"
-      >
-        <div className="flex-1 w-full flex flex-col items-center justify-center px-6 gap-6">
-          <div className="flex flex-col items-center">
-            <img
-              src="/logo.png"
-              alt="CrimeClient"
-              className="w-24 h-24 object-contain mb-3"
-              style={{ filter: `drop-shadow(0 6px 18px ${accent}66)` }}
-              draggable={false}
-            />
-            <h1 className="font-display text-xl font-bold text-white leading-tight">CrimeClient Launcher</h1>
-            <p className="text-xs text-white/45 mt-1">{t('updater.title')}</p>
-          </div>
+      <div ref={containerRef} className="flex min-h-0 flex-1 flex-col">
+        <div className="flex flex-1 flex-col items-center justify-center px-6 text-center" data-tauri-drag-region>
+          <img
+            src="/logo.png"
+            alt="CrimeClient"
+            className="pointer-events-none h-14 w-14 object-contain"
+            draggable={false}
+          />
+          <h1 className="pointer-events-none mt-4 font-display text-[20px] font-[650] leading-tight text-fg">CrimeClient</h1>
+          <p className="pointer-events-none mt-1 text-xs text-fg-3">{t('updater.title')}</p>
+        </div>
 
-          <div
-            className={cn(
-              "flex items-center justify-center gap-2 py-2 px-4 rounded-full max-w-full",
-              status === "error" ? "bg-red-500/15 border border-red-400/30" : "cc-glass",
-            )}
-          >
-            {getStatusIcon()}
-            <span className="text-xs text-white/85 truncate">
-              {done ? t('updater.complete') : statusMessage || t('updater.initializing')}
+        <div className="px-6 pb-6">
+          <div className="mb-2 flex items-center gap-2 text-xs">
+            <span className="flex-shrink-0">{getStatusIcon()}</span>
+            <span className={cn("min-w-0 flex-1 text-left", isError ? "line-clamp-2 text-err" : "truncate text-fg-2")}>
+              {stepText}
             </span>
+            {progress !== null && !done && (
+              <span className="flex-shrink-0 font-mono text-[11px] text-fg-2">{progress}%</span>
+            )}
           </div>
 
-          {progress !== null && (
-            <div className="w-3/4 h-2 rounded-full overflow-hidden bg-white/[0.08]">
-              <div
-                ref={progressRef}
-                className="h-full rounded-full"
-                style={{
-                  width: `${progress}%`,
-                  background: `linear-gradient(90deg, ${accent}, ${accentHover})`,
-                }}
-              />
+          <div className="h-[2px] w-full overflow-hidden bg-s3">
+            <div
+              ref={progressRef}
+              className={cn("h-full", isError ? "bg-err/60" : "bg-accent")}
+              style={{ width: `${barWidth}%` }}
+            />
+          </div>
+
+          {isError && (
+            <div className="mt-4 flex justify-end">
+              <Button variant="secondary" size="xs" onClick={handleManualClose}>
+                {t('common.close')}
+              </Button>
             </div>
           )}
         </div>
-
-        <div className="w-full p-6 flex justify-center min-h-[84px]">
-          {status === "error" && (
-            <button
-              onClick={handleManualClose}
-              className="h-9 px-4 flex items-center gap-2 rounded-xl text-sm font-semibold text-white bg-white/[0.08] hover:bg-white/[0.14] transition-colors"
-            >
-              <Icon icon="solar:close-circle-bold" className="w-4 h-4" />
-              {t('common.close')}
-            </button>
-          )}
-        </div>
       </div>
+
     </div>
   );
 }

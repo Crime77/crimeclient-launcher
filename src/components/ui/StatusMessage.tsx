@@ -1,10 +1,8 @@
 "use client";
 
 import { useRef } from "react";
-import { Icon } from "@iconify/react";
+import { AlertTriangle, CheckCircle2, Info, XCircle } from "lucide-react";
 import { cn } from "../../lib/utils";
-import { getBorderRadiusClass } from "./design-system";
-import { useEntranceAnimation } from "../../hooks/useEntranceAnimation";
 
 interface StatusMessageProps {
   type: "success" | "error" | "warning" | "info";
@@ -12,70 +10,36 @@ interface StatusMessageProps {
   className?: string;
 }
 
+// muted state colours: a faint wash, a hairline and the icon in the state colour; text stays readable
+const STYLES = {
+  success: { box: "bg-ok/[0.06] border-ok/25", icon: "text-ok", Icon: CheckCircle2 },
+  error: { box: "bg-err/[0.06] border-err/25", icon: "text-err", Icon: XCircle },
+  warning: { box: "bg-warn/[0.06] border-warn/25", icon: "text-warn", Icon: AlertTriangle },
+  info: { box: "bg-info/[0.06] border-info/25", icon: "text-info", Icon: Info },
+} as const;
+
 export function StatusMessage({
   type,
   message,
   className,
 }: StatusMessageProps) {
   const messageRef = useRef<HTMLDivElement>(null);
-  const radiusClass = getBorderRadiusClass();
+  const styles = STYLES[type] ?? STYLES.info;
+  const StateIcon = styles.Icon;
 
-  useEntranceAnimation(
-    messageRef,
-    { opacity: 0, y: -10 },
-    { opacity: 1, y: 0, duration: 0.4, ease: "back.out(1.7)" },
-  );
-
-  const getTypeStyles = () => {
-    switch (type) {
-      case "success":
-        return {
-          bg: "bg-green-500/20",
-          border: "border-green-500/40",
-          text: "text-green-400",
-          icon: "solar:check-circle-bold",
-        };
-      case "error":
-        return {
-          bg: "bg-red-500/20",
-          border: "border-red-500/40",
-          text: "text-red-400",
-          icon: "solar:danger-circle-bold",
-        };
-      case "warning":
-        return {
-          bg: "bg-yellow-500/20",
-          border: "border-yellow-500/40",
-          text: "text-yellow-400",
-          icon: "solar:danger-triangle-bold",
-        };
-      case "info":
-        return {
-          bg: "bg-blue-500/20",
-          border: "border-blue-500/40",
-          text: "text-blue-400",
-          icon: "solar:info-circle-bold",
-        };
-    }
-  };
-
-  const styles = getTypeStyles();
   return (
     <div
       ref={messageRef}
       className={cn(
-        "flex items-start p-4 mb-6 border",
-        radiusClass,
-        styles.bg,
-        styles.border,
-        styles.text,
+        "cc-enter flex items-start gap-2.5 px-3 py-2.5 mb-6 border rounded-md text-fg-2",
+        styles.box,
         className,
       )}
       role="alert"
       aria-live="polite"
     >
-      <Icon icon={styles.icon} className="w-6 h-6 mr-3 flex-shrink-0 mt-1" aria-hidden="true" />
-      <div className="text-base font-minecraft">{message}</div>
+      <StateIcon size={16} strokeWidth={1.75} className={cn("flex-shrink-0 mt-px", styles.icon)} aria-hidden="true" />
+      <div className="text-[13px] leading-[1.45]">{message}</div>
     </div>
   );
 }

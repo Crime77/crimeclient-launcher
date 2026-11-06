@@ -2,9 +2,9 @@
 
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Icon } from "@iconify/react";
+import { ChevronDown, MoreHorizontal } from "lucide-react";
 
-import { useThemeStore } from "../../store/useThemeStore";
+import { cn } from "../../lib/utils";
 import type { SyncPack, SyncPackModEntry } from "../../types/syncPacks";
 import { ToggleSwitch } from "../ui/ToggleSwitch";
 import { Tooltip } from "../ui/Tooltip";
@@ -37,7 +37,6 @@ export function SyncPackCard({
   onToggleSelect,
 }: SyncPackCardProps) {
   const { t } = useTranslation();
-  const accentColor = useThemeStore((state) => state.accentColor);
 
   const {
     profile,
@@ -102,18 +101,19 @@ export function SyncPackCard({
     jars.length > 0 && t("syncPacks.drop.localJars", { count: jars.length }),
   ]
     .filter(Boolean)
-    .join("  |  ");
+    .join("  ·  ");
 
   return (
     <div
-      className="group overflow-hidden rounded-lg border bg-black/20 transition-all duration-200"
-      style={{
-        borderColor: inUse ? `${accentColor.value}45` : "rgba(255,255,255,0.1)",
-      }}
+      className={cn(
+        "group overflow-hidden border bg-s1 transition-colors duration-fast",
+        inUse ? "border-line-2" : "border-line",
+      )}
+      style={{ borderRadius: "var(--r-lg)" }}
     >
       <div
         onClick={() => setExpandedPack(isOpen ? null : pack.id)}
-        className="group/head flex cursor-pointer items-center gap-3 px-4 py-3 transition-colors hover:bg-white/[0.03]"
+        className="group/head flex cursor-pointer items-center gap-3 h-14 px-3 transition-colors duration-fast hover:bg-s2"
       >
         <Tooltip
           content={t("syncPacks.changeIcon")}
@@ -132,9 +132,10 @@ export function SyncPackCard({
                 />,
               );
             }}
-            className="transition-transform hover:scale-105"
+            type="button"
+            className="block rounded-sm transition-opacity duration-fast hover:opacity-80"
           >
-            <SyncPackIcon packId={pack.id} icon={pack.icon} />
+            <SyncPackIcon packId={pack.id} icon={pack.icon} size="sm" />
           </button>
         </Tooltip>
 
@@ -150,8 +151,7 @@ export function SyncPackCard({
                 if (event.key === "Enter") finishRename(true);
                 if (event.key === "Escape") finishRename(false);
               }}
-              className="w-full bg-transparent font-minecraft text-lg normal-case text-white outline-none placeholder:text-white/25"
-              style={{ textShadow: "0 2px 4px rgba(0,0,0,0.7)" }}
+              className="w-full h-6 -ml-1 px-1 bg-s3 border border-line-3 rounded-sm text-[13.5px] font-semibold text-fg outline-none placeholder:text-fg-4"
             />
           ) : (
           <Tooltip
@@ -159,15 +159,12 @@ export function SyncPackCard({
             position="top"
             wrapperClassName="min-w-0 max-w-full"
           >
-            <h3
-              className="w-full truncate font-minecraft text-lg normal-case text-white"
-              style={{ textShadow: "0 2px 4px rgba(0,0,0,0.7)" }}
-            >
+            <h3 className="w-full truncate text-[13.5px] font-semibold text-fg">
               {pack.name}
             </h3>
           </Tooltip>
           )}
-          <div className="truncate font-minecraft text-xs text-white/45">
+          <div className="truncate text-[12px] text-fg-3">
             {isEmpty ? t("syncPacks.targets.empty") : summary}
           </div>
         </div>
@@ -197,11 +194,13 @@ export function SyncPackCard({
             ref={menuRef}
             onClick={() => setMenuOpen((open) => !open)}
             aria-label={t("common.actions")}
-            className={`flex h-6 w-6 items-center justify-center rounded text-white/40 transition-all duration-200 hover:bg-white/10 hover:text-white ${
-              menuOpen ? "opacity-100" : "opacity-0 group-hover/head:opacity-100"
-            }`}
+            type="button"
+            className={cn(
+              "cc-icon-btn",
+              menuOpen ? "opacity-100 bg-s3 text-fg" : "opacity-0 group-hover/head:opacity-100 focus-visible:opacity-100",
+            )}
           >
-            <Icon icon="solar:menu-dots-bold" className="h-4 w-4" />
+            <MoreHorizontal size={16} strokeWidth={1.75} />
           </button>
           <ThemedDropdown
             open={menuOpen}
@@ -241,17 +240,18 @@ export function SyncPackCard({
           </ThemedDropdown>
         </div>
 
-        <Icon
-          icon="solar:alt-arrow-down-linear"
-          className="h-4 w-4 flex-shrink-0 text-white/20 transition-all group-hover/head:text-white/50"
+        <ChevronDown
+          size={15}
+          strokeWidth={1.75}
+          className="flex-shrink-0 text-fg-4 transition-[color,transform] duration-fast group-hover/head:text-fg-2"
           style={{ transform: isOpen ? "rotate(180deg)" : undefined }}
         />
       </div>
 
       {isOpen && (
-        <div className="border-t border-white/[0.07]">
+        <div className="border-t border-line">
           {!isEmpty && (
-            <div className="space-y-2 p-2">
+            <div className="divide-y divide-line border-b border-line">
               {pack.targets.map((target) => (
                 <SyncPackRow
                   key={target.id}
@@ -281,7 +281,7 @@ export function SyncPackCard({
                       />
                       <RowAction
                         label={t("syncPacks.targets.remove")}
-                      icon="solar:trash-bin-trash-bold"
+                        icon="solar:trash-bin-trash-bold"
                         onClick={() => removeTarget(pack.id, target)}
                         danger
                       />

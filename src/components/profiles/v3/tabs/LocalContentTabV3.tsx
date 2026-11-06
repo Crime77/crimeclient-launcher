@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
 import { VirtuosoGrid } from "react-virtuoso";
-import { Icon } from "@iconify/react";
+import { AlertTriangle, Bell, BellOff, Loader2, Pause, Play, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
@@ -31,7 +31,7 @@ import { FloatingActionBar, type FABActionConfig } from "../shared/FloatingActio
 import { SearchWithFilters } from "../../../ui/SearchWithFilters";
 import { ContentActionButtons, type ContentActionButton } from "../../../ui/ContentActionButtons";
 import type { DropdownOption } from "../../../ui/CustomDropdown";
-import { ContentTile } from "./local-content/ContentTile";
+import { ContentListHeader, ContentTile } from "./local-content/ContentTile";
 import { NoriskPackSelector } from "./local-content/NoriskPackSelector";
 import { SyncModTile } from "./local-content/SyncModTile";
 import { useProfileSyncMods } from "./local-content/useProfileSyncMods";
@@ -379,15 +379,15 @@ export function LocalContentTabV3<T extends LocalContentItem>({
 
   const batchBusy = manager.isBatchToggling || !!batchProgress;
   const fabActions: FABActionConfig[] = [
-    { icon: "solar:play-bold",  label: t("profiles.v3.fab.enable"),  onClick: handleBatchEnable,  disabled: batchBusy },
-    { icon: "solar:pause-bold", label: t("profiles.v3.fab.disable"), onClick: handleBatchDisable, disabled: batchBusy },
+    { icon: Play,  label: t("profiles.v3.fab.enable"),  onClick: handleBatchEnable,  disabled: batchBusy },
+    { icon: Pause, label: t("profiles.v3.fab.disable"), onClick: handleBatchDisable, disabled: batchBusy },
     ...(batchUpdateChecksConfig ? [{
-      icon: batchUpdateChecksConfig.shouldEnable ? "solar:volume-loud-bold" : "solar:volume-cross-bold",
+      icon: batchUpdateChecksConfig.shouldEnable ? Bell : BellOff,
       label: t(batchUpdateChecksConfig.shouldEnable ? "profiles.v3.fab.resumeChecks" : "profiles.v3.fab.muteChecks"),
       onClick: handleBatchToggleUpdateChecks,
     } as FABActionConfig] : []),
     {
-      icon: "solar:trash-bin-trash-bold",
+      icon: Trash2,
       label: manager.isBatchDeleting ? "…" : t("profiles.v3.fab.delete"),
       tone: "danger",
       onClick: manager.handleBatchDeleteSelected,
@@ -512,7 +512,7 @@ export function LocalContentTabV3<T extends LocalContentItem>({
 
   return (
     <div className="flex flex-col min-h-0 flex-1 relative">
-      <div className="flex items-center gap-3 px-5 py-2.5 border-b border-white/10 flex-shrink-0 bg-black/20 sticky top-0 z-10">
+      <div className="flex items-center gap-3 px-5 h-12 border-b border-line flex-shrink-0">
         <SearchWithFilters
           searchValue={manager.searchQuery}
           onSearchChange={manager.setSearchQuery}
@@ -533,9 +533,12 @@ export function LocalContentTabV3<T extends LocalContentItem>({
 
         {manager.contentUpdateError && (
           <Tooltip content={manager.contentUpdateError}>
-            <div className="h-9 px-3 rounded-lg bg-red-600/20 border border-red-500/30 text-white flex items-center gap-2 font-smallcaps text-base">
-              <Icon icon="solar:danger-triangle-bold" className="w-4 h-4" />
-              <span style={{ transform: 'translateY(-0.075em)' }}>{t("profiles.v3.toolbar.checkFailed")}</span>
+            <div
+              className="h-8 px-2.5 flex items-center gap-1.5 border border-err/30 bg-err/10 text-err text-[12px] font-[520] flex-shrink-0"
+              style={{ borderRadius: "var(--r-md)" }}
+            >
+              <AlertTriangle size={13} strokeWidth={1.75} />
+              <span>{t("profiles.v3.toolbar.checkFailed")}</span>
             </div>
           </Tooltip>
         )}
@@ -545,17 +548,22 @@ export function LocalContentTabV3<T extends LocalContentItem>({
 
       <div
         ref={setScrollParent}
-        className={`flex-1 min-h-0 overflow-y-auto p-5 ${hasSelection ? "pb-24" : ""}`}
+        className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar ${hasSelection ? "pb-20" : "pb-4"}`}
       >
         {manager.error && (
-          <div className="mb-4 flex items-start gap-3 p-3 rounded-lg border border-rose-400/30 bg-rose-500/10">
-            <Icon icon="solar:danger-triangle-bold" className="w-5 h-5 text-rose-300 flex-shrink-0 mt-0.5" />
-            <div className="flex-1 min-w-0 text-xs font-minecraft text-rose-100 break-words">
+          <div
+            className="mx-5 mt-4 flex items-start gap-2.5 px-3 py-2 border border-err/30 bg-err/10"
+            style={{ borderRadius: "var(--r-md)" }}
+          >
+            <AlertTriangle size={14} strokeWidth={1.75} className="text-err flex-shrink-0 mt-px" />
+            <div className="flex-1 min-w-0 text-[12px] text-fg-2 break-words leading-[1.5]">
               {manager.error}
             </div>
             <button
+              type="button"
               onClick={() => manager.fetchData(true)}
-              className="flex-shrink-0 h-7 px-2 rounded-md text-[10px] font-minecraft uppercase tracking-wider text-rose-100 hover:bg-rose-500/20 transition-colors"
+              className="flex-shrink-0 h-6 px-2 text-[12px] font-[520] text-err hover:bg-err/10 transition-colors duration-fast"
+              style={{ borderRadius: "var(--r-sm)" }}
               title={t("profiles.v3.content.retry")}
             >
               {t("profiles.v3.content.retry")}
@@ -570,8 +578,8 @@ export function LocalContentTabV3<T extends LocalContentItem>({
           />
         ) : isWaitingForContent ? (
           shouldShowLoadingSpinner ? (
-            <div className="flex items-center justify-center h-40 text-white/40 font-minecraft text-sm animate-in fade-in duration-300">
-              <Icon icon="svg-spinners:ring-resize" className="w-4 h-4 mr-2" />
+            <div className="flex items-center justify-center gap-2 h-40 text-[12px] text-fg-3 animate-in fade-in duration-300">
+              <Loader2 size={14} className="animate-spin" />
               {t("profiles.v3.content.loading")}
             </div>
           ) : (
@@ -589,11 +597,12 @@ export function LocalContentTabV3<T extends LocalContentItem>({
           />
         ) : (
           grouped ? (
-            <div className="space-y-4">
+            <div>
+              <ContentListHeader />
               {entryGroups.map((group) => {
                 const isCollapsed = collapsedGroups.has(group.id);
                 return (
-                  <div key={group.id}>
+                  <div key={group.id} className="mt-3 first:mt-1">
                     <ContentGroupDivider
                       label={group.label}
                       count={group.entries.length}
@@ -606,7 +615,7 @@ export function LocalContentTabV3<T extends LocalContentItem>({
                       tag={group.packId ? t("profiles.v3.groups.syncPackTag") : undefined}
                     />
                     {!isCollapsed && (
-                      <div className="mt-2 grid grid-cols-1 lg:grid-cols-2 gap-3">
+                      <div className="divide-y divide-line">
                         {group.entries.map((gridEntry) => (
                           <div key={gridEntryKey(gridEntry)}>{renderGridEntry(gridEntry)}</div>
                         ))}
@@ -617,13 +626,16 @@ export function LocalContentTabV3<T extends LocalContentItem>({
               })}
             </div>
           ) : (
+          <>
+          <ContentListHeader />
           <VirtuosoGrid
             data={gridEntries}
             customScrollParent={scrollParent ?? undefined}
-            listClassName="grid grid-cols-1 lg:grid-cols-2 gap-3"
+            listClassName="grid grid-cols-1 divide-y divide-line border-b border-line"
             computeItemKey={(index, gridEntry) => `${index}:${gridEntryKey(gridEntry)}`}
             itemContent={(_, gridEntry) => renderGridEntry(gridEntry)}
           />
+          </>
           )
         )}
       </div>

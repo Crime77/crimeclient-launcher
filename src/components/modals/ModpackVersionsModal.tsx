@@ -5,7 +5,8 @@ import { useTranslation } from "react-i18next";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Modal } from "../ui/Modal";
-import { Icon } from "@iconify/react";
+import { ChevronDown, ChevronUp, Loader2, Package, RefreshCw } from "lucide-react";
+import { cn } from "../../lib/utils";
 import { Button } from "../ui/buttons/Button";
 import type { UnifiedModpackVersionsResponse, UnifiedVersion, ModpackSwitchRequest } from "../../types/unified";
 import { UnifiedVersionType } from "../../types/unified";
@@ -53,8 +54,8 @@ function getVersionTypeIcon(type: UnifiedVersionType): string {
   }
 }
 
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('en-US', {
+function formatDate(dateString: string, locale = 'en-US'): string {
+  return new Date(dateString).toLocaleDateString(locale, {
     year: 'numeric',
     month: 'short',
     day: 'numeric'
@@ -82,7 +83,7 @@ function VersionItem({
   isSelected: boolean;
   onSelect: (version: UnifiedVersion) => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(false);
   const [curseforgeChangelog, setCurseforgeChangelog] = useState<string | null>(null);
   const [isLoadingChangelog, setIsLoadingChangelog] = useState(false);
@@ -119,120 +120,129 @@ function VersionItem({
   // Determine which changelog to show
   const displayChangelog = version.changelog || curseforgeChangelog;
 
+  const hasChangelog = Boolean(version.changelog) || version.source === "CurseForge";
+
   return (
-    <div
-      className={`relative p-3 rounded-lg border transition-all duration-200 ${
-        isInstalled
-          ? "bg-black/30 border-white/30 cursor-not-allowed"
-          : isSelected
-          ? "border-white/30 cursor-pointer"
-          : "bg-black/20 border-white/10 hover:bg-black/30 hover:border-white/20 cursor-pointer"
-      }`}
-      style={isSelected && !isInstalled ? {
-        backgroundColor: `rgba(var(--accent-rgb), 0.15)`,
-        borderColor: `var(--accent)`
-      } : undefined}
-      onClick={handleClick}
-    >
-      {/* Stats - oben rechts */}
-      <div className="absolute top-2 right-2 flex items-center space-x-1 text-xs text-white/50 font-minecraft">
-        <span>{formatDownloads(version.downloads)}</span>
-        <span>{formatDate(version.date_published)}</span>
-      </div>
+    <div className={cn("border-b border-line last:border-b-0", isSelected && !isInstalled && "bg-s3")}>
+      <div
+        className={cn(
+          "flex items-center gap-3 h-11 pl-3 pr-2 transition-colors duration-fast",
+          isInstalled ? "cursor-default" : "cursor-pointer",
+          !isSelected && !isInstalled && "hover:bg-s2",
+        )}
+        onClick={handleClick}
+        role={isInstalled ? undefined : "radio"}
+        aria-checked={isInstalled ? undefined : isSelected}
+      >
+        {/* Selection dot */}
+        <span
+          className={cn(
+            "grid place-items-center w-3.5 h-3.5 rounded-full border flex-shrink-0",
+            isSelected && !isInstalled ? "border-fg" : "border-line-3",
+            isInstalled && "opacity-40",
+          )}
+          aria-hidden
+        >
+          {isSelected && !isInstalled && <span className="w-1.5 h-1.5 rounded-full bg-fg" />}
+        </span>
 
-      {/* Hauptinhalt */}
-      <div className="flex items-center justify-between pr-20">
-        <div className="flex-1 min-w-0">
-          {/* Name und Version in einer Zeile */}
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-white font-minecraft text-sm font-medium truncate">
-              {version.version_number}
+        <div className="flex-1 min-w-0 flex items-center gap-2">
+          <span className={cn("cc-num text-[13px] truncate", isSelected || isInstalled ? "text-fg" : "text-fg-2")}>
+            {version.version_number}
+          </span>
+          {isInstalled && (
+            <span
+              className="flex-shrink-0 px-1.5 h-[18px] inline-flex items-center text-[11px] text-ok border border-ok/30"
+              style={{ borderRadius: "var(--r-sm)" }}
+            >
+              {t('modpack_versions.current')}
             </span>
-            {isInstalled && (
-              <span className="text-xs bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded font-minecraft uppercase">
-                {t('modpack_versions.current')}
-              </span>
-            )}
-          </div>
-
-          {/* MC Versionen */}
-          <div className="text-xs text-white/60 font-minecraft">
-            MC: {version.game_versions.slice(0, 2).join(', ')}
+          )}
+          <span className="cc-num text-[11.5px] text-fg-4 truncate">
+            MC {version.game_versions.slice(0, 2).join(', ')}
             {version.game_versions.length > 2 && ` +${version.game_versions.length - 2}`}
-          </div>
+          </span>
+        </div>
 
-          {/* Changelog Button */}
-          {(version.changelog || version.source === "CurseForge") && (
+        <span className="cc-num w-14 text-right text-[11.5px] text-fg-3 flex-shrink-0">
+          {formatDownloads(version.downloads)}
+        </span>
+        <span className="cc-num w-[92px] text-right text-[11.5px] text-fg-3 flex-shrink-0">
+          {formatDate(version.date_published, i18n.language)}
+        </span>
+
+        {/* Changelog toggle */}
+        <span className="w-7 flex-shrink-0">
+          {hasChangelog && (
             <button
+              type="button"
               onClick={toggleExpanded}
-              className="mt-1 flex items-center gap-1 px-2 py-1 rounded text-xs hover:bg-white/10 transition-colors font-minecraft border border-white/20"
-              title={isExpanded ? "Hide changelog" : "Show changelog"}
+              className="cc-icon-btn"
+              title={isExpanded ? t('modpack_versions.hide_changelog') : t('modpack_versions.show_changelog')}
+              aria-label={t('modpack_versions.changelog')}
+              aria-expanded={isExpanded}
               disabled={isLoadingChangelog}
             >
               {isLoadingChangelog ? (
-                <Icon icon="svg-spinners:ring-resize" className="w-3 h-3" />
+                <Loader2 size={14} strokeWidth={1.75} className="animate-spin" />
+              ) : isExpanded ? (
+                <ChevronUp size={14} strokeWidth={1.75} />
               ) : (
-                <Icon
-                  icon={isExpanded ? "solar:alt-arrow-up-bold" : "solar:alt-arrow-down-bold"}
-                  className="w-3 h-3"
-                />
+                <ChevronDown size={14} strokeWidth={1.75} />
               )}
-              <span className="text-white/70">
-                {isLoadingChangelog ? t('common.loading') : t('modpack_versions.changelog')}
-              </span>
             </button>
           )}
-        </div>
+        </span>
       </div>
 
-      {/* Changelog Bereich */}
+      {/* Changelog */}
       {isExpanded && displayChangelog && (
-        <div className="mt-3 pt-3 border-t border-white/10">
-          <div className="text-xs font-minecraft text-white/70 mb-2 uppercase">
+        <div className="px-4 py-3 border-t border-line bg-bg/40">
+          <div className="cc-eyebrow mb-2">
             {t('modpack_versions.changelog')}
           </div>
-          <div className="max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
+          <div className="max-h-64 overflow-y-auto custom-scrollbar pr-1">
             {isLoadingChangelog ? (
-              <div className="flex items-center justify-center py-4">
-                <Icon icon="svg-spinners:ring-resize" className="w-5 h-5 text-white/50" />
-                <span className="ml-2 text-sm text-white/50 font-minecraft">{t('modpack_versions.loading_changelog')}</span>
+              <div className="flex items-center gap-2 py-4 text-[12.5px] text-fg-3">
+                <Loader2 size={14} strokeWidth={1.75} className="animate-spin" />
+                <span>{t('modpack_versions.loading_changelog')}</span>
               </div>
             ) : displayChangelog ? (
               version.source === "CurseForge" ? (
                 // Render HTML for CurseForge (sanitized)
                 <div
-                  className="prose prose-invert prose-sm max-w-none font-minecraft [&_*]:text-white [&_h1]:text-lg [&_h1]:font-bold [&_h1]:mb-2 [&_h1]:mt-4 [&_h1]:first:mt-0 [&_h2]:text-base [&_h2]:font-bold [&_h2]:mb-2 [&_h2]:mt-3 [&_h3]:text-sm [&_h3]:font-bold [&_h3]:mb-1 [&_h3]:mt-2 [&_p]:text-sm [&_p]:text-white/90 [&_p]:mb-2 [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:list-inside [&_ul]:text-sm [&_ul]:text-white/90 [&_ul]:mb-2 [&_ul]:space-y-1 [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:list-inside [&_ol]:text-sm [&_ol]:text-white/90 [&_ol]:mb-2 [&_ol]:space-y-1 [&_ol]:ml-4 [&_li]:leading-relaxed [&_strong]:font-bold [&_strong]:text-white [&_em]:italic [&_em]:text-white/80 [&_code]:bg-black/30 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_code]:font-mono [&_code]:text-white/90 [&_pre]:bg-black/30 [&_pre]:p-2 [&_pre]:rounded [&_pre]:text-xs [&_pre]:font-mono [&_pre]:text-white/90 [&_pre]:overflow-x-auto [&_pre]:mb-2 [&_blockquote]:border-l-2 [&_blockquote]:border-accent [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-white/70 [&_blockquote]:my-2 [&_a]:text-accent [&_a]:hover:text-accent/80 [&_a]:underline"
+                  className="max-w-none text-[12.5px] leading-relaxed text-fg-2 [&_h1]:text-[14px] [&_h1]:font-semibold [&_h1]:text-fg [&_h1]:mb-2 [&_h1]:mt-4 [&_h1]:first:mt-0 [&_h2]:text-[13.5px] [&_h2]:font-semibold [&_h2]:text-fg [&_h2]:mb-2 [&_h2]:mt-3 [&_h3]:text-[13px] [&_h3]:font-semibold [&_h3]:text-fg [&_h3]:mb-1 [&_h3]:mt-2 [&_p]:mb-2 [&_ul]:list-disc [&_ul]:mb-2 [&_ul]:space-y-0.5 [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:mb-2 [&_ol]:space-y-0.5 [&_ol]:ml-4 [&_strong]:font-semibold [&_strong]:text-fg [&_em]:italic [&_code]:bg-s3 [&_code]:px-1 [&_code]:rounded-sm [&_code]:text-[11.5px] [&_code]:font-mono [&_pre]:bg-s2 [&_pre]:border [&_pre]:border-line [&_pre]:p-2 [&_pre]:rounded-md [&_pre]:text-[11.5px] [&_pre]:font-mono [&_pre]:overflow-x-auto [&_pre]:mb-2 [&_blockquote]:border-l-2 [&_blockquote]:border-line-3 [&_blockquote]:pl-3 [&_blockquote]:text-fg-3 [&_blockquote]:my-2 [&_a]:text-fg [&_a]:underline [&_a]:decoration-line-3 [&_a]:underline-offset-2"
                   dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(displayChangelog) }}
                 />
               ) : (
                 // Render Markdown for Modrinth
-                <div className="prose prose-invert prose-sm max-w-none font-minecraft">
+                <div className="max-w-none text-[12.5px] leading-relaxed text-fg-2">
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
                     components={{
-                      h1: ({ children }) => <h1 className="text-lg font-bold text-white mb-2 mt-4 first:mt-0">{children}</h1>,
-                      h2: ({ children }) => <h2 className="text-base font-bold text-white mb-2 mt-3">{children}</h2>,
-                      h3: ({ children }) => <h3 className="text-sm font-bold text-white mb-1 mt-2">{children}</h3>,
-                      p: ({ children }) => <p className="text-sm text-white/90 mb-2 leading-relaxed">{children}</p>,
-                      ul: ({ children }) => <ul className="list-disc list-inside text-sm text-white/90 mb-2 space-y-1 ml-4">{children}</ul>,
-                      ol: ({ children }) => <ol className="list-decimal list-inside text-sm text-white/90 mb-2 space-y-1 ml-4">{children}</ol>,
-                      li: ({ children }) => <li className="leading-relaxed">{children}</li>,
-                      strong: ({ children }) => <strong className="font-bold text-white">{children}</strong>,
-                      em: ({ children }) => <em className="italic text-white/80">{children}</em>,
-                      code: ({ children }) => <code className="bg-black/30 px-1 py-0.5 rounded text-xs font-mono text-white/90">{children}</code>,
-                      pre: ({ children }) => <pre className="bg-black/30 p-2 rounded text-xs font-mono text-white/90 overflow-x-auto mb-2">{children}</pre>,
-                      blockquote: ({ children }) => <blockquote className="border-l-2 border-accent pl-3 italic text-white/70 my-2">{children}</blockquote>,
-                      a: ({ href, children }) => <a href={href} className="text-accent hover:text-accent/80 underline" target="_blank" rel="noopener noreferrer">{children}</a>,
+                      h1: ({ children }) => <h1 className="text-[14px] font-semibold text-fg mb-2 mt-4 first:mt-0">{children}</h1>,
+                      h2: ({ children }) => <h2 className="text-[13.5px] font-semibold text-fg mb-2 mt-3">{children}</h2>,
+                      h3: ({ children }) => <h3 className="text-[13px] font-semibold text-fg mb-1 mt-2">{children}</h3>,
+                      p: ({ children }) => <p className="mb-2">{children}</p>,
+                      ul: ({ children }) => <ul className="list-disc mb-2 space-y-0.5 ml-4">{children}</ul>,
+                      ol: ({ children }) => <ol className="list-decimal mb-2 space-y-0.5 ml-4">{children}</ol>,
+                      li: ({ children }) => <li>{children}</li>,
+                      strong: ({ children }) => <strong className="font-semibold text-fg">{children}</strong>,
+                      em: ({ children }) => <em className="italic">{children}</em>,
+                      code: ({ children }) => <code className="bg-s3 px-1 rounded-sm text-[11.5px] font-mono text-fg">{children}</code>,
+                      pre: ({ children }) => <pre className="bg-s2 border border-line p-2 rounded-md text-[11.5px] font-mono overflow-x-auto mb-2">{children}</pre>,
+                      blockquote: ({ children }) => <blockquote className="border-l-2 border-line-3 pl-3 text-fg-3 my-2">{children}</blockquote>,
+                      a: ({ href, children }) => <a href={href} className="text-fg underline decoration-line-3 underline-offset-2 hover:decoration-fg-3" target="_blank" rel="noopener noreferrer">{children}</a>,
                       table: ({ children }) => (
                         <div className="overflow-x-auto mb-2">
-                          <table className="w-full border-collapse text-sm">{children}</table>
+                          <table className="w-full border-collapse text-[12px]">{children}</table>
                         </div>
                       ),
-                      thead: ({ children }) => <thead className="bg-black/30">{children}</thead>,
+                      thead: ({ children }) => <thead className="bg-s2">{children}</thead>,
                       tbody: ({ children }) => <tbody>{children}</tbody>,
-                      tr: ({ children }) => <tr className="border-b border-white/10 hover:bg-white/5">{children}</tr>,
-                      th: ({ children }) => <th className="p-2 border border-white/20 text-left font-semibold text-white/90">{children}</th>,
-                      td: ({ children }) => <td className="p-2 border border-white/20 text-white/80">{children}</td>,
+                      tr: ({ children }) => <tr className="border-b border-line">{children}</tr>,
+                      th: ({ children }) => <th className="px-2 py-1.5 border border-line text-left font-medium text-fg">{children}</th>,
+                      td: ({ children }) => <td className="px-2 py-1.5 border border-line">{children}</td>,
                     }}
                   >
                     {displayChangelog}
@@ -240,7 +250,7 @@ function VersionItem({
                 </div>
               )
             ) : (
-              <div className="text-sm text-white/50 font-minecraft text-center py-4">
+              <div className="text-[12.5px] text-fg-3 py-4">
                 {t('modpack_versions.no_changelog')}
               </div>
             )}
@@ -282,17 +292,17 @@ export function ModpackVersionsModal({
 - Performance improvements`,
             `## What's New in ${version.version_number}
 
-### ✨ Features
+### Features
 - Added new shader support
 - Improved graphics settings
 - Enhanced mod compatibility
 
-### 🐛 Bug Fixes
+### Bug Fixes
 - Fixed crash on startup
 - Resolved memory leaks
 - Corrected texture rendering issues
 
-### 🔧 Technical
+### Technical
 - Updated to Fabric ${version.loaders.includes('fabric') ? 'latest' : 'compatible'} version
 - Optimized resource loading
 - Better error handling`,
@@ -314,6 +324,14 @@ This release focuses on stability and performance improvements.
     return initialVersions;
   });
   const [isLoadingVersions, setIsLoadingVersions] = useState(false);
+  const [selectedVersion, setSelectedVersion] = useState<UnifiedVersion | null>(null);
+
+  // Reset selection when modal closes
+  React.useEffect(() => {
+    if (!isOpen) {
+      setSelectedVersion(null);
+    }
+  }, [isOpen]);
 
   // Load fresh versions when modal opens by loading the current profile
   React.useEffect(() => {
@@ -355,17 +373,17 @@ This release focuses on stability and performance improvements.
 - Performance improvements`,
                   `## What's New in ${version.version_number}
 
-### ✨ Features
+### Features
 - Added new shader support
 - Improved graphics settings
 - Enhanced mod compatibility
 
-### 🐛 Bug Fixes
+### Bug Fixes
 - Fixed crash on startup
 - Resolved memory leaks
 - Corrected texture rendering issues
 
-### 🔧 Technical
+### Technical
 - Updated to Fabric ${version.loaders.includes('fabric') ? 'latest' : 'compatible'} version
 - Optimized resource loading
 - Better error handling`,
@@ -413,7 +431,6 @@ This release focuses on stability and performance improvements.
   );
 
   const installedVersionId = versions.installed_version?.id;
-  const [selectedVersion, setSelectedVersion] = useState<UnifiedVersion | null>(null);
 
   const handleVersionSelect = (version: UnifiedVersion) => {
     // Don't allow selecting already installed version
@@ -487,24 +504,34 @@ This release focuses on stability and performance improvements.
     }
   };
 
-  // Reset selection when modal closes
-  React.useEffect(() => {
-    if (!isOpen) {
-      setSelectedVersion(null);
-    }
-  }, [isOpen]);
-
   return (
     <Modal
       title={t('modpack_versions.title', { name: modpackName })}
-      titleIcon={<Icon icon="solar:archive-bold" className="w-6 h-6 text-blue-400" />}
+      titleIcon={<Package size={16} strokeWidth={1.75} />}
       onClose={onClose}
       width="lg"
       className="max-h-[80vh]"
       footer={
-        <div className="flex justify-end items-center gap-3">
+        <div className="flex items-center gap-3">
+          <span className="min-w-0 flex-1 truncate text-[12px] text-fg-3">
+            {selectedVersion ? (
+              <>
+                {t('modpack_versions.selected')}{" "}
+                <span className="text-fg-2">{selectedVersion.name}</span>
+                {!selectedVersion.name.includes(selectedVersion.version_number) && (
+                  <>
+                    {" "}
+                    <span className="cc-num text-fg-2">{selectedVersion.version_number}</span>
+                  </>
+                )}
+              </>
+            ) : (
+              t('modpack_versions.select_hint')
+            )}
+          </span>
           <Button
-            variant="secondary"
+            variant="ghost"
+            size="sm"
             onClick={onClose}
             disabled={isSwitching}
           >
@@ -512,60 +539,52 @@ This release focuses on stability and performance improvements.
           </Button>
           <Button
             variant="default"
+            size="sm"
             onClick={handleSwitchVersion}
             disabled={!selectedVersion || isSwitching}
-            icon={isSwitching ? <Icon icon="svg-spinners:ring-resize" className="h-4 w-4" /> : <Icon icon="solar:refresh-circle-bold" className="h-4 w-4" />}
+            icon={isSwitching ? <Loader2 size={15} strokeWidth={1.75} className="animate-spin" /> : <RefreshCw size={15} strokeWidth={1.75} />}
           >
             {isSwitching ? t('modpack_versions.button.switching') : selectedVersion ? t('modpack_versions.button.switch_version') : t('modpack_versions.button.select_version')}
           </Button>
         </div>
       }
     >
-      <div className="p-4">
-        <div className="mb-4 text-sm text-white/70 font-minecraft">
-          {isLoadingVersions ? (
-            t('modpack_versions.loading')
-          ) : (
-            <>
-              {versions.all_versions.length} version{versions.all_versions.length !== 1 ? 's' : ''} available
-              {versions.updates_available && (
-                <span className="ml-2 text-green-400">
-                  {t('modpack_versions.updates_available')}
-                </span>
-              )}
-            </>
+      <div className="px-5 py-4">
+        <div className="mb-2 flex items-baseline justify-between gap-3">
+          <span className="cc-eyebrow">
+            {isLoadingVersions ? (
+              t('modpack_versions.loading')
+            ) : (
+              t('modpack_versions.available_count', { count: versions.all_versions.length })
+            )}
+          </span>
+          {!isLoadingVersions && versions.updates_available && (
+            <span className="text-[12px] text-ok">
+              {t('modpack_versions.updates_available')}
+            </span>
           )}
         </div>
 
-        {selectedVersion ? (
-          <div className="mb-4">
-            <div
-              className="text-xs font-minecraft text-center font-medium mb-1"
-              style={{ color: `var(--accent)` }}
-            >
-              Selected: {selectedVersion.name} ({selectedVersion.version_number})
-            </div>
-          </div>
-        ) : (
-          <div className="mb-4 text-xs text-white/50 font-minecraft text-center">
-            {t('modpack_versions.select_hint')}
+        {sortedVersions.length > 0 && (
+          <div
+            className="overflow-hidden border border-line bg-s1"
+            style={{ borderRadius: "var(--r-md)" }}
+            role="radiogroup"
+          >
+            {sortedVersions.map((version) => (
+              <VersionItem
+                key={version.id}
+                version={version}
+                isInstalled={version.id === installedVersionId}
+                isSelected={selectedVersion?.id === version.id}
+                onSelect={handleVersionSelect}
+              />
+            ))}
           </div>
         )}
 
-        <div className="space-y-4">
-          {sortedVersions.map((version) => (
-            <VersionItem
-              key={version.id}
-              version={version}
-              isInstalled={version.id === installedVersionId}
-              isSelected={selectedVersion?.id === version.id}
-              onSelect={handleVersionSelect}
-            />
-          ))}
-        </div>
-
         {sortedVersions.length === 0 && (
-          <div className="text-center py-8 text-white/50 font-minecraft">
+          <div className="py-10 text-center text-[12.5px] text-fg-3">
             {t('modpack_versions.no_versions')}
           </div>
         )}

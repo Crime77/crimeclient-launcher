@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { Modal } from '../../ui/Modal';
-import { Icon } from '@iconify/react';
+import { ArrowLeft, Check, Download, FolderPlus, FolderX, Loader2, Trash2 } from 'lucide-react';
 import type { ModrinthSearchHit, ModrinthVersion } from '../../../types/modrinth';
 import type { UnifiedVersion } from '../../../types/unified';
 import type { Profile } from '../../../types/profile';
@@ -11,7 +11,8 @@ import { useThemeStore } from '../../../store/useThemeStore';
 import { SearchWithFilters } from '../../ui/SearchWithFilters';
 import type { DropdownOption } from '../../ui/CustomDropdown';
 import { ModrinthQuickProfile } from './ModrinthQuickProfile';
-import { ActionButton } from '../../ui/ActionButton';
+import { Button } from '../../ui/buttons/Button';
+import { cn } from '../../../lib/utils';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { loaderIconSrc } from "../../../lib/loader-icons";
@@ -303,288 +304,242 @@ export function ModrinthQuickInstallProfilesModal({
       onClose={onClose}
       width="md"
       variant="3d"
+      footer={
+        showQuickProfileView ? (
+          <div className="flex justify-between items-center w-full gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<ArrowLeft size={14} strokeWidth={1.75} />}
+              onClick={() => {
+                console.log('⬅️ Switching back to profile list view');
+                switchToProfileListView();
+              }}
+            >
+              {t('modrinth.back_to_profiles')}
+            </Button>
+
+            <Button
+              variant="default"
+              size="sm"
+              icon={isCreatingProfile ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} strokeWidth={1.75} />}
+              disabled={!quickProfileName.trim() || isCreatingProfile}
+              onClick={() => {
+                console.log('✅ Creating profile and installing');
+                handleCreateAndInstallProfile();
+              }}
+            >
+              {isCreatingProfile ? t('modrinth.creating') : t('modrinth.create_and_install')}
+            </Button>
+          </div>
+        ) : (
+          <div className="flex justify-end items-center w-full">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                console.log('❌ Closing modal');
+                onClose();
+              }}
+            >
+              {t('common.close')}
+            </Button>
+          </div>
+        )
+      }
     >
-      <div className="p-6">
+      <div className="px-5 py-4">
         {showQuickProfileView ? (
           // Quick Profile Creation View
-          <div>
-            <ModrinthQuickProfile
-              accentColor={accentColor}
-              projectTitle={project.title}
-              versionNumber={version?.version_number}
-              profileName={quickProfileName}
-              onProfileNameChange={(name) => {
-                setQuickProfileName(name);
-                if (quickProfileError && name.trim()) setQuickProfileError(null);
-              }}
-              error={quickProfileError}
-              isLoading={isCreatingProfile}
-              selectedSourceProfileId={selectedSourceProfileId}
-              onSourceProfileChange={setSelectedSourceProfileId}
-            />
-
-            {/* Footer buttons for quick profile view */}
-            <div className="flex justify-between items-center mt-6 pt-4 border-t border-white/10">
-              <button
-                onClick={() => {
-                  console.log('⬅️ Switching back to profile list view');
-                  switchToProfileListView();
-                }}
-                className="flex items-center gap-2 px-4 py-2 text-white/70 hover:text-white transition-colors duration-200 text-base font-smallcaps"
-              >
-                <Icon icon="solar:arrow-left-linear" className="w-4 h-4" />
-                <span>{t('modrinth.back_to_profiles')}</span>
-              </button>
-
-              <ActionButton
-                icon={isCreatingProfile ? "solar:refresh-bold" : "solar:play-bold-duotone"}
-                label={isCreatingProfile ? t('modrinth.creating') : t('modrinth.create_and_install')}
-                variant="primary"
-                size="md"
-                className="py-[0.29em]"
-                iconClassName={isCreatingProfile ? "animate-spin" : ""}
-                disabled={!quickProfileName.trim() || isCreatingProfile}
-                onClick={() => {
-                  console.log('✅ Creating profile and installing');
-                  handleCreateAndInstallProfile();
-                }}
-              />
-            </div>
-          </div>
+          <ModrinthQuickProfile
+            accentColor={accentColor}
+            projectTitle={project.title}
+            versionNumber={version?.version_number}
+            profileName={quickProfileName}
+            onProfileNameChange={(name) => {
+              setQuickProfileName(name);
+              if (quickProfileError && name.trim()) setQuickProfileError(null);
+            }}
+            error={quickProfileError}
+            isLoading={isCreatingProfile}
+            selectedSourceProfileId={selectedSourceProfileId}
+            onSourceProfileChange={setSelectedSourceProfileId}
+          />
         ) : (
           <>
             {/* Version info (placed above search) */}
             {version && (
-              <p className="text-gray-400 text-xs text-center font-minecraft mb-4 -mt-2">
+              <p className="text-[12.5px] text-fg-3 mb-3">
                 {t('modrinth.will_install_version', { version: version.version_number, title: project.title })}
               </p>
             )}
 
             {/* Search and Filters */}
-            <div className="mb-6">
-              <div className="flex gap-3 items-start">
-                <div className="flex-1">
-                  <SearchWithFilters
-                    placeholder={t('placeholders.search_profiles')}
-                    searchValue={searchValue}
-                    onSearchChange={handleSearchChange}
-                    sortOptions={sortOptions}
-                    sortValue={sortValue}
-                    onSortChange={handleSortChange}
-                    showFilter={false}
-                    className="w-full"
-                  />
-                </div>
-                {onInstallToNewProfile && (
-                  <ActionButton
-                    icon="solar:add-folder-line-duotone"
-                    label={t('profiles.new_profile')}
-                    variant="primary"
-                    size="md"
-                    className="py-[0.29em]"
-                    onClick={() => {
-                      console.log('🆕 Switching to quick profile creation view');
-                      switchToQuickProfileView();
-                    }}
-                  />
-                )}
+            <div className="mb-3 flex gap-2 items-center">
+              <div className="flex-1 min-w-0">
+                <SearchWithFilters
+                  placeholder={t('placeholders.search_profiles')}
+                  searchValue={searchValue}
+                  onSearchChange={handleSearchChange}
+                  sortOptions={sortOptions}
+                  sortValue={sortValue}
+                  onSortChange={handleSortChange}
+                  showFilter={false}
+                  className="w-full"
+                />
               </div>
-            </div>
-
-        {processedProfiles.length === 0 ? (
-          <div className="text-center py-8 min-h-[400px] flex flex-col justify-center">
-            <Icon icon="solar:folder-error-bold" className="mx-auto mb-4 text-4xl text-white/30" />
-            <h3 className="text-sm font-smallcaps text-white/50 mb-2">
-              {profiles.length === 0 ? t('modrinth.no_profiles_available') : t('modrinth.no_profiles_found')}
-            </h3>
-            <p className="text-white/40 text-sm lowercase">
-              {profiles.length === 0
-                ? t('modrinth.create_profile_first')
-                : t('modrinth.adjust_search_filters')
-              }
-            </p>
-          </div>
-        ) : (
-          <div className="min-h-[400px]">
-            <div className="grid grid-cols-1 gap-3">
-              {processedProfiles.map((profile) => (
-                <button
-                  key={profile.id}
-                  onClick={() => handleProfileCardClick(profile)}
-                  className="group relative flex items-center gap-4 p-4 rounded-lg bg-black/20 border border-white/10 hover:border-white/30 transition-all duration-200 cursor-pointer"
-                >
-                {/* Profile Icon */}
-                <div className="relative w-16 h-16 flex-shrink-0 rounded-lg flex items-center justify-center overflow-hidden border-2 transition-all duration-200 group-hover:border-white/30"
-                  style={{
-                    borderColor: 'transparent',
+              {onInstallToNewProfile && (
+                <Button
+                  variant="secondary"
+                  size="md"
+                  icon={<FolderPlus size={14} strokeWidth={1.75} />}
+                  onClick={() => {
+                    console.log('🆕 Switching to quick profile creation view');
+                    switchToQuickProfileView();
                   }}
                 >
-                  <ProfileIconV2 profile={profile} size="md" className="w-full h-full" />
-                </div>
+                  {t('profiles.new_profile')}
+                </Button>
+              )}
+            </div>
 
-                {/* Profile Info */}
-                <div className="flex-grow min-w-0 mr-4 pr-2 max-w-[calc(100%-140px)]">
-                  <h4 className="font-minecraft text-white text-lg whitespace-nowrap overflow-hidden text-ellipsis max-w-full normal-case group-hover:text-white mb-1 text-left"
-                      title={profile.name}
-                  >
-                    {profile.name}
-                  </h4>
-
-                  {/* Profile Details */}
-                  <div className="flex items-center gap-2 text-xs font-minecraft">
-                    {/* Minecraft Version */}
-                    <div className="text-white/70 flex items-center gap-1">
-                      <img
-                        src="/icons/minecraft.png"
-                        alt="Minecraft"
-                        className="w-3 h-3 object-contain"
-                      />
-                      <span>{profile.game_version}</span>
-                    </div>
-
-                    <div className="w-px h-3 bg-white/30"></div>
-
-                    {/* Loader Version */}
-                    <div className="text-white/60 flex items-center gap-1">
-                      <img
-                        src={getModLoaderIcon(profile)}
-                        alt={profile.loader || t('common.vanilla')}
-                        className="w-3 h-3 object-contain"
-                      />
-                      <span>
-                        {profile.loader === "vanilla"
-                          ? t('common.vanilla')
-                          : profile.loader_version || profile.loader
-                        }
-                      </span>
-                    </div>
-
-                    <div className="w-px h-3 bg-white/30"></div>
-
-                    {/* Last Played */}
-                    <div className="text-white/50">
-                      {formatLastPlayed(profile.last_played)}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Install/Uninstall Button */}
-                {(() => {
-                  const isInstalling = installingProfiles[profile.id];
-                  const isUninstalling = uninstallingProfiles[profile.id];
-                  const isInstalled = installStatus[profile.id];
-                  const canUninstall = onUninstallClick && version && isInstalled && !isUninstalling && !isInstalling;
-
-                  console.log(`🔘 Button for ${profile.name}:`, { isInstalling, isUninstalling, isInstalled, canUninstall });
-
-                  if (isUninstalling) {
-                    // Show uninstalling button with spinner
-                    return (
-                      <button
-                        disabled
-                        className="flex-shrink-0 px-3 py-1 text-base font-smallcaps rounded-lg border transition-all duration-200 flex items-center gap-2 bg-red-900/30 text-red-300 cursor-wait border-red-700/30"
-                      >
-                        <Icon icon="svg-spinners:ring-resize" className="w-4 h-4" />
-                        <span>{t('modrinth.uninstalling')}</span>
-                      </button>
-                    );
-                  } else if (canUninstall) {
-                    // Show uninstall button for installed content (compatible with ModrinthInstallModalV2)
-                    return (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          console.log('🗑️ Starting uninstallation for:', profile.name);
-                          handleUninstallClick(profile);
-                        }}
-                        disabled={isInstalling || isUninstalling}
-                        className="flex-shrink-0 px-3 py-1 text-base font-smallcaps rounded-lg border transition-all duration-200 hover:scale-105 flex items-center gap-2 bg-red-900/30 hover:bg-red-800/40 text-red-300 hover:text-red-200 border-red-700/30 hover:border-red-600/40"
-                      >
-                        <Icon icon="solar:trash-bin-trash-bold" className="w-4 h-4" />
-                        <span>{t('common.uninstall')}</span>
-                      </button>
-                    );
-                  } else {
-                    // Show install button (original logic)
-                    return (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (!isInstalling && !isInstalled) {
-                            console.log('🚀 Starting installation for:', profile.name);
-                            handleInstallClick(profile);
-                          } else {
-                            console.log('⏳ Cannot install - already installing or installed:', profile.name);
-                          }
-                        }}
-                        disabled={isInstalling || isInstalled}
-                        className={`flex-shrink-0 px-3 py-1 text-base font-smallcaps rounded-lg border transition-all duration-200 flex items-center gap-2 ${
-                          isInstalled
-                            ? 'cursor-default'
-                            : isInstalling
-                            ? 'bg-black/30 text-white/70 cursor-wait border-white/10'
-                            : 'bg-black/30 hover:bg-black/40 text-white/70 hover:text-white border-white/10 hover:border-white/20 hover:scale-105'
-                        }`}
-                        style={
-                          isInstalled
-                            ? {
-                                backgroundColor: 'transparent',
-                                border: 'none',
-                                color: accentColor.value,
-                              }
-                            : undefined
-                        }
-                        onMouseEnter={(e) => {
-                          if (isInstalled) {
-                            e.currentTarget.style.backgroundColor = `${accentColor.value}20`;
-                            e.currentTarget.style.textShadow = `0 0 8px ${accentColor.value}40`;
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (isInstalled) {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                            e.currentTarget.style.textShadow = 'none';
-                          }
-                        }}
-                      >
-                        {isInstalled ? (
-                          <>
-                            <Icon icon="solar:check-circle-bold" className="w-4 h-4" />
-                            <span>{t('modrinth.installed')}</span>
-                          </>
-                        ) : isInstalling ? (
-                          <>
-                            <Icon icon="svg-spinners:ring-resize" className="w-4 h-4" />
-                            <span>{t('modrinth.installing')}</span>
-                          </>
-                        ) : (
-                          <>
-                            <Icon icon="solar:download-bold" className="w-4 h-4" />
-                            <span>{t('modrinth.install')}</span>
-                          </>
-                        )}
-                      </button>
-                    );
+            {processedProfiles.length === 0 ? (
+              <div className="min-h-[320px] flex flex-col items-center justify-center gap-2 text-center">
+                <FolderX size={20} strokeWidth={1.5} className="text-fg-4" />
+                <h3 className="text-[13px] font-[560] text-fg-2 normal-case tracking-normal">
+                  {profiles.length === 0 ? t('modrinth.no_profiles_available') : t('modrinth.no_profiles_found')}
+                </h3>
+                <p className="text-[12.5px] text-fg-3">
+                  {profiles.length === 0
+                    ? t('modrinth.create_profile_first')
+                    : t('modrinth.adjust_search_filters')
                   }
-                })()}
-              </button>
-            ))}
-            </div>
-          </div>
-            )}
-
-            {/* Footer buttons for profile list view */}
-            <div className="flex justify-end items-center mt-6 pt-4 border-t border-white/10">
-              <button
-                onClick={() => {
-                  console.log('❌ Closing modal');
-                  onClose();
-                }}
-                className="flex items-center gap-2 px-4 py-2 text-white/70 hover:text-white transition-colors duration-200 text-xs font-smallcaps"
+                </p>
+              </div>
+            ) : (
+              <div
+                className="min-h-[320px] max-h-[420px] overflow-y-auto custom-scrollbar border border-line"
+                style={{ borderRadius: "var(--r-md)" }}
               >
-                <span>{t('common.close')}</span>
-              </button>
-            </div>
+                {processedProfiles.map((profile) => (
+                  <div
+                    key={profile.id}
+                    onClick={() => handleProfileCardClick(profile)}
+                    className={cn(
+                      "group h-12 flex items-center gap-3 px-3 border-b border-line last:border-b-0 hover:bg-s2 transition-colors duration-fast",
+                      onProfileClick && "cursor-pointer",
+                    )}
+                  >
+                    {/* Profile Icon */}
+                    <div
+                      className="w-8 h-8 flex-shrink-0 overflow-hidden"
+                      style={{ borderRadius: "var(--r-sm)" }}
+                    >
+                      <ProfileIconV2 profile={profile} size="sm" className="w-full h-full" />
+                    </div>
+
+                    {/* Profile Info */}
+                    <div className="flex-grow min-w-0">
+                      <div className="text-[13px] font-[520] text-fg truncate" title={profile.name}>
+                        {profile.name}
+                      </div>
+
+                      {/* Profile Details */}
+                      <div className="flex items-center gap-1.5 cc-num text-[11px] text-fg-4 min-w-0 mt-px">
+                        <span className="text-fg-3">{profile.game_version}</span>
+                        <span>·</span>
+                        <img
+                          src={getModLoaderIcon(profile)}
+                          alt=""
+                          className="w-3 h-3 object-contain opacity-70"
+                        />
+                        <span className="truncate">
+                          {profile.loader === "vanilla"
+                            ? t('common.vanilla')
+                            : profile.loader_version || profile.loader
+                          }
+                        </span>
+                        <span>·</span>
+                        <span className="truncate">{formatLastPlayed(profile.last_played)}</span>
+                      </div>
+                    </div>
+
+                    {/* Install/Uninstall Button */}
+                    {(() => {
+                      const isInstalling = installingProfiles[profile.id];
+                      const isUninstalling = uninstallingProfiles[profile.id];
+                      const isInstalled = installStatus[profile.id];
+                      const canUninstall = onUninstallClick && version && isInstalled && !isUninstalling && !isInstalling;
+
+                      console.log(`🔘 Button for ${profile.name}:`, { isInstalling, isUninstalling, isInstalled, canUninstall });
+
+                      if (isUninstalling) {
+                        // Show uninstalling state with spinner
+                        return (
+                          <span className="flex-shrink-0 inline-flex items-center gap-1.5 px-2 text-[12px] text-fg-3">
+                            <Loader2 size={13} className="animate-spin" />
+                            {t('modrinth.uninstalling')}
+                          </span>
+                        );
+                      } else if (canUninstall) {
+                        // Installed: label plus a quiet uninstall control
+                        return (
+                          <span className="flex-shrink-0 flex items-center gap-1">
+                            <span className="inline-flex items-center gap-1 px-1.5 text-[12px] text-fg-2">
+                              <Check size={13} strokeWidth={2.25} className="text-ok" />
+                              {t('modrinth.installed')}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                console.log('🗑️ Starting uninstallation for:', profile.name);
+                                handleUninstallClick(profile);
+                              }}
+                              disabled={isInstalling || isUninstalling}
+                              className="cc-icon-btn hover:text-err"
+                              title={t('common.uninstall')}
+                              aria-label={t('common.uninstall')}
+                            >
+                              <Trash2 size={14} strokeWidth={1.75} />
+                            </button>
+                          </span>
+                        );
+                      } else if (isInstalled) {
+                        return (
+                          <span className="flex-shrink-0 inline-flex items-center gap-1 px-2 text-[12px] text-fg-2">
+                            <Check size={13} strokeWidth={2.25} className="text-ok" />
+                            {t('modrinth.installed')}
+                          </span>
+                        );
+                      } else {
+                        // Show install button (original logic)
+                        return (
+                          <Button
+                            variant="secondary"
+                            size="xs"
+                            className="flex-shrink-0 min-w-[96px]"
+                            icon={isInstalling ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} strokeWidth={1.75} />}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!isInstalling && !isInstalled) {
+                                console.log('🚀 Starting installation for:', profile.name);
+                                handleInstallClick(profile);
+                              } else {
+                                console.log('⏳ Cannot install - already installing or installed:', profile.name);
+                              }
+                            }}
+                            disabled={isInstalling || isInstalled}
+                          >
+                            {isInstalling ? t('modrinth.installing') : t('modrinth.install')}
+                          </Button>
+                        );
+                      }
+                    })()}
+                  </div>
+                ))}
+              </div>
+            )}
           </>
         )}
       </div>

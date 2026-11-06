@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import { useThemeStore } from "../../store/useThemeStore";
-import { getVariantColors } from "./design-system";
 
 export function ScrollbarProvider() {
   const accentColor = useThemeStore((state) => state.accentColor);
@@ -16,9 +15,10 @@ export function ScrollbarProvider() {
         : null;
     };
 
-    const colors = getVariantColors("default", accentColor);
+    // "Werkzeug": scrollbars are neutral (globals.css draws them in --s4), never the accent
+    const colors = { main: "#2c2c31", light: "#3a3a40" };
     const root = document.documentElement;
-    
+
     root.style.setProperty("--scrollbar-thumb-color", colors.main);
     root.style.setProperty("--scrollbar-thumb-hover-color", colors.light);
     root.style.setProperty("--scrollbar-radius", `${Math.max(2, Math.round(borderRadius * 0.5))}px`);

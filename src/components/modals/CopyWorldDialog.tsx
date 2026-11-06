@@ -6,7 +6,7 @@ import { Modal } from "../ui/Modal";
 import { Button } from "../ui/buttons/Button";
 import { Input }  from "../ui/Input";
 import { Select } from "../ui/Select";
-import { Icon } from "@iconify/react";
+import { Copy, Loader2, TriangleAlert } from "lucide-react";
 import type { Profile } from "../../types/profile"; // Assuming this path is correct
 
 interface CopyWorldDialogProps {
@@ -79,24 +79,50 @@ export function CopyWorldDialog({
   return (
     <Modal
       title={t('copy_world.title', { name: sourceWorldName })}
-      titleIcon={<Icon icon="solar:copy-bold-duotone" className="w-6 h-6" />}
+      titleIcon={<Copy size={16} strokeWidth={1.75} />}
       onClose={onClose}
-      width="md"
+      width="sm"
+      footer={
+        <div className="flex justify-end items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={onClose} disabled={isCopying}>
+            {t('common.cancel')}
+          </Button>
+          <Button
+            variant="default"
+            size="sm"
+            onClick={handleConfirm}
+            disabled={isCopying || isLoadingProfiles || !targetProfileId || !targetWorldName.trim()}
+            icon={isCopying ? <Loader2 size={15} strokeWidth={1.75} className="animate-spin" /> : null}
+          >
+            {isCopying ? t('copy_world.button.copying') : t('copy_world.button.copy')}
+          </Button>
+        </div>
+      }
     >
-      <div className="p-6 flex flex-col gap-4">
+      <div className="px-5 py-5 flex flex-col gap-4">
         {displayError && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-            <strong className="font-bold">{t('common.error')}: </strong>
-            <span className="block sm:inline">{displayError}</span>
+          <div
+            className="flex items-start gap-2 border border-err/30 bg-err/[0.06] px-3 py-2 text-[12px]"
+            style={{ borderRadius: "var(--r-md)" }}
+            role="alert"
+          >
+            <TriangleAlert size={14} strokeWidth={1.75} className="mt-px flex-shrink-0 text-err" />
+            <span className="text-fg-2">
+              <strong className="font-medium text-err">{t('common.error')}: </strong>
+              {displayError}
+            </span>
           </div>
         )}
 
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="copy-dialog-target-profile" className="font-medium text-white/80">
-            {t('copy_world.copy_to_profile')}:
+        <div className="flex flex-col">
+          <label htmlFor="copy-dialog-target-profile" className="mb-1.5 text-[12px] font-medium text-fg-2">
+            {t('copy_world.copy_to_profile')}
           </label>
           {isLoadingProfiles ? (
-            <div className="text-white/60">{t('copy_world.loading_profiles')}</div>
+            <div className="flex items-center gap-2 h-9 text-[12.5px] text-fg-3">
+              <Loader2 size={14} strokeWidth={1.75} className="animate-spin" />
+              {t('copy_world.loading_profiles')}
+            </div>
           ) : (
             <Select
               value={targetProfileId}
@@ -108,9 +134,9 @@ export function CopyWorldDialog({
           )}
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="target-world-name" className="font-medium text-white/80">
-            {t('copy_world.new_world_name')}:
+        <div className="flex flex-col">
+          <label htmlFor="target-world-name" className="mb-1.5 text-[12px] font-medium text-fg-2">
+            {t('copy_world.new_world_name')}
           </label>
           <Input
             id="target-world-name"
@@ -121,21 +147,6 @@ export function CopyWorldDialog({
             disabled={isCopying}
           />
         </div>
-      </div>
-
-      {/* Footer */}
-      <div className="px-6 py-4 flex justify-end items-center gap-3">
-        <Button variant="secondary" onClick={onClose} disabled={isCopying}>
-          {t('common.cancel')}
-        </Button>
-        <Button
-          variant="success"
-          onClick={handleConfirm}
-          disabled={isCopying || isLoadingProfiles || !targetProfileId || !targetWorldName.trim()}
-          icon={isCopying ? <Icon icon="svg-spinners:ring-resize" className="h-4 w-4" /> : null}
-        >
-          {isCopying ? t('copy_world.button.copying') : t('copy_world.button.copy')}
-        </Button>
       </div>
     </Modal>
   );

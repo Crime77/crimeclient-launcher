@@ -1,15 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Icon } from "@iconify/react";
+import { ArrowLeft, Check, ImagePlus, Loader2, TriangleAlert } from "lucide-react";
 import type { ModLoader } from "../../../types/profile";
 import { Modal } from "../../ui/Modal";
 import { Button } from "../../ui/buttons/Button";
 import { StatusMessage } from "../../ui/StatusMessage";
-import { useThemeStore } from "../../../store/useThemeStore";
 import { SearchStyleInput } from "../../ui/Input";
 import { RangeSlider } from "../../ui/RangeSlider";
-import { Card } from "../../ui/Card";
 import { Checkbox } from "../../ui/Checkbox";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import { NoriskModEntryDefinition, NoriskModpacksConfig, NoriskPackDefinition } from "../../../types/noriskPacks";
@@ -21,6 +19,7 @@ import { getRandomBlockIcon } from "../../../data/block-icons";
 import { getDefaultMemoryMaxMb, getSystemRamMb } from "../../../services/profile-service";
 import { logError } from "../../../utils/logging-utils";
 import { parseErrorMessage } from "../../../utils/error-utils";
+import { WizardSteps, FieldLabel } from "./WizardParts";
 
 const forbiddenChars = /[<>:"/\\|?*]/g;
 const forbiddenTrailing = /[ .]$/;
@@ -55,7 +54,6 @@ export function ProfileWizardV2Step3({
     defaultGroup
 }: ProfileWizardV2Step3Props) {
     const { t } = useTranslation();
-    const accentColor = useThemeStore((state) => state.accentColor);
     const { showModal, hideModal } = useGlobalModal();
     const [chosenIcon, setChosenIcon] = useState<ChosenIcon>(() => ({ url: getRandomBlockIcon().url }));
     const [profileName, setProfileName] = useState("");
@@ -278,16 +276,17 @@ export function ProfileWizardV2Step3({
         const iconPreviewSrc = "url" in chosenIcon ? chosenIcon.url : convertFileSrc(chosenIcon.path);
 
         return (
-            <div className="space-y-8">
-                {/* Profile Details */}
-                <div className="flex gap-4 items-end">
-                    {/* Profile Icon — no label so it doesn't add a row that offsets the inputs */}
+            <div className="space-y-6">
+                {/* Icon, name and group */}
+                <div className="flex gap-3 items-end">
+                    {/* Profile icon: no label so it doesn't add a row that offsets the inputs */}
                     <button
                         type="button"
                         onClick={openIconPicker}
                         title={t('profiles.wizard.profileIcon')}
-                        className="w-[52px] h-[52px] flex-shrink-0 rounded-lg border-2 overflow-hidden flex items-center justify-center bg-black/30 hover:scale-105 transition-transform"
-                        style={{ borderColor: `${accentColor.value}80` }}
+                        aria-label={t('profiles.wizard.profileIcon')}
+                        className="group relative w-[56px] h-[56px] flex-shrink-0 overflow-hidden grid place-items-center bg-s3 border border-line-2 hover:border-line-3 transition-colors duration-fast"
+                        style={{ borderRadius: "var(--r-md)" }}
                     >
                         <img
                             src={iconPreviewSrc}
@@ -295,65 +294,61 @@ export function ProfileWizardV2Step3({
                             className="w-full h-full object-cover"
                             onLoad={handleIconImgLoad}
                         />
+                        <span className="absolute inset-0 grid place-items-center bg-bg/60 opacity-0 group-hover:opacity-100 transition-opacity duration-fast">
+                            <ImagePlus size={16} strokeWidth={1.75} className="text-fg" />
+                        </span>
                     </button>
-                    <div className="grid grid-cols-2 gap-4 flex-1">
-                    <div className="space-y-2">
-                        <label className="block text-base font-minecraft text-white/50">
-                            {t('profiles.wizard.profileName')}
-                        </label>
-                        <SearchStyleInput
-                            value={profileName}
-                            onChange={handleProfileNameChange}
-                            placeholder={t('profiles.wizard.enterProfileName')}
-                            required
-                        />
+                    <div className="grid grid-cols-2 gap-3 flex-1">
+                        <div>
+                            <FieldLabel>{t('profiles.wizard.profileName')}</FieldLabel>
+                            <SearchStyleInput
+                                value={profileName}
+                                onChange={handleProfileNameChange}
+                                placeholder={t('profiles.wizard.enterProfileName')}
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <FieldLabel>{t('profiles.wizard.groupOptional')}</FieldLabel>
+                            <SearchStyleInput
+                                value={profileGroup}
+                                onChange={(e) => setProfileGroup(e.target.value)}
+                                placeholder={t('profiles.wizard.enterGroupName')}
+                            />
+                        </div>
+                    </div>
+                </div>
+                {(profileCharRemoved || profileNameHasForbiddenEnding) && (
+                    <div className="-mt-4 pl-[68px] space-y-0.5">
                         {profileCharRemoved && (
-                            <p className="text-xs text-red-400 font-minecraft mt-1">
-                                {t('profiles.wizard.forbiddenChars')}
-                            </p>
+                            <p className="text-[12px] text-err">{t('profiles.wizard.forbiddenChars')}</p>
                         )}
                         {profileNameHasForbiddenEnding && (
-                            <p className="text-xs text-red-400 font-minecraft mt-1">
-                                {t('profiles.wizard.forbiddenEnding')}
-                            </p>
+                            <p className="text-[12px] text-err">{t('profiles.wizard.forbiddenEnding')}</p>
                         )}
                     </div>
+                )}
 
-                    <div className="space-y-2">
-                        <label className="block text-base font-minecraft text-white/50">
-                            {t('profiles.wizard.groupOptional')}
-                        </label>
-                        <SearchStyleInput
-                            value={profileGroup}
-                            onChange={(e) => setProfileGroup(e.target.value)}
-                            placeholder={t('profiles.wizard.enterGroupName')}
-                        />
-                    </div>
-                    </div>
+                {/* Shared folder */}
+                <div className="pt-5 border-t border-line">
+                    <Checkbox
+                        label={t('profiles.wizard.useSharedFolder')}
+                        checked={useSharedMinecraftFolder}
+                        onChange={(event) => setUseSharedMinecraftFolder(event.target.checked)}
+                        description={t('profiles.wizard.sharedFolderDescription')}
+                        size="md"
+                    />
+                    <p className="text-[11.5px] text-fg-4 ml-[26px] mt-1">
+                        {t('profiles.wizard.canChangeAnytime')}
+                    </p>
                 </div>
 
-                {/* Checkbox Options */}
-                <div className="grid grid-cols-1 gap-3">
-                    <div className="space-y-1">
-                        <Checkbox
-                            label={t('profiles.wizard.useSharedFolder')}
-                            checked={useSharedMinecraftFolder}
-                            onChange={(event) => setUseSharedMinecraftFolder(event.target.checked)}
-                            description={t('profiles.wizard.sharedFolderDescription')}
-                            descriptionClassName="font-minecraft text-sm"
-                            size="lg"
-                        />
-                        <p className="text-xs text-white/50 font-minecraft ml-10 -mt-1">
-                            {t('profiles.wizard.canChangeAnytime')}
-                        </p>
-                    </div>
-                </div>
-
-                {/* RAM Settings */}
-                <div className="space-y-3">
-                    <label className="block text-base font-minecraft text-white/50">
-                        {t('profiles.wizard.recommendedRam', { ram: recommendedRam || 4096 })}
-                    </label>
+                {/* Memory */}
+                <div className="pt-5 border-t border-line">
+                    <FieldLabel hint={<span className="cc-num">{t('profiles.wizard.recommendedRam', { ram: recommendedRam || 4096 })}</span>}>
+                        {t('profiles.wizard.memoryLabel')}
+                    </FieldLabel>
                     <RangeSlider
                         value={effectiveMemoryMaxMb}
                         onChange={handleMemoryChange}
@@ -369,8 +364,8 @@ export function ProfileWizardV2Step3({
                     />
                 </div>
 
-                {/* NoRisk Client features */}
-                <div className="space-y-2">
+                {/* CrimeClient features */}
+                <div className="pt-5 border-t border-line space-y-2">
                     <Checkbox
                         label={t('profiles.wizard.useNrcFeatures')}
                         checked={Boolean(selectedNoriskPackId)}
@@ -379,44 +374,40 @@ export function ProfileWizardV2Step3({
                                 event.target.checked ? defaultNoriskPackId : null,
                             )
                         }
-                        size="lg"
+                        size="md"
                         disabled={packsLoading || !defaultNoriskPackId}
                     />
 
                     {showYellowWarning ? (
-                        <p className="text-sm text-yellow-400 font-minecraft">
+                        <p className="flex items-center gap-1.5 ml-[26px] text-[12px] text-warn">
+                            <TriangleAlert size={13} strokeWidth={1.75} className="flex-shrink-0" />
                             {t('profiles.wizard.nrcIncompatibleWarning')}
                         </p>
                     ) : (
-                        <p className="text-sm text-white/50 font-minecraft">
+                        <p className="ml-[26px] text-[12px] text-fg-3">
                             {t('profiles.wizard.noriskPackDescription')}
                         </p>
                     )}
 
                     {checkingCompatibility && (
-                        <div className="flex items-center gap-2 text-white/70">
-                            <Icon icon="svg-spinners:ring-resize" className="w-4 h-4" />
-                            <span className="text-sm font-minecraft">
+                        <div className="flex items-center gap-2 ml-[26px] text-fg-3">
+                            <Loader2 size={13} strokeWidth={1.75} className="animate-spin" />
+                            <span className="text-[12px]">
                                 {t('profiles.wizard.checkingCompatibility')}
                             </span>
                         </div>
                     )}
 
                     {packCompatibilityWarning && (
-                        <Card
-                            variant="flat"
-                            className="p-3 bg-red-900/20 border border-red-500/30"
+                        <div
+                            className="ml-[26px] flex items-start gap-2 px-3 py-2 border border-err/30 bg-err/[0.06]"
+                            style={{ borderRadius: "var(--r-md)" }}
                         >
-                            <div className="flex items-start gap-2">
-                                <Icon
-                                    icon="solar:danger-triangle-bold"
-                                    className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5"
-                                />
-                                <p className="text-xs text-red-300 font-minecraft">
-                                    {packCompatibilityWarning}
-                                </p>
-                            </div>
-                        </Card>
+                            <TriangleAlert size={14} strokeWidth={1.75} className="text-err flex-shrink-0 mt-px" />
+                            <p className="text-[12px] text-fg-2">
+                                {packCompatibilityWarning}
+                            </p>
+                        </div>
                     )}
                 </div>
             </div>
@@ -426,32 +417,31 @@ export function ProfileWizardV2Step3({
     const renderFooter = () => (
         <div className="flex justify-between items-center">
             <Button
-                variant="secondary"
+                variant="ghost"
                 onClick={onBack}
                 disabled={creating}
-                size="md"
-                className="text-sm"
-                icon={<Icon icon="solar:arrow-left-bold" className="w-5 h-5" />}
+                size="sm"
+                icon={<ArrowLeft size={15} strokeWidth={1.75} />}
                 iconPosition="left"
             >
                 {t('profiles.wizard.back')}
             </Button>
 
             <Button
-                variant="success"
+                variant="default"
                 onClick={handleCreate}
                 disabled={
                     creating ||
                     !profileName.trim() ||
                     profileNameHasForbiddenEnding
                 }
-                size="md"
-                className="min-w-[180px] text-sm"
+                size="sm"
+                className="min-w-[128px]"
                 icon={
                     creating ? (
-                        <Icon icon="svg-spinners:ring-resize" className="w-5 h-5" />
+                        <Loader2 size={15} strokeWidth={1.75} className="animate-spin" />
                     ) : (
-                        <Icon icon="solar:check-circle-bold" className="w-5 h-5" />
+                        <Check size={15} strokeWidth={2} />
                     )
                 }
                 iconPosition="left"
@@ -463,12 +453,13 @@ export function ProfileWizardV2Step3({
 
     return (
         <Modal
-            title={t('profiles.wizard.step3Title')}
+            title={t('profiles.newProfile')}
             onClose={onClose}
             width="lg"
             footer={renderFooter()}
         >
-            <div className="min-h-[500px] p-6 overflow-hidden">
+            <WizardSteps current={3} />
+            <div className="min-h-[460px] px-5 py-5">
                 {renderContent()}
             </div>
         </Modal>

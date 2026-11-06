@@ -31,7 +31,7 @@ export function ImportPreviewChips(props: ImportPreviewChipsProps) {
   const { t } = useTranslation();
 
   return (
-    <span className="text-sm text-white/45 font-minecraft tracking-wide">
+    <span className="cc-num text-[11.5px] text-fg-3">
       {buildPreviewChips(props, t)}
     </span>
   );

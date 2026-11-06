@@ -1,12 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Icon } from "@iconify/react";
+import { Smartphone } from "lucide-react";
 
 import { Button } from "../ui/buttons/Button";
 import { Modal } from "../ui/Modal";
 import { StatusMessage } from "../ui/StatusMessage";
-import { useThemeStore } from "../../store/useThemeStore";
 import { exportVertical, samePath } from "../../services/clip-service";
 import { useClipEngineEvents, writeFailed } from "./useClipEngineEvents";
 import { parseErrorMessage } from "../../utils/error-utils";
@@ -28,7 +27,6 @@ type Stage =
   | { kind: "failed"; why: string };
 
 export function VerticalExport({ src, path, onClose, onDone, t }: Props) {
-  const accentColor = useThemeStore((state) => state.accentColor);
   const [stage, setStage] = useState<Stage>({ kind: "idle" });
   const [size, setSize] = useState<{ width: number; height: number } | null>(null);
 
@@ -77,27 +75,26 @@ export function VerticalExport({ src, path, onClose, onDone, t }: Props) {
     <div className="flex items-center gap-4">
       <div className="min-w-0 flex-1">
         {running ? (
-          <div className="flex flex-col gap-1.5">
-            <div className="h-1.5 overflow-hidden rounded-full bg-black/40 border border-white/10">
+          <div className="flex flex-col gap-2">
+            <div className="h-[2px] overflow-hidden bg-s3">
               <div
                 className={cn(
-                  "h-full rounded-full transition-[width] duration-200",
+                  "h-full bg-accent transition-[width] duration-med",
                   percent === null && "w-1/3 animate-pulse",
                 )}
                 style={{
-                  backgroundColor: accentColor.value,
                   width: percent === null ? undefined : `${Math.max(2, percent)}%`,
                 }}
               />
             </div>
-            <p className="font-minecraft text-xs text-white/60">
+            <p className="font-mono text-[11px] text-fg-3">
               {percent === null
                 ? t("clips.vertical.starting")
                 : t("clips.vertical.progress", { percent })}
             </p>
           </div>
         ) : (
-          <p className="font-minecraft text-xs text-white/60">
+          <p className="font-mono text-[11px] text-fg-3">
             {kept
               ? t("clips.vertical.result", { width: kept.width, height: kept.height })
               : t("clips.vertical.measuring")}
@@ -109,7 +106,7 @@ export function VerticalExport({ src, path, onClose, onDone, t }: Props) {
         <Button
           variant="default"
           size="sm"
-          icon={<Icon icon="solar:smartphone-bold" className="w-4 h-4" />}
+          icon={<Smartphone size={15} strokeWidth={1.75} />}
           onClick={() => void start()}
           disabled={!kept}
         >
@@ -122,9 +119,9 @@ export function VerticalExport({ src, path, onClose, onDone, t }: Props) {
   return (
     <Modal
       title={t("clips.vertical.title")}
-      titleIcon={<Icon icon="solar:smartphone-bold" className="w-5 h-5" />}
+      titleIcon={<Smartphone size={16} strokeWidth={1.75} />}
       titleSubtitle={
-        <span className="font-minecraft text-xs text-white/60">{t("clips.vertical.subtitle")}</span>
+        <span className="text-xs text-fg-3">{t("clips.vertical.subtitle")}</span>
       }
       onClose={onClose}
       width="lg"
@@ -136,7 +133,7 @@ export function VerticalExport({ src, path, onClose, onDone, t }: Props) {
           <StatusMessage type="error" message={stage.why} className="mb-0" />
         )}
 
-        <div className="relative overflow-hidden rounded-lg bg-black border border-white/10">
+        <div className="relative overflow-hidden rounded-md border border-line bg-black">
           <video
             src={src}
             muted
@@ -154,15 +151,14 @@ export function VerticalExport({ src, path, onClose, onDone, t }: Props) {
 
           {kept && size && (
             <div className="pointer-events-none absolute inset-0 flex justify-center">
-              <div className="h-full flex-1 bg-black/65" />
+              <div className="h-full flex-1 bg-black/70" />
               <div
-                className="h-full shrink-0 border-x-2"
+                className="h-full shrink-0 border-x border-fg/80"
                 style={{
                   width: `${(kept.width / size.width) * 100}%`,
-                  borderColor: accentColor.value,
                 }}
               />
-              <div className="h-full flex-1 bg-black/65" />
+              <div className="h-full flex-1 bg-black/70" />
             </div>
           )}
         </div>

@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Icon } from "@iconify/react";
+import { useTranslation } from "react-i18next";
+import { Check, PenLine } from "lucide-react";
 import { cn } from "../lib/utils";
-import { FONT_PRESETS } from "../config/fonts";
+import { DEFAULT_FONT_ID, FONT_PRESETS } from "../config/fonts";
 import { CUSTOM_FONT_ID, useFontStore } from "../store/font-store";
 import { Combobox } from "./ui/Combobox";
 
@@ -19,7 +20,12 @@ const COMMON_FONTS = [
   "Verdana", "Inter", "Roboto", "Open Sans", "monospace", "serif", "sans-serif",
 ];
 
+/** what every tile writes in its own font */
+const SAMPLE = "Aa Gg 0123";
+
+/** Font presets as text samples: each tile is set in the font it picks. */
 export function FontSelector({ disabled }: FontSelectorProps) {
+  const { t } = useTranslation();
   const { fontId, setFont, customFamily, setCustomFamily } = useFontStore();
   const presets = Object.values(FONT_PRESETS);
   const isCustom = fontId === CUSTOM_FONT_ID;
@@ -37,90 +43,91 @@ export function FontSelector({ disabled }: FontSelectorProps) {
 
   const tileClass = (selected: boolean) =>
     cn(
-      "relative flex items-center gap-3 px-4 py-3 rounded-lg border-2 transition-all duration-200",
-      selected ? "border-white/60 bg-white/10" : "border-[#ffffff20] bg-black/20",
-      disabled
-        ? "opacity-40 cursor-not-allowed"
-        : "hover:border-[#ffffff40] hover:bg-white/5 cursor-pointer",
+      "relative flex flex-col gap-2 min-w-0 px-3 pt-2.5 pb-3 text-left border transition-colors duration-fast ease-out",
+      selected ? "border-line-3 bg-s2" : "border-line hover:border-line-2 hover:bg-s2",
+      disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer",
     );
+
+  const head = (name: string, selected: boolean, isDefault = false) => (
+    <span className="flex items-center gap-2 h-4">
+      <span className={cn("text-xs font-[520] truncate", selected ? "text-fg" : "text-fg-2")}>{name}</span>
+      {isDefault && <span className="text-[11px] text-fg-4">{t("settings.font.default")}</span>}
+      {selected && <Check size={13} strokeWidth={2} className="ml-auto text-fg flex-shrink-0" />}
+    </span>
+  );
+
+  const customStyle = customFamily?.trim() ? { fontFamily: `"${customFamily}", sans-serif` } : undefined;
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap gap-3">
+      <div className="grid grid-cols-3 gap-2">
         {presets.map((preset) => {
           const isSelected = fontId === preset.id;
           return (
             <button
               key={preset.id}
+              type="button"
               onClick={() => {
                 if (!disabled) setFont(preset.id);
               }}
               disabled={disabled}
+              aria-pressed={isSelected}
               className={tileClass(isSelected)}
+              style={{ borderRadius: "var(--r-md)" }}
             >
-              <div
-                className={cn(
-                  "w-8 h-8 rounded-md border-2 border-white/20 flex items-center justify-center text-lg leading-none text-white transition-transform",
-                  isSelected && "scale-105",
-                )}
-                style={{ fontFamily: preset.preview }}
-              >
-                Aa
-              </div>
+              {head(preset.name, isSelected, preset.id === DEFAULT_FONT_ID)}
               <span
-                className={cn("text-base transition-colors", isSelected ? "text-white" : "text-white/80")}
-                style={{ fontFamily: preset.preview }}
+                className={cn("block truncate text-[20px] leading-6", isSelected ? "text-fg" : "text-fg-2")}
+                style={{ fontFamily: preset.preview, fontStretch: preset.displayStretch ?? "100%" }}
               >
-                {preset.name}
+                {SAMPLE}
               </span>
-              {isSelected && (
-                <Icon icon="solar:check-circle-bold" className="w-5 h-5 text-white absolute top-2 right-2" />
-              )}
             </button>
           );
         })}
 
         <button
+          type="button"
           onClick={() => {
             if (!disabled) setFont(CUSTOM_FONT_ID);
           }}
           disabled={disabled}
+          aria-pressed={isCustom}
           className={tileClass(isCustom)}
+          style={{ borderRadius: "var(--r-md)" }}
         >
-          <div
-            className={cn(
-              "w-8 h-8 rounded-md border-2 border-white/20 flex items-center justify-center text-lg leading-none text-white transition-transform",
-              isCustom && "scale-105",
-            )}
-            style={customFamily ? { fontFamily: `"${customFamily}", sans-serif` } : undefined}
-          >
-            <Icon icon="solar:pen-bold" className="w-4 h-4" />
-          </div>
-          <span
-            className={cn("text-base transition-colors", isCustom ? "text-white" : "text-white/80")}
-            style={customFamily ? { fontFamily: `"${customFamily}", sans-serif` } : undefined}
-          >
-            {customFamily?.trim() ? customFamily : "Custom"}
-          </span>
-          {isCustom && (
-            <Icon icon="solar:check-circle-bold" className="w-5 h-5 text-white absolute top-2 right-2" />
+          {head(customFamily?.trim() ? customFamily : t("settings.font.custom"), isCustom)}
+          {customStyle ? (
+            <span
+              className={cn("block truncate text-[20px] leading-6", isCustom ? "text-fg" : "text-fg-2")}
+              style={customStyle}
+            >
+              {SAMPLE}
+            </span>
+          ) : (
+            <span className="flex items-center gap-2 h-6 text-[13px] text-fg-3">
+              <PenLine size={14} strokeWidth={1.75} />
+              {t("settings.font.custom_hint")}
+            </span>
           )}
         </button>
       </div>
 
       {isCustom && (
-        <div className="flex flex-col gap-1.5 max-w-md">
+        <div className="flex flex-col gap-1.5 max-w-sm">
           <Combobox
             value={customFamily}
             onChange={setCustomFamily}
             options={fonts}
             disabled={disabled}
             allowClear
-            placeholder="Pick or type a font (e.g. Comic Sans MS, Inter)"
-            inputStyle={customFamily ? { fontFamily: `"${customFamily}", sans-serif` } : undefined}
+            placeholder={t("settings.font.custom_placeholder")}
+            inputStyle={customStyle}
             optionStyle={(f) => ({ fontFamily: `"${f}", sans-serif` })}
           />
-          <span className="text-xs text-white/40 font-minecraft">{fonts.length} fonts available</span>
+          <span className="text-[11px] text-fg-3">
+            {t("settings.font.available", { count: fonts.length })}
+          </span>
         </div>
       )}
     </div>

@@ -771,10 +771,11 @@ impl ProcessManager {
 
         #[cfg(unix)]
         {
-            // Potentially unnecessary if handled by dropping Child, but kept for safety
-            // use std::os::unix::process::CommandExt;
-            // log::debug!("Applying setsid for Unix detachment.");
-            // command.setsid(); // Consider if really needed
+            // The game gets its own process group, so a Ctrl+C or hang-up meant for the launcher (or its
+            // terminal) does not take it down too, like CREATE_NEW_PROCESS_GROUP on Windows.
+            use std::os::unix::process::CommandExt;
+            log::debug!("Starting the game in its own process group for Unix detachment.");
+            command.process_group(0);
         }
         #[cfg(windows)]
         {

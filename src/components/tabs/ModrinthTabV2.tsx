@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { ModrinthSearchV2 } from "../modrinth/v2/ModrinthSearchV2";
 import type { Profile } from "../../types/profile";
 import { useProfileStore } from "../../store/profile-store";
@@ -12,9 +13,11 @@ interface ModrinthTabV2Props {
   profiles?: Profile[];
 }
 
+/** The Mods page: a short header, then the search (toolbar, filter column, result rows). */
 export function ModrinthTabV2({
   profiles: initialProfiles = [],
 }: ModrinthTabV2Props) {
+  const { t } = useTranslation();
   const {
     profiles: storeProfiles,
     loading,
@@ -53,12 +56,19 @@ export function ModrinthTabV2({
   );
 
   return (
-    <div className="h-full flex flex-col overflow-hidden p-4 relative">
-      {error && <ErrorMessage message={error} />}
+    <div className="h-full flex flex-col overflow-hidden relative">
+      <header className="flex-shrink-0 px-6 pt-5 pb-4">
+        <h1 className="font-display text-[22px] leading-[1.15] font-[650] text-fg">{t("mods.page.title")}</h1>
+        <p className="text-[13px] text-fg-3 mt-1">{t("mods.page.subtitle")}</p>
+      </header>
 
-      <div className="flex-1 overflow-hidden flex space-x-4">
-        <div className="flex-1 overflow-hidden">{memoizedSearch}</div>
-      </div>
+      {error && (
+        <div className="px-6 pb-3 flex-shrink-0">
+          <ErrorMessage message={error} />
+        </div>
+      )}
+
+      <div className="flex-1 min-h-0 overflow-hidden px-6">{memoizedSearch}</div>
     </div>
   );
 }

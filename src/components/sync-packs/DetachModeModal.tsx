@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Icon } from "@iconify/react";
+import { Copy, Unlink } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { Modal } from "../ui/Modal";
 import { Button } from "../ui/buttons/Button";
-import { useThemeStore } from "../../store/useThemeStore";
+import { cn } from "../../lib/utils";
+import { choiceCardClasses } from "../profiles/wizard-v2/WizardParts";
 import type { DetachMode } from "../../types/syncPacks";
 
 export interface DetachModeModalProps {
@@ -20,9 +22,9 @@ export interface DetachModeModalProps {
   onConfirm: (mode: DetachMode) => void;
 }
 
-const CHOICES: { mode: DetachMode; icon: string }[] = [
-  { mode: "keep_copy", icon: "solar:copy-bold" },
-  { mode: "drop", icon: "solar:link-broken-bold" },
+const CHOICES: { mode: DetachMode; icon: ReactNode }[] = [
+  { mode: "keep_copy", icon: <Copy size={16} strokeWidth={1.75} /> },
+  { mode: "drop", icon: <Unlink size={16} strokeWidth={1.75} /> },
 ];
 
 export function DetachModeModal({
@@ -36,27 +38,24 @@ export function DetachModeModal({
   onConfirm,
 }: DetachModeModalProps) {
   const { t } = useTranslation();
-  const accentColor = useThemeStore((state) => state.accentColor);
   const [mode, setMode] = useState<DetachMode>("keep_copy");
 
   return (
     <Modal
       title={title}
       titleSubtitle={
-        <span className="font-minecraft text-xs normal-case text-white/45">
-          {subtitle}
-        </span>
+        <span>{subtitle}</span>
       }
       onClose={onCancel}
       width="md"
       footer={
         <div className="flex items-center justify-end gap-2">
-          <Button variant="secondary" size="md" onClick={onCancel}>
+          <Button variant="ghost" size="sm" onClick={onCancel}>
             {t("common.cancel")}
           </Button>
           <Button
             variant="default"
-            size="md"
+            size="sm"
             onClick={() => onConfirm(mode)}
             disabled={busy}
           >
@@ -65,38 +64,39 @@ export function DetachModeModal({
         </div>
       }
     >
-      <div className="space-y-3 px-8 pb-6 pt-5">
+      <div className="space-y-2 px-5 py-5" role="radiogroup">
         {CHOICES.map((choice) => {
           const active = mode === choice.mode;
           return (
             <button
               key={choice.mode}
+              type="button"
+              role="radio"
+              aria-checked={active}
               onClick={() => setMode(choice.mode)}
-              className="flex w-full items-start gap-4 rounded-lg border px-5 py-4 text-left transition-colors"
-              style={{
-                borderColor: active
-                  ? `${accentColor.value}66`
-                  : "rgba(255,255,255,0.1)",
-                backgroundColor: active
-                  ? `${accentColor.value}12`
-                  : "rgba(255,255,255,0.02)",
-              }}
+              className={cn("flex w-full items-start gap-3 px-4 py-3", choiceCardClasses(active))}
+              style={{ borderRadius: "var(--r-lg)" }}
             >
-              <Icon
-                icon={choice.icon}
-                className="mt-0.5 h-5 w-5 flex-shrink-0"
-                style={{
-                  color: active ? accentColor.value : "rgba(255,255,255,0.35)",
-                }}
-              />
-              <div className="min-w-0 flex-1">
-                <div className="font-minecraft text-base text-white/90">
+              <span className={cn("mt-px flex-shrink-0", active ? "text-fg" : "text-fg-3")}>
+                {choice.icon}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className={cn("block text-[13px] font-medium", active ? "text-fg" : "text-fg-2")}>
                   {t(`${choicePrefix}.${choice.mode}.title`)}
-                </div>
-                <div className="mt-1 font-minecraft text-sm leading-relaxed text-white/45">
+                </span>
+                <span className="mt-0.5 block text-[12px] leading-relaxed text-fg-3">
                   {t(`${choicePrefix}.${choice.mode}.hint`)}
-                </div>
-              </div>
+                </span>
+              </span>
+              <span
+                className={cn(
+                  "mt-0.5 grid place-items-center w-3.5 h-3.5 rounded-full border flex-shrink-0",
+                  active ? "border-fg" : "border-line-3",
+                )}
+                aria-hidden
+              >
+                {active && <span className="w-1.5 h-1.5 rounded-full bg-fg" />}
+              </span>
             </button>
           );
         })}

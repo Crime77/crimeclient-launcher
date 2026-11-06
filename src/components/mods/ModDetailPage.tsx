@@ -3,7 +3,9 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams, useNavigate } from "react-router-dom";
-import { Icon } from "@iconify/react";
+import { AlertTriangle, ArrowLeft, Loader2 } from "lucide-react";
+import { cn } from "../../lib/utils";
+import { Button } from "../ui/buttons/Button";
 import { ModrinthService } from "../../services/modrinth-service";
 import { setDiscordState } from "../../utils/discordRpc";
 import { CurseForgeService } from "../../services/curseforge-service";
@@ -215,7 +217,9 @@ export function ModDetailPage({
   const [project, setProject] = useState<UnifiedProjectDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showVersions, setShowVersions] = useState(false);
+  // Which tab is open: the description (default), the gallery, or the version table
+  const [view, setView] = useState<"description" | "gallery" | "versions">("description");
+  const showVersions = view === "versions";
 
   useEffect(() => { setDiscordState("Viewing a Mod"); }, []);
 
@@ -390,126 +394,142 @@ export function ModDetailPage({
   };
 
   // Loading state
+  const backButton = !hideBackButton && (
+    <button
+      type="button"
+      onClick={handleBack}
+      className="h-7 -ml-1.5 px-1.5 inline-flex items-center gap-1.5 text-[12.5px] text-fg-3 hover:text-fg hover:bg-s2 transition-colors duration-fast"
+      style={{ borderRadius: "var(--r-sm)" }}
+    >
+      <ArrowLeft size={14} strokeWidth={1.75} />
+      <span>{t('common.back')}</span>
+    </button>
+  );
+
   if (isLoading) {
     return (
-      <div className="flex flex-col h-full p-6">
-        {!hideBackButton && (
-          <button
-            onClick={handleBack}
-            className="flex items-center gap-2 text-white/70 hover:text-white mb-6 font-minecraft transition-colors"
-          >
-            <Icon icon="solar:arrow-left-bold" className="w-5 h-5" />
-            <span>{t('common.back')}</span>
-          </button>
-        )}
+      <div className="flex flex-col h-full px-6 pt-4 pb-6">
+        {backButton}
         <div className="flex-1 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-4">
-            <Icon icon="svg-spinners:ring-resize" className="w-12 h-12 text-white/50" />
-            <span className="text-white/50 font-minecraft">{t('mod_detail.loading_project')}</span>
+          <div className="flex items-center gap-2 text-[13px] text-fg-3">
+            <Loader2 size={15} className="animate-spin" />
+            <span>{t('mod_detail.loading_project')}</span>
           </div>
         </div>
       </div>
     );
   }
 
-  // Error state
   if (error || !project) {
     return (
-      <div className="flex flex-col h-full p-6">
-        {!hideBackButton && (
-          <button
-            onClick={handleBack}
-            className="flex items-center gap-2 text-white/70 hover:text-white mb-6 font-minecraft transition-colors"
-          >
-            <Icon icon="solar:arrow-left-bold" className="w-5 h-5" />
-            <span>{t('common.back')}</span>
-          </button>
-        )}
+      <div className="flex flex-col h-full px-6 pt-4 pb-6">
+        {backButton}
         <div className="flex-1 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-4">
-            <Icon icon="solar:danger-triangle-bold" className="w-12 h-12 text-red-500" />
-            <span className="text-red-400 font-minecraft">{error || t('mod_detail.project_not_found')}</span>
-            <button
-              onClick={handleBack}
-              className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-white font-minecraft transition-colors"
-            >
+          <div className="flex flex-col items-center gap-3 text-center max-w-[420px]">
+            <AlertTriangle size={20} strokeWidth={1.75} className="text-err" />
+            <span className="text-[13px] text-fg-2">{error || t('mod_detail.project_not_found')}</span>
+            <Button variant="secondary" size="sm" onClick={handleBack}>
               {t('mod_detail.go_back')}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
     );
   }
+
+  const hasGallery = project.gallery.length > 0;
+  const tabs: { id: typeof view; label: string; count?: number }[] = [
+    { id: "description", label: t('mod_detail.description') },
+    ...(hasGallery ? [{ id: "gallery" as const, label: t('mods.detail.gallery'), count: project.gallery.length }] : []),
+    { id: "versions", label: t('mods.detail.versions') },
+  ];
+  // the gallery tab disappears when a project has no images
+  const activeView = view === "gallery" && !hasGallery ? "description" : view;
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Back Button — hidden when embedded inside a host that provides its
-          own back control (e.g. the V3 Add-content sheet's breadcrumb). */}
-      {!hideBackButton && (
-        <div className="px-6 pt-6 pb-4">
-          <button
-            onClick={handleBack}
-            className="flex items-center gap-2 text-white/70 hover:text-white font-minecraft transition-colors"
-          >
-            <Icon icon="solar:arrow-left-bold" className="w-5 h-5" />
-            <span>{t('common.back')}</span>
-          </button>
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar">
+        <div className={cn("px-6", hideBackButton ? "pt-6" : "pt-4")}>
+          {/* Back Button — hidden when embedded inside a host that provides its
+              own back control (e.g. the V3 Add-content sheet's breadcrumb). */}
+          {backButton && <div className="mb-3">{backButton}</div>}
+
+          {/* Header */}
+          <ModDetailHeader
+            project={project}
+            accentColor={accentColor}
+            showVersions={showVersions}
+            onToggleVersions={() => setView(showVersions ? "description" : "versions")}
+            targetProfile={targetProfile}
+            installTarget={installTarget}
+          />
         </div>
-      )}
 
-      {/* Scrollable Content — `custom-scrollbar` gives this area the same
-          accent-themed scrollbar as the rest of the V3 UI; without it the
-          native Chromium default shows up here and reads as foreign. */}
-      <div className={`flex-1 overflow-y-auto custom-scrollbar px-6 pb-6 ${hideBackButton ? "pt-6" : ""}`}>
-        {/* Header */}
-        <ModDetailHeader
-          project={project}
-          accentColor={accentColor}
-          showVersions={showVersions}
-          onToggleVersions={() => setShowVersions(!showVersions)}
-          targetProfile={targetProfile}
-          installTarget={installTarget}
-        />
+        {/* Tabs: text with an underline */}
+        <div className="sticky top-0 z-10 bg-bg mt-5 px-6 border-b border-line">
+          <div role="tablist" className="flex items-center gap-5">
+            {tabs.map((tab) => {
+              const active = activeView === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setView(tab.id)}
+                  className={cn(
+                    "relative h-10 inline-flex items-center gap-1.5 text-[13px] font-[520] transition-colors duration-fast",
+                    active ? "text-fg" : "text-fg-3 hover:text-fg-2",
+                  )}
+                >
+                  {tab.label}
+                  {tab.count !== undefined && (
+                    <span className="cc-num text-[11px] text-fg-4">{tab.count}</span>
+                  )}
+                  <span
+                    className={cn(
+                      "absolute left-0 right-0 -bottom-px h-[2px] bg-fg transition-opacity duration-fast",
+                      active ? "opacity-100" : "opacity-0",
+                    )}
+                  />
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
-        {showVersions ? (
-          /* Versions View */
-          <div className="mt-6">
+        <div className="px-6 pt-5 pb-8">
+          {activeView === "versions" ? (
+            /* Versions View */
             <ModDetailVersions
               project={project}
               targetProfile={targetProfile}
               installTarget={installTarget}
             />
-          </div>
-        ) : (
-          /* Default View: Gallery + Description + Sidebar */
-          <>
-            {/* Gallery */}
-            {project.gallery.length > 0 && (
-              <div className="mt-6">
-                <ModDetailGallery images={project.gallery} />
-              </div>
-            )}
-
-            {/* Content Layout */}
-            <div className="mt-6 flex flex-col lg:flex-row gap-6">
-              {/* Main Content - grows to fill space */}
+          ) : (
+            /* Description or Gallery, with the fact column on the right */
+            <div className="flex flex-col md:flex-row gap-8">
               <div className="flex-1 min-w-0">
-                <ModDetailDescription
-                  body={project.body}
-                  source={project.source}
-                />
+                {activeView === "gallery" ? (
+                  <ModDetailGallery images={project.gallery} />
+                ) : (
+                  <ModDetailDescription
+                    body={project.body}
+                    source={project.source}
+                  />
+                )}
               </div>
 
-              {/* Sidebar - fixed max width */}
-              <div className="w-full lg:w-72 xl:w-80 flex-shrink-0">
+              <aside className="w-full md:w-[240px] flex-shrink-0 md:border-l md:border-line md:pl-6">
                 <ModDetailSidebar
                   project={project}
                   accentColor={accentColor}
                 />
-              </div>
+              </aside>
             </div>
-          </>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

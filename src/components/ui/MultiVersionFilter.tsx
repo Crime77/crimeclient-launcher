@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Icon } from "@iconify/react";
+import { Check, ChevronDown, Gamepad2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useThemeStore } from "../../store/useThemeStore";
+import { cn } from "../../lib/utils";
 
 export interface VersionFilterOption {
   value: string;
@@ -30,7 +30,6 @@ export function MultiVersionFilter({
   const isSm = size === "sm";
   const [isOpen, setIsOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const accentColor = useThemeStore((state) => state.accentColor);
 
   const isActive = selected.length > 0;
 
@@ -46,82 +45,75 @@ export function MultiVersionFilter({
 
   return (
     <div className="relative w-auto" ref={ref}>
-      {/* Trigger button (icon-only, accent-tinted while a filter is active) */}
+      {/* Trigger: a quiet toolbar button; an active filter shows its count */}
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center gap-2 rounded-md px-2 py-1 text-white font-minecraft transition-all duration-200 focus:outline-none ${
-          isSm ? "text-sm" : "text-xl"
-        }`}
-        style={{
-          boxShadow: isOpen ? `0 0 0 1px ${accentColor.value}40` : "none",
-          backgroundColor: isActive ? `${accentColor.value}15` : "transparent",
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = `${accentColor.value}25`;
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = isActive
-            ? `${accentColor.value}15`
-            : "transparent";
-        }}
+        className={cn(
+          "flex items-center gap-1.5 px-2 font-[520] transition-colors duration-fast focus:outline-none",
+          isSm ? "h-7 text-xs" : "h-8 text-[13px]",
+          isOpen || isActive ? "bg-s3 text-fg" : "text-fg-2 hover:text-fg hover:bg-s3",
+        )}
+        style={{ borderRadius: "var(--r-sm)" }}
         title={isActive ? selected.join(", ") : t("profiles.filter.title")}
       >
-        <Icon
-          icon="solar:gamepad-bold"
-          className="w-4 h-4"
-          style={{ color: isActive ? accentColor.value : "rgba(255, 255, 255, 0.7)" }}
-        />
+        <Gamepad2 size={14} strokeWidth={1.75} className={isActive ? "text-fg-2" : "text-fg-3"} />
+        <span>{t("profiles.filter.versions")}</span>
         {isActive && (
-          <span
-            className="min-w-[1rem] text-center text-xs font-minecraft rounded-full px-1"
-            style={{ backgroundColor: `${accentColor.value}30`, color: accentColor.value }}
-          >
+          <span className="cc-num min-w-[16px] h-4 px-1 flex items-center justify-center rounded-sm bg-s4 text-[11px] text-fg">
             {selected.length}
           </span>
         )}
+        <ChevronDown
+          size={isSm ? 13 : 14}
+          strokeWidth={1.75}
+          className={cn("text-fg-3 transition-transform duration-med ease-out", isOpen && "rotate-180")}
+        />
       </button>
 
       {/* Dropdown menu */}
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 w-56 bg-black/90 backdrop-blur-sm border border-white/20 rounded-lg shadow-xl z-50 overflow-hidden">
-          <div className="flex items-center justify-between px-3 py-2 border-b border-white/10">
-            <span className="text-white/60 font-minecraft text-xs lowercase">{t("profiles.filter.versions")}</span>
+        <div className="cc-popover cc-pop absolute top-full right-0 mt-1.5 w-56 z-50 overflow-hidden">
+          <div className="flex items-center justify-between px-3 h-8 border-b border-line">
+            <span className="cc-eyebrow">{t("profiles.filter.versions")}</span>
             {isActive && (
               <button
+                type="button"
                 onClick={onClear}
-                className="text-white/60 hover:text-white font-minecraft text-xs lowercase transition-colors"
+                className="text-fg-3 hover:text-fg text-xs transition-colors duration-fast"
               >
                 {t("profiles.filter.clear")}
               </button>
             )}
           </div>
-          <div className="py-1 max-h-72 overflow-y-auto no-scrollbar">
+          <div className="p-1 max-h-72 overflow-y-auto custom-scrollbar">
             {options.length === 0 && (
-              <div className="px-3 py-2 text-white/40 font-minecraft text-xs">{t("profiles.filter.noVersions")}</div>
+              <div className="px-2.5 py-2 text-fg-3 text-xs">{t("profiles.filter.noVersions")}</div>
             )}
             {options.map((option) => {
               const checked = selected.includes(option.value);
               return (
                 <button
+                  type="button"
                   key={option.value}
                   onClick={() => onToggle(option.value)}
-                  className={`w-full flex items-center gap-2.5 text-left font-minecraft transition-colors duration-150 ${
-                    isSm ? "px-3 py-1.5 text-xs" : "px-3 py-2 text-sm"
-                  } ${checked ? "text-white" : "text-white/80 hover:bg-white/5 hover:text-white"}`}
-                  style={{ backgroundColor: checked ? `${accentColor.value}20` : undefined }}
+                  className={cn(
+                    "w-full flex items-center gap-2.5 text-left rounded-sm transition-colors duration-fast",
+                    isSm ? "px-2 py-1.5 text-xs" : "px-2.5 py-2 text-[13px]",
+                    checked ? "text-fg" : "text-fg-2 hover:bg-s3 hover:text-fg",
+                  )}
                 >
-                  {/* checkbox */}
+                  {/* checkbox: --fg fill with a dark check */}
                   <span
-                    className="w-4 h-4 rounded-sm border flex items-center justify-center flex-shrink-0"
-                    style={{
-                      borderColor: checked ? accentColor.value : "rgba(255,255,255,0.3)",
-                      backgroundColor: checked ? accentColor.value : "transparent",
-                    }}
+                    className={cn(
+                      "w-3.5 h-3.5 rounded-sm border flex items-center justify-center flex-shrink-0 transition-colors duration-fast",
+                      checked ? "bg-fg border-fg text-bg" : "border-line-3 bg-s2",
+                    )}
                   >
-                    {checked && <Icon icon="solar:check-circle-bold" className="w-3 h-3 text-black" />}
+                    {checked && <Check size={10} strokeWidth={3} />}
                   </span>
-                  <span className="flex-1">{option.value}</span>
-                  <span className="text-white/40 text-xs">{option.count}</span>
+                  <span className="flex-1 cc-num">{option.value}</span>
+                  <span className="cc-num text-fg-4 text-[11px]">{option.count}</span>
                 </button>
               );
             })}

@@ -2,11 +2,9 @@
 
 import type React from "react";
 import { useEffect, useRef, useState, useCallback } from "react";
-import { useThemeStore } from "../../store/useThemeStore";
 import { cn } from "../../lib/utils";
-import { Icon } from "@iconify/react";
-import { 
-  getBorderRadiusClass,
+import { Star } from "lucide-react";
+import {
   getAccessibilityProps,
   type ComponentSize,
   type ComponentVariant 
@@ -57,7 +55,6 @@ export function RangeSlider({
   recommendedRange,
   unit,
 }: RangeSliderProps) {
-  const accentColor = useThemeStore((state) => state.accentColor);
   const [isHovered, setIsHovered] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [localValue, setLocalValue] = useState(value);
@@ -69,7 +66,6 @@ export function RangeSlider({
   const inputRef = useRef<HTMLInputElement>(null);
   const lastChangeTimeRef = useRef(0);
   
-  const radiusClass = getBorderRadiusClass();
   const accessibilityProps = getAccessibilityProps({
     label,
     description,
@@ -81,23 +77,17 @@ export function RangeSlider({
     if (!isDragging) {
       setLocalValue(value);
     }
-  }, [value, isDragging]);  const sizeConfig = {
-    sm: {
-      track: "h-2",
-      thumb: "w-5 h-5",
-      text: "text-xs",
-    },
-    md: {
-      track: "h-3",
-      thumb: "w-6 h-6",
-      text: "text-base",
-    },
-    lg: {
-      track: "h-4",
-      thumb: "w-8 h-8",
-      text: "text-lg",
-    },
+  }, [value, isDragging]);
+
+  // a thin track, a neutral fill, a small round knob (px)
+  const sizeTable = {
+    xs: { track: 3, thumb: 10, text: "text-xs" },
+    sm: { track: 3, thumb: 10, text: "text-xs" },
+    md: { track: 4, thumb: 12, text: "text-[13px]" },
+    lg: { track: 4, thumb: 14, text: "text-[13px]" },
+    xl: { track: 5, thumb: 16, text: "text-sm" },
   };
+  const dims = sizeTable[size] ?? sizeTable.md;
 
   const getPercentage = useCallback((val: number) => {
     return ((val - min) / (max - min)) * 100;
@@ -112,7 +102,7 @@ export function RangeSlider({
 
     if (valueDisplayRef.current) {
       valueDisplayRef.current.innerHTML = unit
-        ? `${newValue} <span class="text-white/70">${unit}</span>`
+        ? `${newValue} <span class="text-fg-3">${unit}</span>`
         : String(newValue);
     }
   }, [getPercentage, unit]);
@@ -213,80 +203,57 @@ export function RangeSlider({
     };
   }, [isDragging, calculateValueFromMouseEvent, onChange, handleMouseUp]);
 
+  const isRecommended =
+    (recommendedValue !== undefined &&
+      (Array.isArray(recommendedValue)
+        ? recommendedValue.includes(localValue)
+        : localValue === recommendedValue)) ||
+    (recommendedRange !== undefined &&
+      localValue >= recommendedRange[0] &&
+      localValue <= recommendedRange[1]);
+
   return (
     <div
       ref={sliderRef}
       className={cn(
-        "relative w-full",
+        "group/slider relative w-full",
         disabled && "opacity-50 cursor-not-allowed",
         className,
       )}
     >
       {valueLabel && (
-        <div className="flex items-center gap-2 mb-2">
-          {icon && <span className="text-white">{icon}</span>}
-          <span
-            className={cn(
-              "text-white tracking-wide font-minecraft",
-              sizeConfig[size].text,
-            )}
-          >
+        <div className="flex items-center gap-2 mb-1.5">
+          {icon && <span className="text-fg-3 flex items-center">{icon}</span>}
+          <span className={cn("text-fg font-[520]", dims.text)}>
             {valueLabel}
           </span>
         </div>
       )}
 
-      <div className="mb-2">
+      <div>
         {showValue && (
-          <div className="flex justify-between mb-1">
+          <div className="flex items-baseline justify-between gap-3 mb-0.5">
             {minLabel && (
-              <span
-                className={cn(
-                  "text-white/70 font-minecraft",
-                  sizeConfig[size].text,
-                )}
-              >
+              <span className="cc-num text-[11px] text-fg-3">
                 {minLabel}
               </span>
             )}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <span
                 ref={valueDisplayRef}
-                className={cn(
-                  "text-white font-minecraft",
-                  sizeConfig[size].text,
-                )}
+                className="cc-num text-xs text-fg"
               >
                 {localValue}
                 {unit && (
-                  <span className="text-white/70 ml-1">{unit}</span>
+                  <span className="text-fg-3 ml-1">{unit}</span>
                 )}
               </span>
-              {/* Star at recommendedValue(s) */}
-              {(recommendedValue !== undefined &&
-                (
-                  Array.isArray(recommendedValue)
-                    ? recommendedValue.includes(localValue)
-                    : localValue === recommendedValue
-                )
-              ) ||
-                (recommendedRange &&
-                  localValue >= recommendedRange[0] &&
-                  localValue <= recommendedRange[1])
-              ? (
-                <Icon
-                  icon="solar:star-bold"
-                  className="w-3 h-3 text-yellow-400"
-                />
+              {isRecommended ? (
+                <Star size={11} strokeWidth={2} className="text-warn fill-current" />
               ) : null}
             </div>
             {maxLabel && (
-              <span
-                className={cn(
-                  "text-white/70 font-minecraft",
-                  sizeConfig[size].text,
-                )}
-              >
+              <span className="cc-num text-[11px] text-fg-3">
                 {maxLabel}
               </span>
             )}
@@ -294,64 +261,46 @@ export function RangeSlider({
         )}
 
         <div
-          className="relative pt-4 pb-4 cursor-pointer"
+          className="relative py-2.5 cursor-pointer"
           onMouseDown={handleMouseDown}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
-        >          <div
-            className={cn(
-              "relative overflow-hidden transition-colors duration-200",
-              "border border-white/10",
-              "focus-within:ring-1 focus-within:ring-white/30",
-              radiusClass,
-              sizeConfig[size].track,
-            )}
-            style={{
-              backgroundColor: `${accentColor.value}15`,
-              borderColor: `${accentColor.value}40`,
-            }}
+        >
+          <div
+            className="relative overflow-hidden rounded-full bg-s4"
+            style={{ height: dims.track }}
             ref={trackRef}
           >
             <div
               ref={progressRef}
-              className={cn("absolute h-full", radiusClass)}
-              style={{
-                width: `${getPercentage(localValue)}%`,
-                backgroundColor: `${accentColor.value}${isHovered ? "60" : "50"}`,
-              }}
+              className={cn(
+                "absolute inset-y-0 left-0 rounded-full transition-colors duration-fast",
+                isHovered || isDragging ? "bg-fg-2" : "bg-fg-3",
+              )}
+              style={{ width: `${getPercentage(localValue)}%` }}
             />
           </div>
 
           <div
             ref={thumbRef}
             className={cn(
-              "absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 cursor-grab",
+              "absolute top-1/2 z-10 rounded-full bg-fg cursor-grab",
+              "transition-transform duration-fast ease-out",
               isDragging && "cursor-grabbing",
-              "border-2",
-              radiusClass,
-              sizeConfig[size].thumb,
-              "transition-colors duration-200",
             )}
             style={{
-              backgroundColor: `${accentColor.value}${isHovered || isDragging ? "90" : "80"}`,
-              borderColor: `${accentColor.value}`,
+              width: dims.thumb,
+              height: dims.thumb,
               left: `${getPercentage(localValue)}%`,
-              transform: isDragging
-                ? "translate(-50%, -50%) scale(1.1)"
+              transform: isDragging || isHovered
+                ? "translate(-50%, -50%) scale(1.15)"
                 : "translate(-50%, -50%) scale(1)",
             }}
-          >
-            <div
-              className={cn("absolute inset-0 bg-gradient-to-b from-white/20 to-transparent transition-opacity duration-200", radiusClass)}
-              style={{ opacity: isHovered || isDragging ? 1 : 0.5 }}
-            />
-
-            <div className="absolute inset-0 flex items-center justify-center opacity-70">
-              <div className="w-2/3 h-[2px] bg-white/50"></div>
-            </div>
-          </div>
+          />
         </div>
-      </div>      <input
+      </div>
+
+      <input
         ref={inputRef}
         type="range"
         min={min}
@@ -372,7 +321,7 @@ export function RangeSlider({
       {description && (
         <p 
           id={accessibilityProps["aria-describedby"]}
-          className="text-sm text-gray-400 mt-1 font-minecraft"
+          className="text-xs text-fg-3 mt-1"
         >
           {description}
         </p>

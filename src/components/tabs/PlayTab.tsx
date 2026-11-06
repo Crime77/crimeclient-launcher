@@ -17,7 +17,7 @@ import { LaunchDock } from "../launcher/LaunchDock";
 /** Pack id of the CrimeClient standard profile (tools/build_modpack.py in CraftCosmetics). */
 const CRIMECLIENT_PACK = "crimeclient";
 
-/** Start page: greeting and the player on a large glass card, the launch dock below it, server and news on the right. */
+/** Start page: the home server in one line, greeting and player on the left, news on the right, the launch bar below. */
 export function PlayTab() {
   const { t } = useTranslation();
   const {
@@ -63,56 +63,57 @@ export function PlayTab() {
   const outline = { strength: 4, thickness: 3, sensitivity: 0.1 };
 
   return (
-    <div className="flex h-full gap-4">
-      <section className="relative flex-1 min-w-0 flex flex-col cc-glass overflow-hidden" style={{ borderRadius: 28 }}>
-        {/* soft accent light behind the player */}
-        <div
-          className="absolute left-1/2 top-[18%] -translate-x-1/2 w-[560px] h-[560px] rounded-full blur-[100px] opacity-30 pointer-events-none"
-          style={{ background: "radial-gradient(circle, var(--accent) 0%, transparent 65%)" }}
-        />
-        <div className="absolute inset-x-0 bottom-0 h-1/2 pointer-events-none bg-gradient-to-t from-black/55 to-transparent" />
-
-        <div className="relative z-10 flex items-start justify-between p-8 pb-0">
-          <div>
-            <p className="text-sm font-medium text-white/50">{greeting}</p>
-            <h1 className="font-display text-[44px] leading-[1.05] font-bold text-white mt-1">
-              {playerName ?? "CrimeClient"}
-            </h1>
-            <p className="text-sm text-white/45 mt-2 max-w-[340px]">{t("play.tagline")}</p>
-          </div>
-          <label className="flex items-center gap-2.5 text-xs font-medium text-white/55 cc-glass rounded-full pl-3 pr-1.5 py-1.5">
-            {t("settings.background.skin_animation")}
-            <ToggleSwitch
-              checked={cosmeticRenderer3d && webglOk}
-              onChange={() => setCosmeticRenderer3d(!cosmeticRenderer3d)}
-              disabled={!webglOk}
-              size="sm"
-            />
-          </label>
-        </div>
-
-        <div className="relative z-0 flex-1 min-h-0 flex items-center justify-center">
-          <div className="scale-[0.9] origin-center -mt-6">
-            <PlayerRig playerName={playerName} outline={outline} />
-          </div>
-        </div>
-
-        <div className="relative z-10 p-5 pt-0">
-          {profilesError && !loading && <ErrorMessage message={profilesError} />}
-          <LaunchDock />
-        </div>
-      </section>
-
-      <div className="w-[340px] flex-shrink-0 flex flex-col gap-4 min-h-0">
+    <div className="flex flex-col h-full">
+      <div className="h-12 flex-shrink-0 flex items-center px-6 border-b border-line">
         <ServerLaunchCard
           serverName={homeServer.name}
           serverAddress={homeServer.address}
           profileId={serverProfileId}
-          className="cc-glass flex-shrink-0"
-          style={{ borderRadius: 28 }}
+          className="w-full"
         />
-        <CrimeNews className="flex-1 min-h-0 flex flex-col cc-glass overflow-hidden" style={{ borderRadius: 28 }} />
       </div>
+
+      <div className="flex-1 min-h-0 flex">
+        <section className="relative flex-1 min-w-0 flex flex-col overflow-hidden">
+          <div className="relative z-10 flex items-start justify-between gap-6 px-8 pt-8">
+            <div className="min-w-0">
+              <p className="text-[13px] text-fg-3">{greeting}</p>
+              <h1
+                className="font-display text-[46px] leading-[1] font-[720] text-fg mt-2 truncate tracking-[-0.02em]"
+                style={{ fontStretch: "122%" }}
+              >
+                {playerName ?? "CrimeClient"}
+              </h1>
+              <p className="text-[13px] text-fg-3 mt-3 max-w-[360px] leading-[1.5]">{t("play.tagline")}</p>
+            </div>
+            <label className="flex items-center gap-2.5 text-xs text-fg-3 flex-shrink-0 pt-1 cursor-pointer select-none">
+              {t("settings.background.skin_animation")}
+              <ToggleSwitch
+                checked={cosmeticRenderer3d && webglOk}
+                onChange={() => setCosmeticRenderer3d(!cosmeticRenderer3d)}
+                disabled={!webglOk}
+                size="sm"
+              />
+            </label>
+          </div>
+
+          <div className="relative z-0 flex-1 min-h-0 flex items-center justify-center">
+            <div className="scale-[0.86] origin-center -mt-10">
+              <PlayerRig playerName={playerName} outline={outline} />
+            </div>
+          </div>
+
+          {profilesError && !loading && (
+            <div className="relative z-10 px-6 pb-3">
+              <ErrorMessage message={profilesError} />
+            </div>
+          )}
+        </section>
+
+        <CrimeNews className="w-[360px] flex-shrink-0 border-l border-line bg-bg/60" />
+      </div>
+
+      <LaunchDock />
     </div>
   );
 }

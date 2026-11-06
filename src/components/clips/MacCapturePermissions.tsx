@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Icon } from "@iconify/react";
+import { Check } from "lucide-react";
 import { Button } from "../ui/buttons/Button";
 import { StatusMessage } from "../ui/StatusMessage";
 import { SettingRow } from "../ui/settings/SettingRow";
 import { SettingsSection } from "../ui/settings/SettingsSection";
-import { useThemeStore } from "../../store/useThemeStore";
 import {
   applyClipSettings,
   openCapturePermissionSettings,
@@ -25,7 +24,6 @@ interface Props {
 
 export function MacCapturePermissions({ enabled, saving }: Props) {
   const { t } = useTranslation();
-  const accentColor = useThemeStore((state) => state.accentColor);
   const { permissions, requested, busy, error, check } = useCapturePermissionsStore();
   const [actionError, setActionError] = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
@@ -90,12 +88,8 @@ export function MacCapturePermissions({ enabled, saving }: Props) {
             description={optional ? `${t("settings.clips.permissions.optional")} · ${hint}` : hint}
           >
             {granted ? (
-              <span className="flex items-center gap-1.5 font-minecraft text-xs text-white/60">
-                <Icon
-                  icon="solar:check-circle-bold"
-                  className="h-4 w-4"
-                  style={{ color: accentColor.value }}
-                />
+              <span className="flex items-center gap-1.5 text-xs text-fg-2">
+                <Check size={14} strokeWidth={2} className="text-ok" />
                 {t("settings.clips.permissions.granted")}
               </span>
             ) : (

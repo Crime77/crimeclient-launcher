@@ -1,20 +1,19 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Icon } from "@iconify/react";
+import { Loader2 } from "lucide-react";
 import type { ModLoader, Profile } from "../../../types/profile";
 import { useResolvedLoaderVersion } from "../../../hooks/useResolvedLoaderVersion";
 import type { MinecraftVersion } from "../../../types/minecraft";
 import { invoke } from "@tauri-apps/api/core";
 import { StatusMessage } from "../../ui/StatusMessage";
 import { useThemeStore } from "../../../store/useThemeStore";
+import { ToggleSwitch } from "../../ui/ToggleSwitch";
+import { SettingsRow, SettingsSection } from "./SettingsRow";
 import { SearchWithFilters } from "../../ui/SearchWithFilters";
 import { Select } from "../../ui/Select";
-import { Card } from "../../ui/Card";
-import { Checkbox } from "../../ui/Checkbox";
 import { gsap } from "gsap";
 import { cn } from "../../../lib/utils";
-import { Button } from "../../ui/buttons/Button";
 import { useTranslation } from "react-i18next";
 import { parseErrorMessage } from "../../../utils/error-utils";
 
@@ -47,7 +46,6 @@ export function InstallationSettingsTab({
   const [searchQuery, setSearchQuery] = useState("");
 
   const resolvedLoaderVersion = useResolvedLoaderVersion(editedProfile, refreshTrigger);
-  const accentColor = useThemeStore((state) => state.accentColor);
   const isBackgroundAnimationEnabled = useThemeStore(
     (state) => state.isBackgroundAnimationEnabled,
   );
@@ -348,64 +346,45 @@ export function InstallationSettingsTab({
     }
   };
 
+  const loaderOptions = [
+    { name: "vanilla", label: "Vanilla", icon: "/icons/minecraft.png" },
+    { name: "fabric", label: "Fabric", icon: "/icons/fabric.png" },
+    { name: "forge", label: "Forge", icon: "/icons/forge.png" },
+    { name: "quilt", label: "Quilt", icon: "/icons/quilt.png" },
+    { name: "neoforge", label: "NeoForge", icon: "/icons/neoforge.png" },
+  ];
+  const currentLoaderOption =
+    loaderOptions.find((l) => l.name === editedProfile.loader) ?? loaderOptions[0];
+
   return (
-    <div ref={tabRef} className="space-y-6 select-none">
+    <div ref={tabRef} className="space-y-8 select-none">
       {error && <StatusMessage type="error" message={error} />}
 
-      <div ref={currentInstallRef} className="space-y-4">
-        <div>
-          <div className="flex items-start justify-between gap-6">
-            <div className="flex-1">
-              <h3 className="text-lg font-smallcaps text-white mb-3">
-                {t('profiles.settings.currentlyInstalled')}
-              </h3>
-              <div className="flex items-center gap-3 text-sm font-minecraft">
-                {/* Minecraft Version */}
-                <div className="text-white flex items-center gap-2">
-                  <img
-                    src="/icons/minecraft.png"
-                    alt="Minecraft"
-                    className="w-4 h-4 object-contain"
-                  />
-                  <span className="font-bold">{editedProfile.game_version}</span>
-                </div>
-
-                <div className="w-px h-4 bg-white/30"></div>
-
-                {/* Loader Version */}
-                <div className="text-white/70 flex items-center gap-2">
-                  <img
-                    src={
-                      editedProfile.loader === "vanilla" ? "/icons/minecraft.png" :
-                      editedProfile.loader === "fabric" ? "/icons/fabric.png" :
-                      editedProfile.loader === "forge" ? "/icons/forge.png" :
-                      editedProfile.loader === "quilt" ? "/icons/quilt.png" :
-                      editedProfile.loader === "neoforge" ? "/icons/neoforge.png" :
-                      "/icons/minecraft.png"
-                    }
-                    alt={editedProfile.loader || "Vanilla"}
-                    className="w-4 h-4 object-contain"
-                  />
-                  <span>
-                    {editedProfile.loader === "vanilla"
-                      ? "Vanilla"
-                      : `${editedProfile.loader} ${resolvedLoaderVersion?.version || editedProfile.loader_version || ""}`.trim()}
-                  </span>
-                </div>
-              </div>
+      <SettingsSection title={t('profiles.settings.installation')}>
+        <div ref={currentInstallRef}>
+          <SettingsRow label={t('profiles.settings.currentlyInstalled')}>
+            <div className="flex items-center gap-3 cc-num text-[12px]">
+              <span className="flex items-center gap-1.5 text-fg">
+                <img src="/icons/minecraft.png" alt="Minecraft" className="w-3.5 h-3.5 object-contain" />
+                {editedProfile.game_version}
+              </span>
+              <span className="w-px h-3.5 bg-line-2" />
+              <span className="flex items-center gap-1.5 text-fg-2">
+                <img
+                  src={currentLoaderOption.icon}
+                  alt={editedProfile.loader || "Vanilla"}
+                  className="w-3.5 h-3.5 object-contain"
+                />
+                {editedProfile.loader === "vanilla"
+                  ? "vanilla"
+                  : `${editedProfile.loader} ${resolvedLoaderVersion?.version || editedProfile.loader_version || ""}`.trim()}
+              </span>
             </div>
-
-
-          </div>
+          </SettingsRow>
         </div>
-      </div>
 
-      <div ref={versionsRef} className="space-y-4">
-        <div>
-          <h3 className="text-lg font-smallcaps text-white mb-3">
-            {t('profiles.settings.gameVersion')}
-          </h3>
-          <div className="mb-3">
+        <div ref={versionsRef}>
+          <SettingsRow stacked label={t('profiles.settings.gameVersion')}>
             <SearchWithFilters
               searchValue={searchQuery}
               onSearchChange={setSearchQuery}
@@ -425,171 +404,129 @@ export function InstallationSettingsTab({
                 handleVersionTypeClick(versionType);
               }}
             />
-          </div>
 
-          <div className="flex-1 relative">
-            {isLoadingVersions ? (
-              <Card
-                variant="flat"
-                className="p-4 text-white/70 text-center border border-white/10 bg-black/20"
-              >
-                <div className="flex items-center justify-center">
-                  <Icon
-                    icon="svg-spinners:ring-resize"
-                    className="w-6 h-6 mr-2"
-                  />
-                  <span className="font-smallcaps text-base">
-                    {t('profiles.settings.loadingVersions')}
-                  </span>
+            <div
+              className="mt-2 bg-s1 border border-line max-h-48 overflow-y-auto custom-scrollbar"
+              style={{ borderRadius: "var(--r-md)" }}
+            >
+              {isLoadingVersions ? (
+                <div className="flex items-center justify-center gap-2 h-20 text-[12px] text-fg-3">
+                  <Loader2 size={14} strokeWidth={1.75} className="animate-spin" />
+                  {t('profiles.settings.loadingVersions')}
                 </div>
-              </Card>
-            ) : (
-              <Card
-                variant="flat"
-                className="max-h-48 overflow-y-auto custom-scrollbar border border-white/10 bg-black/20"
-              >
-                {filteredVersions.length === 0 ? (
-                  <div className="p-4 text-base text-white/70 text-center select-none">
-                    {t('profiles.settings.noVersionsFound')}
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 p-3">
-                    {filteredVersions.map((version) => (
-                      <Button
+              ) : filteredVersions.length === 0 ? (
+                <div className="flex items-center justify-center h-20 text-[12px] text-fg-3">
+                  {t('profiles.settings.noVersionsFound')}
+                </div>
+              ) : (
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(88px,1fr))] gap-1 p-1.5">
+                  {filteredVersions.map((version) => {
+                    const isSelected = editedProfile.game_version === version;
+                    return (
+                      <button
                         key={version}
-                        variant={
-                          editedProfile.game_version === version
-                            ? "default"
-                            : "ghost"
-                        }
-                        size="sm"
+                        type="button"
+                        aria-pressed={isSelected}
                         className={cn(
-                          "text-center text-sm w-full",
-                          editedProfile.game_version === version
-                            ? "bg-accent/20 border-accent text-white"
-                            : "bg-black/20 hover:bg-black/30 border-white/10 text-white/80 hover:text-white",
+                          "h-7 px-2 border cc-num text-[12px] truncate transition-colors duration-fast",
+                          isSelected
+                            ? "bg-s3 border-line-3 text-fg"
+                            : "border-transparent text-fg-2 hover:bg-s2 hover:text-fg",
                           profile.is_standard_version && "cursor-not-allowed opacity-50"
                         )}
+                        style={{ borderRadius: "var(--r-sm)" }}
                         onClick={() => !profile.is_standard_version && handleGameVersionClick(version)}
                         disabled={profile.is_standard_version ? true : false}
                       >
                         {version}
-                      </Button>
-                    ))}
-                  </div>
-                )}
-              </Card>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div ref={platformsRef} className="space-y-4">
-        <div>
-          <h3 className="text-lg font-smallcaps text-white mb-3">
-            {t('profiles.settings.platform')}
-          </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-            {[
-              { name: "vanilla", icon: "/icons/minecraft.png" },
-              { name: "fabric", icon: "/icons/fabric.png" },
-              { name: "forge", icon: "/icons/forge.png" },
-              { name: "quilt", icon: "/icons/quilt.png" },
-              { name: "neoforge", icon: "/icons/neoforge.png" },
-            ].map((loader) => {
-              const isCompatible = isModLoaderCompatible(
-                loader.name,
-                editedProfile.game_version,
-              );
-              const isSelected = editedProfile.loader === loader.name;
-
-              return (
-                <Card
-                  key={loader.name}
-                  variant={isSelected ? "flat" : "flat-secondary"}
-                  className={cn(
-                    "p-3 flex flex-col items-center justify-center cursor-pointer platform-${loader.name}",
-                    isSelected
-                      ? "bg-black/30 grayscale-0 text-white"
-                      : isCompatible
-                        ? "bg-black/20 text-white/70 border-white/10 hover:bg-black/30 hover:text-white hover:border-white/20"
-                        : "bg-black/10 text-white/30 border-white/10 cursor-not-allowed",
-                  )}
-                  onClick={() => isCompatible && handleLoaderClick(loader.name)}
-                >
-                  <img
-                    src={loader.icon || "/placeholder.svg"}
-                    alt={loader.name}
-                    className="w-10 h-10 mb-2 object-contain"
-                    style={{ opacity: isCompatible ? 1 : 0.5 }}
-                  />
-                  <span className="font-smallcaps text-sm">
-                    {loader.name}
-                  </span>
-                  {!isCompatible && (
-                    <span className="text-lg text-white/50 mt-1">
-                      {t('profiles.settings.notCompatible')}
-                    </span>
-                  )}
-                </Card>
-              );
-            })}
-          </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </SettingsRow>
         </div>
 
-        {editedProfile.loader !== "vanilla" && (
-          <div ref={loaderVersionRef}>
-            <h3 className="text-lg font-smallcaps text-white mb-3">{t('profiles.settings.loaderVersion', { loader: editedProfile.loader })}</h3>
-            
+        <div ref={platformsRef}>
+          <SettingsRow stacked label={t('profiles.settings.platform')}>
+            <div
+              className="grid grid-cols-5 gap-0.5 p-0.5 bg-s2 border border-line"
+              style={{ borderRadius: "var(--r-md)" }}
+              role="radiogroup"
+              aria-label={t('profiles.settings.platform')}
+            >
+              {loaderOptions.map((loader) => {
+                const isCompatible = isModLoaderCompatible(
+                  loader.name,
+                  editedProfile.game_version,
+                );
+                const isSelected = editedProfile.loader === loader.name;
+
+                return (
+                  <button
+                    key={loader.name}
+                    type="button"
+                    role="radio"
+                    aria-checked={isSelected}
+                    disabled={!isCompatible}
+                    title={isCompatible ? loader.label : t('profiles.settings.notCompatible')}
+                    className={cn(
+                      "h-8 min-w-0 flex items-center justify-center gap-2 px-2 text-[13px] transition-colors duration-fast",
+                      `platform-${loader.name}`,
+                      isSelected
+                        ? "bg-s4 text-fg font-[560]"
+                        : isCompatible
+                          ? "text-fg-2 hover:text-fg hover:bg-s3"
+                          : "text-fg-4 cursor-not-allowed",
+                    )}
+                    style={{ borderRadius: "var(--r-sm)" }}
+                    onClick={() => isCompatible && handleLoaderClick(loader.name)}
+                  >
+                    <img
+                      src={loader.icon || "/placeholder.svg"}
+                      alt=""
+                      className="w-4 h-4 object-contain flex-shrink-0"
+                      style={{ opacity: isCompatible ? 1 : 0.4 }}
+                    />
+                    <span className="truncate">{loader.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </SettingsRow>
+        </div>
+      </SettingsSection>
+
+      {editedProfile.loader !== "vanilla" && (
+        <div ref={loaderVersionRef}>
+          <SettingsSection title={t('profiles.settings.loaderVersion', { loader: editedProfile.loader })}>
             {resolvedLoaderVersion && (
-              <Card
-                variant="flat"
-                className="p-3 mb-4 border border-white/10 bg-black/20"
+              <SettingsRow
+                label={t('profiles.settings.inUse')}
+                description={
+                  resolvedLoaderVersion.reason !== "profile_default"
+                    ? getReasonText(resolvedLoaderVersion.reason)
+                    : undefined
+                }
               >
-                <div className="text-xs text-white/90 font-minecraft">
-                  {t('profiles.settings.currentLoaderVersion')}{" "}
-                  <span className="text-white font-bold">
-                    {resolvedLoaderVersion.version || t('profiles.settings.notSet')}
-                  </span>
-                  {resolvedLoaderVersion.reason !== "profile_default" && (
-                    <span className="text-white/70 ml-2">
-                      ({getReasonText(resolvedLoaderVersion.reason)})
-                    </span>
-                  )}
-                </div>
-              </Card>
+                <span className="cc-num text-[12px] text-fg">
+                  {resolvedLoaderVersion.version || t('profiles.settings.notSet')}
+                </span>
+              </SettingsRow>
             )}
-            
+
             {isLoadingLoaderVersions ? (
-              <Card
-                variant="flat"
-                className="p-4 text-white/70 text-center border border-white/10 bg-black/20"
-              >
-                <div className="flex items-center justify-center">
-                  <Icon
-                    icon="svg-spinners:ring-resize"
-                    className="w-6 h-6 mr-2"
-                  />
-                  <span className="font-smallcaps text-base">
-                    {t('profiles.settings.loadingLoaderVersions', { loader: editedProfile.loader })}
-                  </span>
-                </div>
-              </Card>
+              <div className="flex items-center gap-2 py-3.5 text-[12px] text-fg-3">
+                <Loader2 size={14} strokeWidth={1.75} className="animate-spin" />
+                {t('profiles.settings.loadingLoaderVersions', { loader: editedProfile.loader })}
+              </div>
             ) : loaderVersions.length > 0 ? (
-              <div className="space-y-4">
-                <div className="space-y-3">
-                  <Checkbox
-                    checked={editedProfile.settings.use_overwrite_loader_version}
-                    onChange={(e) => updateProfile({
-                      settings: {
-                        ...editedProfile.settings,
-                        use_overwrite_loader_version: e.target.checked
-                      }
-                    })}
-                    label={t('profiles.settings.useCustomLoaderVersion', { loader: editedProfile.loader.charAt(0).toUpperCase() + editedProfile.loader.slice(1) })}
-                    size="md"
-                  />
-                  
+              <SettingsRow
+                label={t('profiles.settings.useCustomLoaderVersion', { loader: editedProfile.loader.charAt(0).toUpperCase() + editedProfile.loader.slice(1) })}
+                description={t('profiles.settings.customLoaderVersionDescription')}
+              >
+                <div className="w-[200px]">
                   <Select
                     value={editedProfile.settings.overwrite_loader_version || ""}
                     onChange={(value) => updateProfile({
@@ -605,25 +542,30 @@ export function InstallationSettingsTab({
                         label: version,
                       })),
                     ]}
-                    className="text-base py-3"
+                    size="sm"
+                    className="cc-num"
                     variant="flat"
                     disabled={!editedProfile.settings.use_overwrite_loader_version}
                   />
                 </div>
-              </div>
+                <ToggleSwitch
+                  checked={editedProfile.settings.use_overwrite_loader_version}
+                  onChange={(checked) => updateProfile({
+                    settings: {
+                      ...editedProfile.settings,
+                      use_overwrite_loader_version: checked
+                    }
+                  })}
+                />
+              </SettingsRow>
             ) : (
-              <Card
-                variant="flat"
-                className="p-4 text-base text-white/70 text-center select-none border border-white/10 bg-black/20"
-              >
+              <div className="py-3.5 text-[12px] text-fg-3">
                 {t('profiles.settings.noLoaderVersions', { loader: editedProfile.loader, version: editedProfile.game_version })}
-              </Card>
+              </div>
             )}
-          </div>
-        )}
-      </div>
-
-
+          </SettingsSection>
+        </div>
+      )}
     </div>
   );
 }

@@ -3,7 +3,6 @@
 import type React from "react";
 import { forwardRef, useRef } from "react";
 import { cn } from "../../lib/utils";
-import { useThemeStore } from "../../store/useThemeStore";
 
 interface LabelProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?:
@@ -22,6 +21,27 @@ interface LabelProps extends React.HTMLAttributes<HTMLDivElement> {
   withAnimation?: boolean;
 }
 
+// "Werkzeug" label: a flat s3 chip with fg-2 text; state variants colour text and hairline only
+const SIZES = {
+  xs: { box: "h-5 px-1.5 text-[11px] gap-1", icon: "w-3 h-3" },
+  sm: { box: "h-6 px-2 text-xs gap-1.5", icon: "w-3.5 h-3.5" },
+  md: { box: "h-7 px-2.5 text-xs gap-1.5", icon: "w-3.5 h-3.5" },
+  lg: { box: "h-8 px-3 text-[13px] gap-2", icon: "w-4 h-4" },
+  xl: { box: "h-9 px-3.5 text-[13px] gap-2", icon: "w-4 h-4" },
+} as const;
+
+const VARIANTS: Record<NonNullable<LabelProps["variant"]>, string> = {
+  default: "bg-s3 border-transparent text-fg-2",
+  flat: "bg-s3 border-transparent text-fg-2",
+  "3d": "bg-s3 border-line-2 text-fg-2",
+  secondary: "bg-s2 border-line text-fg-3",
+  ghost: "bg-transparent border-transparent text-fg-2",
+  warning: "bg-transparent border-warn/35 text-warn",
+  destructive: "bg-transparent border-err/35 text-err",
+  info: "bg-transparent border-info/35 text-info",
+  success: "bg-transparent border-ok/35 text-ok",
+};
+
 export const Label = forwardRef<HTMLDivElement, LabelProps>(
   (
     {
@@ -37,7 +57,6 @@ export const Label = forwardRef<HTMLDivElement, LabelProps>(
     ref,
   ) => {
     const labelRef = useRef<HTMLDivElement>(null);
-    const accentColor = useThemeStore((state) => state.accentColor);
 
     const mergedRef = (node: HTMLDivElement) => {
       if (ref) {
@@ -50,168 +69,27 @@ export const Label = forwardRef<HTMLDivElement, LabelProps>(
       labelRef.current = node;
     };
 
-    const getVariantColors = () => {
-      switch (variant) {
-        case "warning":
-          return {
-            main: "#f59e0b",
-            light: "#fbbf24",
-            dark: "#d97706",
-            text: "#fef3c7",
-          };
-        case "destructive":
-          return {
-            main: "#ef4444",
-            light: "#f87171",
-            dark: "#dc2626",
-            text: "#fee2e2",
-          };
-        case "info":
-          return {
-            main: "#3b82f6",
-            light: "#60a5fa",
-            dark: "#2563eb",
-            text: "#dbeafe",
-          };
-        case "success":
-          return {
-            main: "#10b981",
-            light: "#34d399",
-            dark: "#059669",
-            text: "#d1fae5",
-          };
-        case "secondary":
-          return {
-            main: "#6b7280",
-            light: "#9ca3af",
-            dark: "#4b5563",
-            text: "#f3f4f6",
-          };
-        case "ghost":
-          return {
-            main: "transparent",
-            light: "transparent",
-            dark: "transparent",
-            text: "#ffffff",
-          };
-        case "flat":
-          return {
-            main: accentColor.value,
-            light: accentColor.hoverValue || accentColor.value,
-            dark: accentColor.value,
-            text: "#ffffff",
-          };
-        default:
-          return {
-            main: accentColor.value,
-            light: accentColor.hoverValue || accentColor.value,
-            dark: accentColor.value,
-            text: "#ffffff",
-          };
-      }
-    };
-
-    const colors = getVariantColors();    const sizeStyles = {
-      xs: "h-[32px] py-1 px-3 text-xs",
-      sm: "h-[42px] py-1 px-3 text-base",
-      md: "h-[50px] py-1.5 px-4 text-lg",
-      lg: "h-[58px] py-2 px-5 text-xl",
-      xl: "h-[66px] py-2.5 px-6 text-xl",
-    };
-
-    const iconSizes = {
-      xs: "w-3 h-3",
-      sm: "w-4 h-4",
-      md: "w-5 h-5",
-      lg: "w-6 h-6",
-      xl: "w-7 h-7",
-    };
-
-    const getBorderClasses = () => {
-      if (variant === "ghost") {
-        return "";
-      }
-      if (variant === "3d") {
-        return "border";
-      }
-      return "border";
-    };
-
-    const getBackgroundColor = () => {
-      if (variant === "ghost") {
-        return "transparent";
-      }
-      return `${colors.main}30`;
-    };
-
-    const getBorderColor = () => {
-      if (variant === "ghost") {
-        return "transparent";
-      }
-      return `${colors.main}80`;
-    };
-
-    const getBorderBottomColor = () => {
-      if (variant === "ghost") {
-        return "transparent";
-      }
-      return colors.dark;
-    };
+    const dims = SIZES[size] ?? SIZES.md;
 
     return (
       <div
         ref={mergedRef}
         className={cn(
-          "font-smallcaps relative overflow-hidden backdrop-blur-md",
-          "rounded-md text-white tracking-wider",
-          "inline-flex items-center justify-center",
-          "text-shadow-sm",
-          getBorderClasses(),
-          sizeStyles[size],
+          "relative inline-flex items-center justify-center whitespace-nowrap border rounded-sm font-[520]",
+          VARIANTS[variant] ?? VARIANTS.default,
+          dims.box,
           className,
         )}
-        style={{
-          backgroundColor: getBackgroundColor(),
-          borderColor: getBorderColor(),
-          borderBottomColor: getBorderBottomColor(),
-          color: colors.text,
-          boxShadow: variant === "3d" ? undefined : "none",
-        }}
         {...props}
       >
-        
-
-        {variant === "3d" && (
-          <>
-            <span
-              className="absolute inset-y-0 left-0 w-[1px]"
-              style={{ backgroundColor: `${colors.light}40` }}
-            />
-            <span
-              className="absolute inset-y-0 right-0 w-[1px]"
-              style={{ backgroundColor: `${colors.dark}40` }}
-            />
-          </>
-        )}
-
         {icon && iconPosition === "left" && (
-          <span
-            className={cn(
-              "flex items-center justify-center mr-1.5",
-              iconSizes[size],
-            )}
-          >
+          <span className={cn("flex items-center justify-center flex-shrink-0", dims.icon)}>
             {icon}
           </span>
         )}
-        <span className="relative z-10">{children}</span>
+        <span className="relative">{children}</span>
         {icon && iconPosition === "right" && (
-          <span
-            className={cn(
-              "flex items-center justify-center ml-1.5",
-              iconSizes[size],
-            )}
-          >
+          <span className={cn("flex items-center justify-center flex-shrink-0", dims.icon)}>
             {icon}
           </span>
         )}

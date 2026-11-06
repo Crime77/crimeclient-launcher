@@ -3,7 +3,6 @@
 import { Icon } from "@iconify/react";
 
 import { openExternalUrl } from "../../services/tauri-service";
-import { useThemeStore } from "../../store/useThemeStore";
 import { cn } from "../../lib/utils";
 
 interface BetaNoticeProps {
@@ -15,18 +14,13 @@ interface BetaNoticeProps {
 }
 
 export function BetaNotice({ tag, hint, feedbackLabel, feedbackUrl, className }: BetaNoticeProps) {
-  const accentColor = useThemeStore((state) => state.accentColor);
-
   return (
     <div className={cn("flex items-center gap-2.5", className)}>
-      <span
-        className="rounded px-1.5 py-0.5 font-minecraft text-[10px] uppercase tracking-wider"
-        style={{ color: accentColor.value, backgroundColor: `${accentColor.value}1f` }}
-      >
+      <span className="flex items-center h-[18px] rounded-sm px-1.5 bg-s3 text-fg-2 text-[10.5px] font-[600] uppercase tracking-[0.06em]">
         {tag}
       </span>
 
-      <span className="truncate font-minecraft text-xs normal-case text-white/40">{hint}</span>
+      <span className="truncate text-xs text-fg-3">{hint}</span>
 
       <button
         type="button"
@@ -34,7 +28,7 @@ export function BetaNotice({ tag, hint, feedbackLabel, feedbackUrl, className }:
           event.preventDefault();
           openExternalUrl(feedbackUrl);
         }}
-        className="ml-auto flex shrink-0 items-center gap-1.5 font-minecraft text-xs normal-case text-white/35 transition-colors hover:text-white/80"
+        className="ml-auto flex shrink-0 items-center gap-1.5 text-xs text-fg-3 transition-colors duration-fast hover:text-fg"
       >
         <Icon icon="ic:baseline-discord" className="h-3.5 w-3.5" />
         {feedbackLabel}

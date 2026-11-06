@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
+import { Loader2 } from "lucide-react";
 import { gsap } from "gsap";
 import type { Profile } from "../../types/profile";
 import { GeneralSettingsTab } from "./settings/GeneralSettingsTab";
@@ -52,7 +53,6 @@ export function ProfileSettings({ profile, onClose }: ProfileSettingsProps) {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const contentRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
-  const { accentColor } = useThemeStore();
   const isBackgroundAnimationEnabled = useThemeStore(
     (state) => state.isBackgroundAnimationEnabled,
   );
@@ -287,12 +287,11 @@ export function ProfileSettings({ profile, onClose }: ProfileSettingsProps) {
   };
 
   const renderFooter = () => (
-    <div className="flex justify-between">
+    <div className="flex justify-end gap-2">
       <Button
-        variant="secondary"
+        variant="ghost"
         onClick={onClose}
-        size="md"
-        className="text-base"
+        size="sm"
       >
         {t('profiles.settings.cancel')}
       </Button>
@@ -300,20 +299,11 @@ export function ProfileSettings({ profile, onClose }: ProfileSettingsProps) {
         variant="default"
         onClick={handleSave}
         disabled={isSaving}
-        size="md"
-        className="text-base"
+        size="sm"
+        className="min-w-[112px]"
+        icon={isSaving ? <Loader2 size={15} strokeWidth={1.75} className="animate-spin" /> : undefined}
       >
-        {isSaving ? (
-          <div className="flex items-center gap-3">
-            <Icon
-              icon="svg-spinners:ring-resize"
-              className="w-6 h-6 text-white"
-            />
-            <span>{t('profiles.settings.saving')}</span>
-          </div>
-        ) : (
-          t('profiles.settings.saveChanges')
-        )}
+        {isSaving ? t('profiles.settings.saving') : t('profiles.settings.saveChanges')}
       </Button>
     </div>
   );
@@ -342,54 +332,43 @@ export function ProfileSettings({ profile, onClose }: ProfileSettingsProps) {
       footer={renderFooter()}
       className="!max-w-6xl h-[85vh] min-h-[600px] flex flex-col"
     >
-      <div className="flex h-full p-4 gap-2">
+      <div className="flex h-full">
         <div
           ref={sidebarRef}
-          className="w-64 flex flex-col flex-shrink-0"
+          className="w-52 flex flex-col flex-shrink-0 border-r border-line px-2 py-3"
         >
-          <div className="space-y-0.5 flex-1 overflow-y-auto scrollbar-hover">
+          <nav className="space-y-px flex-1 overflow-y-auto scrollbar-hover">
             {tabConfig.map((tab) => {
               const isActive = activeTab === tab.id;
 
               return (
                 <button
                   key={tab.id}
+                  type="button"
+                  aria-current={isActive ? "page" : undefined}
                   className={cn(
-                    "w-full text-left px-3 py-2.5 rounded-lg transition-colors border-0 outline-none flex items-center gap-3",
+                    "w-full h-8 px-2.5 text-left transition-colors duration-fast border-0 outline-none flex items-center gap-2.5 text-[13px]",
                     isActive
-                      ? "text-white"
-                      : "bg-transparent text-white/60 hover:bg-white/5 hover:text-white/90",
+                      ? "bg-s3 text-fg font-medium"
+                      : "bg-transparent text-fg-3 hover:bg-s2 hover:text-fg-2",
                   )}
-                  style={isActive ? { backgroundColor: `${accentColor.value}26` } : undefined}
+                  style={{ borderRadius: "var(--r-md)" }}
                   onClick={() => handleTabClick(tab.id)}
                 >
                   <Icon
                     icon={tab.icon}
-                    className="w-6 h-6 transition-colors duration-200"
-                    style={{ color: isActive ? accentColor.value : undefined }}
+                    className={cn("w-4 h-4 flex-shrink-0", isActive ? "text-fg" : "text-fg-4")}
                   />
-                  <span
-                    className={cn(
-                      "font-smallcaps text-lg transition-colors duration-200",
-                      isActive && "font-medium",
-                    )}
-                  >
-                    {tab.label}
-                  </span>
+                  <span className="truncate">{tab.label}</span>
                 </button>
               );
             })}
-          </div>
-        </div>
-
-        {/* Vertical separator line */}
-        <div className="flex items-center">
-          <div className="border-l border-white/10 mx-4 my-3 h-[85%]"></div>
+          </nav>
         </div>
 
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <div
-            className="flex-1 py-2 px-5 overflow-y-auto overflow-x-hidden custom-scrollbar min-w-0"
+            className="flex-1 py-4 px-6 overflow-y-auto overflow-x-hidden custom-scrollbar min-w-0"
             ref={contentRef}
             style={{ maxWidth: '100%', boxSizing: 'border-box' }}
           >

@@ -2,7 +2,8 @@
 
 import { useTranslation } from "react-i18next";
 import type { Profile } from "../../../types/profile";
-import { Checkbox } from "../../ui/Checkbox";
+import { ToggleSwitch } from "../../ui/ToggleSwitch";
+import { SettingsRow, SettingsSection } from "./SettingsRow";
 // import { Label } from "../../ui/Label"; // No longer needed for this specific checkbox
 
 interface DesignerSettingsTabProps {
@@ -28,30 +29,22 @@ export function DesignerSettingsTab({
   };
 
   return (
-    <div className="space-y-4 pt-2">
-      <div>
-        <h3 className="text-lg font-smallcaps text-white mb-3">
-          {t('designer.asset_management')}
-        </h3>
-        <div className="p-0">
-          <div className="flex items-center space-x-3 mb-2">
-            <Checkbox
-              id="keepLocalAssetsDesigner"
-              label={t('designer.keep_local_assets')}
-              checked={
-                editedProfile.norisk_information?.keep_local_assets || false
-              }
-              onChange={handleKeepLocalAssetsChange}
-              variant="flat"
-              className="text-base"
-            />
-          </div>
-          <p className="text-xs text-white/70 font-minecraft tracking-wide select-none pl-1">
-            {t('designer.keep_local_assets_description')}
-          </p>
-        </div>
-      </div>
-      {/* Add more designer-specific settings here in the future if needed */}
+    <div className="select-none">
+      <SettingsSection title={t('designer.asset_management')}>
+        <SettingsRow
+          htmlFor="keepLocalAssetsDesigner"
+          label={t('designer.keep_local_assets')}
+          description={t('designer.keep_local_assets_description')}
+        >
+          <ToggleSwitch
+            checked={editedProfile.norisk_information?.keep_local_assets || false}
+            onChange={(checked) =>
+              handleKeepLocalAssetsChange({ target: { checked } } as React.ChangeEvent<HTMLInputElement>)
+            }
+          />
+        </SettingsRow>
+        {/* Add more designer-specific settings here in the future if needed */}
+      </SettingsSection>
     </div>
   );
-} 
+}

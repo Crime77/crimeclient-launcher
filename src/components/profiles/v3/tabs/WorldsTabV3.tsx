@@ -8,6 +8,7 @@
  * 1:1 switchen kann.
  */
 
+import { Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
 import { Icon } from "@iconify/react";
@@ -376,7 +377,7 @@ export function WorldsTabV3({ profile, isActive = true, onRefresh, onLaunchReque
 
   const fabActions: FABActionConfig[] = [
     {
-      icon: "solar:trash-bin-trash-bold",
+      icon: Trash2,
       label: isBatchDeleting ? "…" : t("profiles.v3.fab.delete"),
       tone: "danger",
       onClick: handleBatchDelete,

@@ -65,10 +65,7 @@ export function usePlayhead(video: RefObject<HTMLVideoElement | null>) {
 export function PlayheadClock({ live, view, color }: { live: LiveTime; view: TimeView; color: string }) {
   const seconds = useLiveTime(live);
   return (
-    <span
-      className="min-w-0 truncate font-minecraft text-lg tabular-nums leading-none"
-      style={{ color }}
-    >
+    <span className="min-w-0 truncate font-mono text-[13px] tabular-nums leading-none text-fg">
       {formatTime(view.toView(seconds))}
     </span>
   );
@@ -78,15 +75,11 @@ export function PlayheadMark({ live, view, color }: { live: LiveTime; view: Time
   const left = `${view.percent(useLiveTime(live))}%`;
   return (
     <>
-      <div
-        className="absolute inset-y-0 w-px bg-white shadow-[0_0_6px_rgba(255,255,255,0.8)]"
-        style={{ left }}
-      />
+      <div className="absolute inset-y-0 w-px -translate-x-1/2 bg-fg" style={{ left }} />
       <span
-        className="absolute top-0 h-3.5 w-3 -translate-x-1/2"
+        className="absolute top-0 h-3 w-2.5 -translate-x-1/2 bg-fg"
         style={{
           left,
-          backgroundColor: color,
           clipPath: "polygon(0 0, 100% 0, 100% 55%, 50% 100%, 0 55%)",
         }}
       />

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React from "react";
 import type {
   ModrinthGameVersion,
 } from "../../../types/modrinth";
@@ -10,16 +10,14 @@ import type { UnifiedModSearchResult, UnifiedVersion } from "../../../types/unif
 type CompatibleProject = UnifiedModSearchResult;
 import type { AccentColor } from "../../../store/useThemeStore";
 import type { ContentInstallStatus } from "../../../types/profile";
-import { ActionButton } from "../../ui/ActionButton";
-import { Icon } from "@iconify/react";
-import { TagBadge } from "../../ui/TagBadge";
+import { AlertTriangle, Check, ChevronDown, Download, Heart, Loader2, Package, RefreshCw, type LucideIcon } from "lucide-react";
+import { Button } from "../../ui/buttons/Button";
 import { cn } from "../../../lib/utils";
+import { contentCategories, formatCompact, formatRelative, loaderCategories, prettyCategory } from "./format";
 import { ModrinthVersionListV2 } from "./ModrinthVersionListV2";
 import { openExternalUrl } from "../../../services/tauri-service";
 import { toast } from "react-hot-toast";
-import { preloadIcons } from "../../../lib/icon-utils";
 import { useTranslation } from "react-i18next";
-import { ThemedSurface } from "../../ui/ThemedSurface";
 import { Tooltip } from "../../ui/Tooltip";
 import { useNavigate } from "react-router-dom";
 
@@ -213,14 +211,6 @@ export const ModrinthProjectCardV2 = React.memo<ModrinthProjectCardV2Props>(
     const { t } = useTranslation();
     const navigate = useNavigate();
 
-    useEffect(() => {
-      preloadIcons([
-        "solar:download-minimalistic-bold",
-        "solar:alt-arrow-up-bold",
-        "solar:alt-arrow-down-bold",
-      ]);
-    }, []);
-
     const handleTitleClick = (e: React.MouseEvent) => {
       e.preventDefault();
       const source: "modrinth" | "curseforge" =
@@ -235,106 +225,52 @@ export const ModrinthProjectCardV2 = React.memo<ModrinthProjectCardV2Props>(
       navigate(`/mods/${source}/${hit.project_id}`);
     };
 
+    const installedHere = !!installStatus?.is_installed && !!selectedProfile;
+    const inPack = !!installStatus?.is_included_in_norisk_pack;
+    const warned = projectNoRiskStatus === 'blocked' || projectNoRiskStatus === 'warning' || (!projectNoRiskStatus && isBlocked);
+    const categories = contentCategories(
+      hit.display_categories && hit.display_categories.length > 0 ? hit.display_categories : hit.categories,
+    );
+    const loaders = loaderCategories(hit.categories);
+    const isModpack = hit.project_type === "modpack";
+    const busy = isModpack ? !!isInstallingModpackAsProfile : !!isQuickInstalling;
+
     return (
-      <div>
+      <div className={cn("border-b border-line transition-colors duration-fast", isExpanded && "bg-s1")}>
         {/* Main Card */}
         <div
           onClick={handleTitleClick}
           className={cn(
-            "relative flex items-center gap-4 p-3 rounded-lg bg-black/20 border border-white/10 hover:border-white/20 transition-all duration-200 cursor-pointer",
-          installStatus?.is_installed &&
-            !installStatus?.is_included_in_norisk_pack &&
-            "border-l-green-500",
-          !installStatus?.is_installed &&
-            installStatus?.is_included_in_norisk_pack &&
-            "border-l-blue-500",
-          installStatus?.is_installed &&
-            installStatus?.is_included_in_norisk_pack &&
-            "border-l-blue-500",
-        )}
-      >
-        {/* Blocked Mod Warning Icon - Top Left */}
-        {projectNoRiskStatus === 'blocked' && (
-          <div className="absolute top-2 left-2 z-10 pointer-events-auto">
-            <Tooltip content="This mod is blocked by CrimeClient as it is known to cause crashes or severe compatibility issues. Installation is not recommended.">
-              <div>
-                <Icon 
-                  icon="solar:danger-triangle-bold" 
-                  className="w-5 h-5 text-red-500"
-                />
-              </div>
-            </Tooltip>
-          </div>
-        )}
-        {projectNoRiskStatus === 'warning' && (
-          <div className="absolute top-2 left-2 z-10 pointer-events-auto">
-            <Tooltip content="This version is known to cause crashes or compatibility issues with CrimeClient. Installation is possible but not recommended.">
-              <div>
-                <Icon 
-                  icon="solar:danger-triangle-bold" 
-                  className="w-5 h-5 text-yellow-500"
-                />
-              </div>
-            </Tooltip>
-          </div>
-        )}
-        {/* Fallback for deprecated isBlocked prop */}
-        {!projectNoRiskStatus && isBlocked && (
-          <div className="absolute top-2 left-2 z-10 pointer-events-auto">
-            <Tooltip content="This mod is blocked by CrimeClient as it is known to cause crashes or severe compatibility issues. Installation is not recommended.">
-              <div>
-                <Icon 
-                  icon="solar:danger-triangle-bold" 
-                  className="w-5 h-5 text-red-500"
-                />
-              </div>
-            </Tooltip>
-          </div>
-        )}
-
-        {/* Stats - absolute oben rechts */}
-        <div className="absolute top-3 right-3 flex items-center space-x-2 text-xs text-gray-400 font-minecraft">
-          {/* Downloads */}
-          <div className="text-white/50 flex items-center gap-0.5">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-3 w-3"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" />
-            </svg>
-            <span>{hit.downloads.toLocaleString()}</span>
-          </div>
-        </div>
-
+            "group relative flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors duration-fast",
+            !isExpanded && "hover:bg-s1",
+          )}
+        >
         {/* Project Icon */}
         <div
-          className="relative w-20 h-20 flex-shrink-0 rounded-md overflow-hidden border"
-          style={{
-            borderColor: `${accentColor.value}30`,
-            backgroundColor: `${accentColor.value}10`,
-          }}
+          className="relative w-10 h-10 flex-shrink-0 overflow-hidden bg-s3 border border-line"
+          style={{ borderRadius: "var(--r-sm)" }}
         >
           {hit.icon_url ? (
             <img
               src={hit.icon_url || "/placeholder.svg"}
-              alt={`${hit.title} icon`}
+              alt=""
               className="w-full h-full object-cover"
+              loading="lazy"
+              draggable={false}
             />
           ) : (
-            <div className="w-full h-full bg-gray-700/50 flex items-center justify-center">
-              <span className="text-gray-500 text-xl">?</span>
+            <div className="w-full h-full grid place-items-center">
+              <Package size={16} strokeWidth={1.75} className="text-fg-4" />
             </div>
           )}
         </div>
 
         {/* Project Info */}
         <div className="flex-1 min-w-0">
-          <div className="flex flex-row items-baseline space-x-1.5 mb-1">
+          <div className="flex items-baseline gap-2 min-w-0">
             <span
-              className="text-white font-minecraft text-lg whitespace-nowrap overflow-hidden text-ellipsis normal-case hover:underline hover:text-accent cursor-pointer text-left transition-colors"
-              title={`View ${hit.title} details`}
+              className="text-[13.5px] font-[600] text-fg truncate leading-[18px] group-hover:underline decoration-line-3 underline-offset-2"
+              title={hit.title}
             >
               {hit.title}
             </span>
@@ -360,66 +296,77 @@ export const ModrinthProjectCardV2 = React.memo<ModrinthProjectCardV2Props>(
                 }}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-gray-400 truncate font-minecraft flex-shrink min-w-0 hover:text-gray-200 hover:underline cursor-pointer"
-                title={`Open ${hit.author}'s profile on ${hit.source === 'Modrinth' ? 'Modrinth' : 'CurseForge'}`}
+                className="text-[12px] text-fg-3 truncate flex-shrink min-w-0 hover:text-fg-2 transition-colors duration-fast"
+                title={hit.author}
               >
-                by {hit.author}
+                {t('mods.by_author', { author: hit.author })}
               </a>
+            )}
+            {warned && (
+              <Tooltip content={projectNoRiskStatus === 'warning' ? t('modrinth.warning_mod_tooltip') : t('modrinth.blocked_mod_tooltip')}>
+                <span className={cn("self-center flex", projectNoRiskStatus === 'warning' ? "text-warn" : "text-err")}>
+                  <AlertTriangle size={13} strokeWidth={1.75} />
+                </span>
+              </Tooltip>
             )}
           </div>
 
           {/* Description */}
-          <p className="text-xs text-gray-300 line-clamp-2 font-minecraft leading-tight mb-2 min-h-[2rem]">
+          <p className="text-[12.5px] text-fg-2 truncate leading-[18px] mt-px">
             {hit.description}
           </p>
 
-          <div className="flex items-center gap-1 text-sm font-minecraft">
-            {/* Status badges */}
-            {installStatus && (
-              <>
-                {installStatus.is_installed && (
-                  <TagBadge variant="success" size="sm">
-                    Installed
-                  </TagBadge>
-                )}
-                {installStatus.is_included_in_norisk_pack && (
-                  <TagBadge
-                    variant={
-                      installStatus.norisk_pack_item_details?.is_enabled === false
-                        ? "inactive"
-                        : "info"
-                    }
-                    size="sm"
-                  >
-                    NoRisk Pack
-                  </TagBadge>
-                )}
-              </>
+          {/* Stats and categories */}
+          <div className="flex items-center gap-3 mt-1 h-[18px] overflow-hidden whitespace-nowrap">
+            <Stat icon={Download} value={formatCompact(hit.downloads)} title={t('content.search.sort.downloads')} />
+            {hit.follows != null && (
+              <Stat icon={Heart} value={formatCompact(hit.follows)} title={t('content.search.sort.follows')} />
             )}
-
-            {/* Categories */}
-            {hit.categories &&
-              hit.categories.length > 0 &&
-              hit.categories
-                .slice(0, 3)
-                .map((category) => (
-                  <TagBadge key={category} size="sm">
-                    {category.replace(/-/g, " ")}
-                  </TagBadge>
+            {hit.date_modified && (
+              <Stat icon={RefreshCw} value={formatRelative(hit.date_modified)} title={t('content.search.sort.updated')} />
+            )}
+            {categories.length > 0 && (
+              <span className="flex items-center gap-1">
+                {categories.slice(0, 3).map((category) => (
+                  <span
+                    key={category}
+                    className="h-[18px] inline-flex items-center px-1.5 bg-s2 text-[11px] text-fg-3 capitalize"
+                    style={{ borderRadius: "var(--r-sm)" }}
+                  >
+                    {prettyCategory(category)}
+                  </span>
                 ))}
+              </span>
+            )}
+            {loaders.length > 0 && (
+              <span className="cc-num text-[11px] text-fg-4">{loaders.join(" · ")}</span>
+            )}
           </div>
         </div>
 
-
-
         {/* Action Buttons */}
-        <div className="flex items-center space-x-1">
-          {hit.project_type === "modpack" ? (
-            <ActionButton
-              label={isInstallingModpackAsProfile ? "Installing..." : "Install"}
-              icon={isInstallingModpackAsProfile ? "solar:refresh-bold" : "solar:download-minimalistic-bold"}
-              iconClassName={isInstallingModpackAsProfile ? "animate-spin-slow" : ""}
-              variant={isInstallingModpackAsProfile ? "secondary" : "primary"}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {inPack && (
+            <span
+              className={cn(
+                "cc-num text-[11px] px-1.5",
+                installStatus?.norisk_pack_item_details?.is_enabled === false ? "text-fg-4 line-through" : "text-fg-3",
+              )}
+            >
+              {t('modrinth.in_pack')}
+            </span>
+          )}
+          {installedHere ? (
+            <span className="h-7 min-w-[84px] inline-flex items-center justify-end gap-1.5 px-2 text-[12px] font-[520] text-fg-2">
+              <Check size={14} strokeWidth={2} className="text-ok" />
+              {t('common.installed')}
+            </span>
+          ) : isModpack ? (
+            <Button
+              variant="secondary"
+              size="xs"
+              className="min-w-[84px]"
+              icon={busy ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} strokeWidth={1.75} />}
               disabled={isInstallingModpackAsProfile || isQuickInstalling || (!!installStatus?.is_installed && !!selectedProfile)}
               onClick={(e) => {
                 e.stopPropagation();
@@ -432,46 +379,51 @@ export const ModrinthProjectCardV2 = React.memo<ModrinthProjectCardV2Props>(
                   onQuickInstallClick(hit);
                 }
               }}
-              size="sm"
-            />
+            >
+              {busy ? t('modrinth.installing') : t('modrinth.install')}
+            </Button>
           ) : (
-            <ActionButton
-              label={isQuickInstalling ? "Installing..." : "Install"}
+            <Button
+              variant="secondary"
+              size="xs"
+              className="min-w-[84px]"
               icon={
-                isQuickInstalling 
-                  ? "solar:refresh-bold" 
-                  : (projectNoRiskStatus === 'blocked' || projectNoRiskStatus === 'warning')
-                    ? "solar:danger-triangle-bold"
-                    : "solar:download-minimalistic-bold"
+                busy
+                  ? <Loader2 size={13} className="animate-spin" />
+                  : warned
+                    ? <AlertTriangle size={13} strokeWidth={1.75} className="text-warn" />
+                    : <Download size={13} strokeWidth={1.75} />
               }
-              iconClassName={isQuickInstalling ? "animate-spin-slow" : ""}
-              variant={isQuickInstalling ? "secondary" : "primary"}
               disabled={isQuickInstalling || (!!installStatus?.is_installed && !!selectedProfile)}
               onClick={(e) => {
                 e.stopPropagation();
                 onQuickInstallClick(hit);
               }}
-              size="sm"
-            />
+            >
+              {busy ? t('modrinth.installing') : t('modrinth.install')}
+            </Button>
           )}
-          <ActionButton
-            icon={
-              isLoadingVersions
-                ? "solar:refresh-bold"
-                : isExpanded
-                  ? "solar:alt-arrow-up-bold"
-                  : "solar:alt-arrow-down-bold"
-            }
-            iconClassName={isLoadingVersions ? "animate-spin-fast" : ""}
-            variant="icon-only"
+          <button
+            type="button"
+            className={cn("cc-icon-btn", isExpanded && "text-fg bg-s3")}
             disabled={isLoadingVersions}
-            tooltip={isExpanded ? "Hide Versions" : "Show Versions"}
+            title={isExpanded ? t('mods.versions.hide') : t('mods.versions.show')}
+            aria-expanded={isExpanded}
             onClick={(e) => {
               e.stopPropagation();
               onToggleVersionsClick(hit.project_id);
             }}
-            size="sm"
-          />
+          >
+            {isLoadingVersions ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <ChevronDown
+                size={15}
+                strokeWidth={1.75}
+                className={cn("transition-transform duration-med", isExpanded && "rotate-180")}
+              />
+            )}
+          </button>
         </div>
 
         </div>
@@ -480,7 +432,7 @@ export const ModrinthProjectCardV2 = React.memo<ModrinthProjectCardV2Props>(
         {isExpanded &&
           Array.isArray(projectVersions) &&
           projectVersions.length > 0 && (
-            <div className="mt-4">
+            <div className="pl-3 xl:pl-[64px] pr-3 pb-3">
               <ModrinthVersionListV2
               projectId={hit.project_id}
               project={hit}
@@ -520,3 +472,13 @@ export const ModrinthProjectCardV2 = React.memo<ModrinthProjectCardV2Props>(
     );
   },
 );
+
+/** One mono figure of the stats line: small icon in fg-4, value in fg-3. */
+function Stat({ icon: StatIcon, value, title }: { icon: LucideIcon; value: string; title: string }) {
+  return (
+    <span className="inline-flex items-center gap-1 cc-num text-[11px] text-fg-3" title={title}>
+      <StatIcon size={12} strokeWidth={1.75} className="text-fg-4" />
+      {value}
+    </span>
+  );
+}

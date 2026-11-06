@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { CheckboxV2 } from "../../ui/CheckboxV2";
 import { Tooltip } from "../../ui/Tooltip";
-import { useThemeStore } from "../../../store/useThemeStore";
+import { cn } from "../../../lib/utils";
 import { formatBytes } from "../../../utils/format-relative-time";
 import type {
   ContentBucket,
@@ -26,7 +26,6 @@ export function CopyContentsPicker({
   onChange,
 }: CopyContentsPickerProps) {
   const { t } = useTranslation();
-  const accentColor = useThemeStore((state) => state.accentColor);
 
   const total = buckets.reduce(
     (sum, bucket) => (selection[bucket.key] ? sum + bucket.bytes : sum),
@@ -36,15 +35,18 @@ export function CopyContentsPicker({
   return (
     <div className="flex flex-col">
       <div className="mb-2 flex items-baseline justify-between">
-        <label className="block text-lg font-smallcaps text-white">
+        <label className="cc-eyebrow">
           {t("profiles.launcherImport.confirm.copy_heading")}
         </label>
-        <span className="font-minecraft text-xs text-white/45">
+        <span className="cc-num text-[11.5px] text-fg-3">
           {t("profiles.launcherImport.confirm.copy_total", { size: formatBytes(total) })}
         </span>
       </div>
 
-      <div className="space-y-2">
+      <div
+        className="overflow-hidden border border-line divide-y divide-line bg-s2"
+        style={{ borderRadius: "var(--r-md)" }}
+      >
         {buckets.map((bucket) => {
           const empty = bucket.entryCount === 0;
           const active = !empty && selection[bucket.key];
@@ -60,19 +62,10 @@ export function CopyContentsPicker({
               onClick={() =>
                 !empty && onChange({ ...selection, [bucket.key]: !selection[bucket.key] })
               }
-              className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors ${
-                empty
-                  ? "border-white/5 bg-white/[0.01] opacity-50"
-                  : "cursor-pointer border-white/10 bg-black/20 hover:border-white/20"
-              }`}
-              style={
-                active
-                  ? {
-                      borderColor: `${accentColor.value}66`,
-                      backgroundColor: `${accentColor.value}12`,
-                    }
-                  : undefined
-              }
+              className={cn(
+                "flex w-full items-center gap-3 h-10 px-3 transition-colors duration-fast",
+                empty ? "opacity-50" : "cursor-pointer hover:bg-s3",
+              )}
             >
               <CheckboxV2
                 size="sm"
@@ -80,10 +73,10 @@ export function CopyContentsPicker({
                 disabled={empty}
                 onChange={(next) => onChange({ ...selection, [bucket.key]: next })}
               />
-              <span className="min-w-0 flex-1 truncate font-minecraft text-sm text-white/90">
+              <span className={cn("min-w-0 flex-1 truncate text-[13px]", active ? "text-fg" : "text-fg-2")}>
                 {t(`profiles.launcherImport.confirm.kind_${bucket.key}`)}
               </span>
-              <span className="flex-shrink-0 font-minecraft text-xs text-white/45">
+              <span className="flex-shrink-0 cc-num text-[11.5px] text-fg-3">
                 {empty
                   ? t("profiles.launcherImport.confirm.kind_empty")
                   : `${count}  ·  ${formatBytes(bucket.bytes)}`}

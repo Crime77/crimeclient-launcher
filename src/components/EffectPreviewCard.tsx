@@ -1,166 +1,42 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { Icon } from "@iconify/react";
+import { Check } from "lucide-react";
 import { cn } from "../lib/utils";
-import { useThemeStore } from "../store/useThemeStore";
 import { BACKGROUND_EFFECTS } from "../store/background-effect-store";
-import { useQualitySettingsStore } from "../store/quality-settings-store";
-import { MatrixRainEffect } from "./effects/MatrixRainEffect";
-import { EnchantmentParticlesEffect } from "./effects/EnchantmentParticlesEffect";
-import { NebulaWaves } from "./effects/NebulaWaves";
-import { NebulaParticles } from "./effects/NebulaParticles";
-import { NebulaGrid } from "./effects/NebulaGrid";
-import { NebulaVoxels } from "./effects/NebulaVoxels";
-import { NebulaLightning } from "./effects/NebulaLightning";
-import { NebulaLiquidChrome } from "./effects/NebulaLiquidChrome";
+import { GridBackground } from "./effects/GridBackground";
 
 interface EffectPreviewCardProps {
   effectId: string;
   name: string;
-  icon: string;
-  onClick: () => void;
+  /** kept for old call sites */
+  icon?: string;
   isActive: boolean;
+  onClick: () => void;
 }
 
-export default function EffectPreviewCard({
-  effectId,
-  name,
-  icon,
-  onClick,
-  isActive,
-}: EffectPreviewCardProps) {
-  const { accentColor } = useThemeStore();
-  const [isHovered, setIsHovered] = useState(false);
-  const cardRef = useRef<HTMLDivElement>(null);
-  const { qualityLevel } = useQualitySettingsStore();
-
-  const getQualityParams = () => {
-    switch (qualityLevel) {
-      case "low":
-        return { particleCount: 30, opacity: 0.3, speed: 0.5 };
-      case "high":
-        return { particleCount: 80, opacity: 0.4, speed: 1.5 };
-      default: // medium
-        return { particleCount: 50, opacity: 0.3, speed: 1 };
-    }
-  };
-
-  const qualityParams = getQualityParams();
-
-  const renderEffect = () => {
-    const previewProps = {
-      ...qualityParams,
-      className: "pointer-events-none",
-      forceEnable: true,
-    };
-
-    switch (effectId) {
-      case BACKGROUND_EFFECTS.MATRIX_RAIN:
-        return <MatrixRainEffect {...previewProps} />;
-      case BACKGROUND_EFFECTS.ENCHANTMENT_PARTICLES:
-        return (
-          <EnchantmentParticlesEffect
-            particleCount={qualityParams.particleCount}
-            interactive={false}
-            {...previewProps}
-          />
-        );
-      case BACKGROUND_EFFECTS.NEBULA_WAVES:
-        return <NebulaWaves {...previewProps} />;
-      case BACKGROUND_EFFECTS.NEBULA_PARTICLES:
-        return (
-          <NebulaParticles
-            particleCount={qualityParams.particleCount}
-            {...previewProps}
-          />
-        );
-      case BACKGROUND_EFFECTS.NEBULA_GRID:
-        return <NebulaGrid gridSize={20} {...previewProps} />;
-      case BACKGROUND_EFFECTS.NEBULA_VOXELS:
-        return (
-          <NebulaVoxels
-            cubeCount={qualityParams.particleCount / 2}
-            {...previewProps}
-          />
-        );
-      case BACKGROUND_EFFECTS.NEBULA_LIGHTNING:
-        return (
-          <NebulaLightning
-            speed={qualityParams.speed}
-            intensity={0.8}
-            {...previewProps}
-          />
-        );
-      case BACKGROUND_EFFECTS.NEBULA_LIQUID_CHROME:
-        return (
-          <NebulaLiquidChrome
-            speed={qualityParams.speed * 0.15}
-            {...previewProps}
-          />
-        );
-      default:
-        return null;
-    }
-  };
-
+/** A background option in the appearance settings: a small live preview with its name below. */
+export function EffectPreviewCard({ effectId, name, isActive, onClick }: EffectPreviewCardProps) {
   return (
-    <div
-      ref={cardRef}
-      className={cn(
-        "relative overflow-hidden transition-all duration-300 p-3 rounded-md h-40",
-        "border cursor-pointer",
-        "bg-black/20 backdrop-blur-md",
-        isActive ? "ring-2 ring-white/30" : "hover:bg-black/40",
-      )}
-      style={{
-        borderColor: isActive
-          ? `${accentColor.value}80`
-          : `${accentColor.value}40`,
-        borderBottomColor: isActive
-          ? accentColor.value
-          : `${accentColor.value}60`,
-        backgroundColor: isActive
-          ? `${accentColor.value}20`
-          : "rgba(0, 0, 0, 0.2)",
-        filter: isHovered ? "brightness(1.1)" : "brightness(1)",
-      }}
+    <button
+      type="button"
       onClick={onClick}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <div className="absolute inset-0 overflow-hidden rounded-md">
-        {renderEffect()}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-      </div>
-
-      <div className="relative z-10 flex flex-col h-full">
-        <div className="flex-grow flex items-center justify-center">
-          <Icon
-            icon={icon}
-            className={cn(
-              "w-12 h-12 text-white transition-transform duration-300",
-              isHovered && "scale-110",
-            )}
-          />
-        </div>
-
-        <div className="mt-auto text-center">
-          <h5 className="font-smallcaps text-sm text-white">
-            {name}
-          </h5>
-        </div>
-      </div>
-
-      {isActive && (
-        <div className="absolute top-2 right-2 z-10">
-          <Icon
-            icon="solar:check-circle-bold"
-            className="w-5 h-5"
-            style={{ color: accentColor.value }}
-          />
-        </div>
+      className={cn(
+        "group text-left flex flex-col gap-2 p-1.5 border transition-colors duration-fast",
+        isActive ? "border-line-3 bg-s2" : "border-line hover:border-line-2 hover:bg-s2",
       )}
-    </div>
+      style={{ borderRadius: "var(--r-md)" }}
+    >
+      <div className="relative h-20 overflow-hidden bg-bg border border-line" style={{ borderRadius: "var(--r-sm)" }}>
+        {effectId === BACKGROUND_EFFECTS.GRID && <GridBackground size={12} />}
+        <div className="absolute left-2 top-2 bottom-2 w-6 bg-s1 border border-line" style={{ borderRadius: 2 }} />
+        <div className="absolute left-10 right-2 top-2 h-1.5 bg-s3" style={{ borderRadius: 2 }} />
+      </div>
+      <div className="flex items-center justify-between px-1 pb-0.5">
+        <span className={cn("text-[13px]", isActive ? "text-fg" : "text-fg-2")}>{name}</span>
+        {isActive && <Check size={14} className="text-fg" />}
+      </div>
+    </button>
   );
 }
+
+export default EffectPreviewCard;

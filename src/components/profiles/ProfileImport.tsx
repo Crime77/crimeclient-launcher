@@ -1,11 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Icon } from "@iconify/react";
+import { FileArchive, Loader2, Upload } from "lucide-react";
 
 import { Modal } from "../ui/Modal";
 import { Button } from "../ui/buttons/Button";
-import { useThemeStore } from "../../store/useThemeStore";
 import { toast } from "react-hot-toast";
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import { useImportConfirmStore } from "../../store/import-confirm-store";
@@ -23,7 +22,6 @@ export function ProfileImport({
 }: ProfileImportProps) {
   const { t } = useTranslation();
   const [isImporting, setIsImporting] = useState(false);
-  const accentColor = useThemeStore((state) => state.accentColor);
   const contentRef = useRef<HTMLDivElement>(null);
   const formatItemsRef = useRef<HTMLUListElement>(null);
   const requestImport = useImportConfirmStore((state) => state.requestImport);
@@ -64,20 +62,10 @@ export function ProfileImport({
         variant="default"
         onClick={handleImport}
         disabled={isImporting}
-        icon={<Icon icon="solar:upload-bold" className="w-5 h-5 text-white" />}
-        size="md"
+        icon={isImporting ? <Loader2 size={15} strokeWidth={1.75} className="animate-spin" /> : <Upload size={15} strokeWidth={1.75} />}
+        size="sm"
       >
-        {isImporting ? (
-          <>
-            <Icon
-              icon="svg-spinners:ring-resize"
-              className="w-5 h-5 text-white"
-            />
-            <span>{t('profiles.importing')}</span>
-          </>
-        ) : (
-          t('profiles.select_file_to_import')
-        )}
+        {isImporting ? t('profiles.importing') : t('profiles.select_file_to_import')}
       </Button>
     </div>
   );
@@ -89,76 +77,31 @@ export function ProfileImport({
       width="lg"
       footer={renderFooter()}
     >
-      <div className="p-6" ref={contentRef}>
-        <div className="space-y-6">
-          <div>
-            <p className="text-lg text-white/70 mb-6 font-minecraft tracking-wide select-none">
-              {t('profiles.import_description')}
-            </p>
+      <div className="px-5 py-5" ref={contentRef}>
+        <p className="text-[13px] leading-relaxed text-fg-2 mb-5 select-none">
+          {t('profiles.import_description')}
+        </p>
 
-            <div className="mb-6">
-              <h3 className="text-base text-white font-smallcaps mb-4 select-none">
-                {t('profiles.supported_formats')}
-              </h3>
-              <ul
-                className="text-base text-white/80 space-y-4 select-none font-smallcaps"
-                ref={formatItemsRef}
-              >
-                <li className="flex items-center">
-                  <div
-                    className="w-10 h-10 rounded-md flex items-center justify-center mr-4"
-                    style={{
-                      backgroundColor: `${accentColor.value}30`,
-                      borderWidth: "2px",
-                      borderStyle: "solid",
-                      borderColor: `${accentColor.value}60`,
-                    }}
-                  >
-                    <Icon
-                      icon="solar:file-bold"
-                      className="w-5 h-5 text-blue-400"
-                    />
-                  </div>
-                  <span>{t('profiles.format_mrpack')}</span>
-                </li>
-                <li className="flex items-center">
-                  <div
-                    className="w-10 h-10 rounded-md flex items-center justify-center mr-4"
-                    style={{
-                      backgroundColor: `${accentColor.value}30`,
-                      borderWidth: "2px",
-                      borderStyle: "solid",
-                      borderColor: `${accentColor.value}60`,
-                    }}
-                  >
-                    <Icon
-                      icon="solar:file-bold"
-                      className="w-5 h-5 text-green-400"
-                    />
-                  </div>
-                  <span>{t('profiles.format_noriskpack')}</span>
-                </li>
-                <li className="flex items-center">
-                  <div
-                    className="w-10 h-10 rounded-md flex items-center justify-center mr-4"
-                    style={{
-                      backgroundColor: `${accentColor.value}30`,
-                      borderWidth: "2px",
-                      borderStyle: "solid",
-                      borderColor: `${accentColor.value}60`,
-                    }}
-                  >
-                    <Icon
-                      icon="solar:file-bold"
-                      className="w-5 h-5 text-orange-400"
-                    />
-                  </div>
-                  <span>{t('profiles.format_zip')}</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
+        <h3 className="cc-eyebrow mb-2 select-none">
+          {t('profiles.supported_formats')}
+        </h3>
+        <ul
+          className="select-none overflow-hidden border border-line divide-y divide-line bg-s2"
+          style={{ borderRadius: "var(--r-md)" }}
+          ref={formatItemsRef}
+        >
+          {[
+            { ext: ".mrpack", label: t('profiles.format_mrpack') },
+            { ext: ".noriskpack", label: t('profiles.format_noriskpack') },
+            { ext: ".zip", label: t('profiles.format_zip') },
+          ].map((format) => (
+            <li key={format.ext} className="flex items-center gap-3 h-10 px-3">
+              <FileArchive size={15} strokeWidth={1.75} className="flex-shrink-0 text-fg-3" />
+              <span className="text-[13px] text-fg">{format.label}</span>
+              <span className="ml-auto cc-num text-[11.5px] text-fg-4">{format.ext}</span>
+            </li>
+          ))}
+        </ul>
       </div>
     </Modal>
   );

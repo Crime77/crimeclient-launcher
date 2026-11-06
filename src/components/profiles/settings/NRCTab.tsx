@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Profile } from "../../../types/profile";
 import { invoke } from "@tauri-apps/api/core";
-import { Icon } from "@iconify/react";
+import { Loader2, TriangleAlert, Wrench } from "lucide-react";
+import { SettingsRow, SettingsSection } from "./SettingsRow";
 import { useThemeStore } from "../../../store/useThemeStore";
 import { Button } from "../../ui/buttons/Button";
 import { gsap } from "gsap";
@@ -34,7 +35,6 @@ export function NRCTab({
   const [showYellowWarning, setShowYellowWarning] = useState(false);
   const [checkingCompatibility, setCheckingCompatibility] = useState(false);
   const [isRepairing, setIsRepairing] = useState(false);
-  const accentColor = useThemeStore((state) => state.accentColor);
   const isBackgroundAnimationEnabled = useThemeStore(
     (state) => state.isBackgroundAnimationEnabled,
   );
@@ -101,115 +101,86 @@ export function NRCTab({
   };
 
   return (
-    <div ref={tabRef} className="space-y-6 select-none">
-      <div className="space-y-6">
-
-
-        {/* NoRisk Pack Selection */}
-        <div className="space-y-3">
-          <div className="space-y-2">
-            <label className="block text-lg font-smallcaps text-white mb-2">
-              {t('nrc.info_title')}
-            </label>
-            <p className="text-sm text-white/60 font-minecraft">
-              {t('nrc.info_description')}
-            </p>
+    <div ref={tabRef} className="space-y-8 select-none">
+      <SettingsSection title={t('profiles.settings.nrc')}>
+        {/* CrimeClient pack selection */}
+        <SettingsRow
+          stacked
+          label={t('nrc.pack_label')}
+          description={t('nrc.info_description')}
+        >
+          <div className="max-w-[420px]">
+            <PackPicker
+              packs={noriskPacks}
+              value={editedProfile.selected_norisk_pack_id || null}
+              onChange={(packId) => updateProfile({ selected_norisk_pack_id: packId })}
+              loading={loading}
+            />
           </div>
-          {(
-            <>
-              <PackPicker
-                label={t('nrc.pack_label')}
-                packs={noriskPacks}
-                value={editedProfile.selected_norisk_pack_id || null}
-                onChange={(packId) => updateProfile({ selected_norisk_pack_id: packId })}
-                loading={loading}
-              />
 
-              {/* Show warning or description */}
-              {showYellowWarning ? (
-                <div className="text-center">
-                  <p className="text-base text-yellow-400 font-minecraft">
-                    {t('nrc.incompatible_warning')}
-                  </p>
-                </div>
-              ) : editedProfile.selected_norisk_pack_id === null || editedProfile.selected_norisk_pack_id === "" ? (
-                <div className="text-center">
-                  <p className="text-sm text-amber-400 font-minecraft">
-                    {t('nrc.no_features_warning')}
-                  </p>
-                </div>
-              ) : (
-                editedProfile.selected_norisk_pack_id && noriskPacks[editedProfile.selected_norisk_pack_id] && (
-                  <div className="text-center">
-                    <p className="text-sm text-white/70 font-minecraft">
-                      {noriskPacks[editedProfile.selected_norisk_pack_id].description}
-                    </p>
-                  </div>
-                )
-              )}
-
-              {/* Compatibility Checking */}
-              {checkingCompatibility && (
-                <div className="flex items-center gap-2 text-white/70">
-                  <Icon
-                    icon="svg-spinners:ring-resize"
-                    className="w-4 h-4"
-                  />
-                  <span className="text-sm font-minecraft">
-                    {t('nrc.checking_compatibility')}
-                  </span>
-                </div>
-              )}
-
-              {/* Compatibility Warning */}
-              {packCompatibilityWarning && (
-                <div className="p-3 bg-red-900/20 border border-red-500/30 rounded-lg">
-                  <div className="flex items-start gap-2">
-                    <Icon
-                      icon="solar:danger-triangle-bold"
-                      className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5"
-                    />
-                    <p className="text-xs text-red-300 font-minecraft">
-                      {packCompatibilityWarning}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </>
+          {/* Show warning or description */}
+          {showYellowWarning ? (
+            <p className="mt-2.5 flex items-start gap-2 text-[12px] leading-[1.5] text-warn">
+              <TriangleAlert size={14} strokeWidth={1.75} className="flex-shrink-0 mt-px" />
+              {t('nrc.incompatible_warning')}
+            </p>
+          ) : editedProfile.selected_norisk_pack_id === null || editedProfile.selected_norisk_pack_id === "" ? (
+            <p className="mt-2.5 flex items-start gap-2 text-[12px] leading-[1.5] text-warn">
+              <TriangleAlert size={14} strokeWidth={1.75} className="flex-shrink-0 mt-px" />
+              {t('nrc.no_features_warning')}
+            </p>
+          ) : (
+            editedProfile.selected_norisk_pack_id && noriskPacks[editedProfile.selected_norisk_pack_id] && (
+              <p className="mt-2.5 text-[12px] leading-[1.5] text-fg-3 max-w-[560px]">
+                {noriskPacks[editedProfile.selected_norisk_pack_id].description}
+              </p>
+            )
           )}
-        </div>
 
-        {/* Repair Profile Section */}
-        <div className="space-y-3">
-          <label className="block text-lg font-smallcaps text-white mb-2">
-            {t('nrc.repair_title')}
-          </label>
-          <div className="flex flex-col space-y-2 max-w-xs">
-            <p className="text-xs text-white/60 font-minecraft select-none leading-relaxed whitespace-normal break-words overflow-wrap-anywhere">
-              {t('nrc.repair_description')}
-            </p>
-            <Button
-              onClick={handleRepair}
-              disabled={isRepairing}
-              variant="secondary"
-              icon={
-                isRepairing ? (
-                  <Icon
-                    icon="svg-spinners:ring-resize"
-                    className="w-4 h-4 text-white"
-                  />
-                ) : (
-                  <Icon icon="solar:shield-check-bold" className="w-4 h-4 text-white" />
-                )
-              }
-              size="sm"
-                    className="text-sm"
+          {/* Compatibility Checking */}
+          {checkingCompatibility && (
+            <div className="mt-2.5 flex items-center gap-2 text-[12px] text-fg-3">
+              <Loader2 size={14} strokeWidth={1.75} className="animate-spin" />
+              {t('nrc.checking_compatibility')}
+            </div>
+          )}
+
+          {/* Compatibility Warning */}
+          {packCompatibilityWarning && (
+            <div
+              className="mt-2.5 flex items-start gap-2 px-3 py-2 border border-err/35 bg-err/10 text-[12px] text-err"
+              style={{ borderRadius: "var(--r-md)" }}
             >
-              {isRepairing ? t('nrc.repairing') : t('nrc.repair')}
-            </Button>
-          </div>
-        </div>
-      </div>
+              <TriangleAlert size={14} strokeWidth={1.75} className="flex-shrink-0 mt-px" />
+              <p>{packCompatibilityWarning}</p>
+            </div>
+          )}
+        </SettingsRow>
+      </SettingsSection>
+
+      {/* Repair Profile Section */}
+      <SettingsSection title={t('profiles.settings.maintenance')}>
+        <SettingsRow
+          label={t('nrc.repair_title')}
+          description={t('nrc.repair_description')}
+        >
+          <Button
+            onClick={handleRepair}
+            disabled={isRepairing}
+            variant="secondary"
+            size="sm"
+            icon={
+              isRepairing ? (
+                <Loader2 size={14} strokeWidth={1.75} className="animate-spin" />
+              ) : (
+                <Wrench size={14} strokeWidth={1.75} />
+              )
+            }
+          >
+            {isRepairing ? t('nrc.repairing') : t('nrc.repair')}
+          </Button>
+        </SettingsRow>
+      </SettingsSection>
     </div>
   );
 }

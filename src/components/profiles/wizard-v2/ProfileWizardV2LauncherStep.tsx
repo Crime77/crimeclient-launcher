@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Icon } from "@iconify/react";
+import { ArrowLeft, Download, FolderPlus, Loader2, TriangleAlert } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-hot-toast";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
@@ -50,9 +50,11 @@ function TextAction({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`px-2 py-1 font-minecraft text-[10px] uppercase tracking-wider text-white/45 transition-colors hover:text-white disabled:opacity-25 ${
+      type="button"
+      className={`h-7 px-2 text-[12px] text-fg-3 transition-colors duration-fast hover:text-fg hover:bg-s3 disabled:opacity-40 ${
         hidden ? "invisible" : ""
       }`}
+      style={{ borderRadius: "var(--r-sm)" }}
     >
       {label}
     </button>
@@ -145,12 +147,11 @@ export function ProfileWizardV2LauncherStep({
   const renderFooter = () => (
     <div className="flex justify-between items-center">
       <Button
-        variant="secondary"
+        variant="ghost"
         onClick={onBack}
         disabled={busy}
-        size="md"
-        className="text-sm"
-        icon={<Icon icon="solar:arrow-left-bold" className="w-5 h-5" />}
+        size="sm"
+        icon={<ArrowLeft size={15} strokeWidth={1.75} />}
         iconPosition="left"
       >
         {t("profiles.wizard.back")}
@@ -160,9 +161,9 @@ export function ProfileWizardV2LauncherStep({
         variant="default"
         onClick={() => onImport(selectedInstances)}
         disabled={busy || count === 0}
-        size="md"
-        className="min-w-[180px] text-sm"
-        icon={<Icon icon="solar:download-bold" className="w-5 h-5" />}
+        size="sm"
+        className="min-w-[128px]"
+        icon={<Download size={15} strokeWidth={1.75} />}
         iconPosition="left"
       >
         {count > 0
@@ -179,9 +180,9 @@ export function ProfileWizardV2LauncherStep({
       width="lg"
       footer={renderFooter()}
     >
-      <div className="min-h-[500px] max-h-[65vh] overflow-y-auto custom-scrollbar p-6 select-none">
+      <div className="min-h-[460px] max-h-[65vh] overflow-y-auto custom-scrollbar px-5 py-4 select-none">
         <div className="mb-3 flex items-start justify-between gap-3">
-          <span className="min-w-0 flex-1 font-minecraft text-xs leading-relaxed text-white/40">
+          <span className="min-w-0 flex-1 text-[12px] leading-relaxed text-fg-3">
             {t("profiles.launcherImport.privacy_note")}
           </span>
           <div className="flex flex-shrink-0 items-center">
@@ -199,14 +200,18 @@ export function ProfileWizardV2LauncherStep({
         </div>
 
         {scanning && (
-          <div className="flex items-center justify-center gap-2 py-10 font-minecraft text-xs text-white/45">
-            <Icon icon="svg-spinners:ring-resize" className="h-3.5 w-3.5" />
+          <div className="flex items-center justify-center gap-2 py-10 text-[12.5px] text-fg-3">
+            <Loader2 size={14} strokeWidth={1.75} className="animate-spin" />
             {t("profiles.launcherImport.scanning")}
           </div>
         )}
 
         {store.phase === "error" && (
-          <div className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/[0.07] px-4 py-3 font-minecraft text-xs text-amber-300/80">
+          <div
+            className="mb-3 flex items-start gap-2 border border-warn/30 bg-warn/[0.06] px-3 py-2 text-[12px] text-fg-2"
+            style={{ borderRadius: "var(--r-md)" }}
+          >
+            <TriangleAlert size={14} strokeWidth={1.75} className="mt-px flex-shrink-0 text-warn" />
             {t("profiles.launcherImport.scan_failed", { error: store.error ?? "" })}
           </div>
         )}
@@ -232,7 +237,7 @@ export function ProfileWizardV2LauncherStep({
           />
         )}
 
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {visibleLaunchers.map((launcher) => {
             const key = launcherKey(launcher);
             return (
@@ -259,10 +264,12 @@ export function ProfileWizardV2LauncherStep({
 
         {!scanning && (
           <button
+            type="button"
             onClick={() => void addFolder()}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-white/15 px-4 py-2.5 font-minecraft text-xs text-white/45 transition-colors hover:border-white/30 hover:text-white"
+            className="mt-2 flex h-9 w-full items-center justify-center gap-2 border border-line bg-transparent px-4 text-[12.5px] text-fg-3 transition-colors duration-fast hover:border-line-2 hover:bg-s2 hover:text-fg"
+            style={{ borderRadius: "var(--r-md)" }}
           >
-            <Icon icon="solar:folder-with-files-bold" className="h-4 w-4" />
+            <FolderPlus size={15} strokeWidth={1.75} />
             {t("profiles.launcherImport.manual.add")}
           </button>
         )}

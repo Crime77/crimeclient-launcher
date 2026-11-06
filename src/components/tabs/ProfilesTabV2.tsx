@@ -1,35 +1,40 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Virtuoso } from "react-virtuoso";
+import { Grid3x3, LayoutGrid, List, Plus } from "lucide-react";
 import type { Profile } from "../../types/profile";
 import { useProfileStore } from "../../store/profile-store";
 import { LoadingState } from "../ui/LoadingState";
 import { EmptyState } from "../ui/EmptyState";
 import { Button } from "../ui/buttons/Button";
 
-import { ProfileCardV2 } from "../profiles/ProfileCardV2";
+import { ProfileCardV2, ProfileListHeader } from "../profiles/ProfileCardV2";
 import { toast } from "react-hot-toast";
 import { SearchWithFilters } from "../ui/SearchWithFilters";
 import { MultiVersionFilter } from "../ui/MultiVersionFilter";
 import { GroupTabs, type GroupTab } from "../ui/GroupTabs";
-import { ActionButtons, type ActionButton } from "../ui/ActionButtons";
+import { Tooltip } from "../ui/Tooltip";
 import { useNavigate } from "react-router-dom";
 import * as ProfileService from "../../services/profile-service";
 import { useConfirmDialog } from "../../hooks/useConfirmDialog";
 import { useProfileWizardStore } from "../../store/profile-wizard-store";
 import { useThemeStore } from "../../store/useThemeStore";
-import { ExportProfileModal } from "../profiles/ExportProfileModal";
-import { Icon } from "@iconify/react";
 import { useTranslation } from "react-i18next";
 import { usePinnedProfilesStore } from "../../store/usePinnedProfilesStore";
 import { setDiscordState } from "../../utils/discordRpc";
 import { parseErrorMessage } from "../../utils/error-utils";
+import { cn } from "../../lib/utils";
 
-// A vertical virtualizer row: a version-section divider header, or a row of up to N cards.
+// A vertical virtualizer row: a version-section heading, or a row of up to N cards.
 type VirtualRow =
   | { type: "cards"; profiles: Profile[] }
-  | { type: "header"; version: string };
+  | { type: "header"; version: string; count: number };
+
+type LayoutMode = "list" | "grid" | "compact";
+
+// breathing room below the last row
+const ListFooter = () => <div className="h-6" />;
 
 export function ProfilesTabV2() {
   const { t } = useTranslation();
@@ -43,7 +48,7 @@ export function ProfilesTabV2() {
   const { confirm, confirmDialog } = useConfirmDialog();
   const { openModal: openWizard } = useProfileWizardStore();
   const { isPinned, pinnedProfileIds } = usePinnedProfilesStore();
-  
+
   // Persistent filters from theme store
   const {
     profilesTabActiveGroup,
@@ -56,34 +61,25 @@ export function ProfilesTabV2() {
     toggleProfilesTabVersionFilter,
     setProfilesTabLayoutMode,
   } = useThemeStore();
-  
+
   useEffect(() => { setDiscordState("Managing Profiles"); }, []);
 
   // Local non-persistent state
   const [searchQuery, setSearchQuery] = useState("");
-  
+
   // Use persistent values instead of local state
   const activeGroup = profilesTabActiveGroup;
   const sortBy = profilesTabSortBy;
   const selectedVersions = profilesTabVersionFilters;
   const layoutMode = profilesTabLayoutMode;
 
-  // Action buttons configuration
-  const actionButtons: ActionButton[] = [
-    {
-      id: "create",
-      label: t('profiles.create'),
-      icon: "solar:widget-add-bold",
-      tooltip: t('profiles.createNewProfile'),
-      onClick: () => {
-        // Pass current group as default, but not if it's "all" or "server"
-        const defaultGroup = (activeGroup === "all" || activeGroup === "server") ? null : activeGroup;
-        openWizard(defaultGroup);
-        navigate("/profiles");
-      },
-    },
-  ];
-  
+  // "New profile": pass the current group as default, but not if it's "all" or "server"
+  const createProfile = () => {
+    const defaultGroup = (activeGroup === "all" || activeGroup === "server") ? null : activeGroup;
+    openWizard(defaultGroup);
+    navigate("/profiles");
+  };
+
   // Get unique profile groups dynamically (normalized to lowercase)
   const getUniqueProfileGroups = () => {
     const uniqueGroups = new Set<string>();
@@ -133,12 +129,12 @@ export function ProfilesTabV2() {
   // Calculate group counts based on current search/filter
   const getFilteredCountForGroup = (groupId: string) => {
     if (groupId === "all") return profiles.length;
-    
+
     // Handle default groups
     if (groupId === "nrc") return profiles.filter(p => isNrcGroup(p.group)).length;
     if (groupId === "server") return profiles.filter(p => p.group === "SERVER").length;
     if (groupId === "modpacks") return profiles.filter(p => p.group === "MODPACKS").length;
-    
+
     // Handle dynamic groups (groupId is normalized lowercase, compare with profile.group in lowercase)
     return profiles.filter(p => p.group && p.group.toLowerCase() === groupId).length;
   };
@@ -157,7 +153,7 @@ export function ProfilesTabV2() {
     // Get unique profile groups and convert to GroupTab format
     const uniqueGroups = getUniqueProfileGroups();
     const dynamicGroups: GroupTab[] = uniqueGroups
-      .filter(group => 
+      .filter(group =>
         !["server", "modpacks"].includes(group) && // Exclude SERVER and MODPACKS (already normalized)
         !isNrcGroup(group) // Exclude all NRC variations
       )
@@ -176,13 +172,6 @@ export function ProfilesTabV2() {
     fetchProfiles();
   }, [fetchProfiles]);
 
-  // Handler functions from ProfilesTab.tsx
-  const handleCreateProfile = () => {
-    console.log("[ProfilesTabV2] handleCreateProfile called.");
-    fetchProfiles();
-    navigate("/profiles");
-  };
-
   const handleDeleteProfile = async (
     profileId: string,
     profileName: string,
@@ -192,10 +181,7 @@ export function ProfilesTabV2() {
       profileId,
       profileName,
     );
-    
-    // Find the profile to check if it's a standard version
-    const profile = profiles.find(p => p.id === profileId);
-    
+
     const confirmed = await confirm({
       title: t('profiles.deleteProfileTitle'),
       message: t('profiles.deleteConfirmMessageSimple', { name: profileName }),
@@ -306,7 +292,7 @@ export function ProfilesTabV2() {
     [filteredProfiles, sortBy, pinnedProfileIds],
   );
 
-  // Build vertical virtualizer rows: one row = a divider header OR a row of up to `columnCount`
+  // Build vertical virtualizer rows: one row = a section heading OR a row of up to `columnCount`
   // cards. Plain Virtuoso measures each row, so scrolling is reliable for variable-height cards
   // (VirtuosoGrid's grid measurement was undercounting and blocking scroll).
   const virtualRows = useMemo<VirtualRow[]>(() => {
@@ -331,7 +317,7 @@ export function ProfilesTabV2() {
     );
     const out: VirtualRow[] = [];
     ordered.forEach(([version, list]) => {
-      out.push({ type: "header", version });
+      out.push({ type: "header", version, count: list.length });
       out.push(...chunk(list));
     });
     return out;
@@ -352,116 +338,156 @@ export function ProfilesTabV2() {
     );
   }
 
+  const header = (
+    <header className="flex-shrink-0 flex items-end justify-between gap-6 px-6 pt-6 pb-5">
+      <div className="min-w-0">
+        <h1 className="font-display text-[24px] leading-none font-[680] tracking-[-0.015em] text-fg">
+          {t('profiles.page.title')}
+        </h1>
+        <p className="mt-2.5 text-[13px] leading-none text-fg-3 truncate">{t('profiles.page.description')}</p>
+      </div>
+      <Button
+        variant="default"
+        size="sm"
+        onClick={createProfile}
+        icon={<Plus size={15} strokeWidth={2} />}
+        title={t('profiles.createNewProfile')}
+        className="flex-shrink-0"
+      >
+        {t('profiles.newProfile')}
+      </Button>
+    </header>
+  );
+
   if (profiles.length === 0) {
     return (
-      <EmptyState
-        icon="solar:widget-bold"
-        message={t('profiles.noProfilesFound')}
-        action={
-          <Button
-            variant="default"
-            size="md"
-            onClick={() => openWizard(null)}
-            icon={<Icon icon="solar:widget-add-bold" className="w-5 h-5" />}
-          >
-            {t('profiles.createNewProfile')}
-          </Button>
-        }
-      />
+      <div className="h-full flex flex-col overflow-hidden cc-enter">
+        {header}
+        <div className="border-t border-line px-6 pt-16 text-center">
+          <p className="text-[13px] text-fg-2">{t('profiles.empty.title')}</p>
+          <p className="mt-1 text-xs text-fg-3">{t('profiles.empty.hint')}</p>
+        </div>
+      </div>
     );
   }
 
+  const views: { id: LayoutMode; label: string; icon: ReactNode }[] = [
+    { id: "list", label: t('profiles.layout.list'), icon: <List size={15} strokeWidth={1.75} /> },
+    { id: "grid", label: t('profiles.layout.grid'), icon: <LayoutGrid size={15} strokeWidth={1.75} /> },
+    { id: "compact", label: t('profiles.layout.compact'), icon: <Grid3x3 size={15} strokeWidth={1.75} /> },
+  ];
+
   return (
-    <div className="h-full flex flex-col overflow-hidden p-4 relative">
-      {/* Group Tabs */}
-      <GroupTabs
-        groups={groups}
-        activeGroup={activeGroup}
-        onGroupChange={setProfilesTabActiveGroup}
-        showAddButton={false}
-      />
+    <div className="h-full flex flex-col overflow-hidden relative cc-enter">
+      {header}
 
-      {/* Search & Filter Header */}
-      <div className="mb-6 pb-4 border-b border-white/10">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 flex-1">
-            <SearchWithFilters
-              placeholder={t('profiles.searchProfiles')}
-              searchValue={searchQuery}
-              onSearchChange={setSearchQuery}
-              sortOptions={[
-                { value: "name", label: t('profiles.sort.name'), icon: "solar:text-bold" },
-                { value: "last_played", label: t('profiles.sort.lastPlayed'), icon: "solar:clock-circle-bold" },
-                { value: "date_created", label: t('profiles.sort.dateCreated'), icon: "solar:calendar-add-bold" },
-                { value: "version_newest", label: t('profiles.sort.versionNewest'), icon: "solar:arrow-down-bold" },
-                { value: "version_oldest", label: t('profiles.sort.versionOldest'), icon: "solar:arrow-up-bold" },
-              ]}
-              sortValue={sortBy}
-              onSortChange={setProfilesTabSortBy}
-              dropdownSize="sm"
-              filterSlot={
-                <MultiVersionFilter
-                  options={getVersionFilterOptions()}
-                  selected={selectedVersions}
-                  onToggle={toggleProfilesTabVersionFilter}
-                  onClear={() => setProfilesTabVersionFilters([])}
-                  size="sm"
-                />
-              }
+      {/* Group tabs, sitting on the page's separator line */}
+      <div className="flex-shrink-0 px-6 border-b border-line">
+        <GroupTabs
+          groups={groups}
+          activeGroup={activeGroup}
+          onGroupChange={setProfilesTabActiveGroup}
+          showAddButton={false}
+          className="!mb-0"
+        />
+      </div>
+
+      {/* Toolbar: search with sort and version filter, view switch */}
+      <div className="flex-shrink-0 flex items-center gap-3 px-6 py-3">
+        <SearchWithFilters
+          placeholder={t('profiles.searchProfiles')}
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          sortOptions={[
+            { value: "name", label: t('profiles.sort.name'), icon: "solar:text-bold" },
+            { value: "last_played", label: t('profiles.sort.lastPlayed'), icon: "solar:clock-circle-bold" },
+            { value: "date_created", label: t('profiles.sort.dateCreated'), icon: "solar:calendar-add-bold" },
+            { value: "version_newest", label: t('profiles.sort.versionNewest'), icon: "solar:arrow-down-bold" },
+            { value: "version_oldest", label: t('profiles.sort.versionOldest'), icon: "solar:arrow-up-bold" },
+          ]}
+          sortValue={sortBy}
+          onSortChange={setProfilesTabSortBy}
+          dropdownSize="sm"
+          className="flex-1 min-w-0"
+          filterSlot={
+            <MultiVersionFilter
+              options={getVersionFilterOptions()}
+              selected={selectedVersions}
+              onToggle={toggleProfilesTabVersionFilter}
+              onClear={() => setProfilesTabVersionFilters([])}
+              size="sm"
             />
+          }
+        />
 
-                         {/* Layout Toggle Button - Right next to SearchWithFilters */}
-                         <button
-              onClick={() => {
-                const nextMode = layoutMode === "list" ? "grid" : layoutMode === "grid" ? "compact" : "list";
-                setProfilesTabLayoutMode(nextMode);
-              }}
-              className="flex items-center gap-2 px-4 py-2 bg-black/30 hover:bg-black/40 text-white/70 hover:text-white border border-white/10 hover:border-white/20 rounded-lg font-smallcaps text-base transition-all duration-200 min-h-[2.5rem]"
-              title={
-                layoutMode === "list"
-                  ? t('profiles.layout.switchToGrid')
-                  : layoutMode === "grid"
-                  ? t('profiles.layout.switchToCompact')
-                  : t('profiles.layout.switchToList')
-              }
-            >
-              <div className="w-4 h-8 flex items-center justify-center">
-                <Icon 
-                  icon="solar:list-bold"
-                  className="w-8 h-8"
-                />
-              </div>
-            </button>
-          </div>
-          
-          <ActionButtons actions={actionButtons} />
+        {(searchQuery !== "" || selectedVersions.length > 0) && (
+          <span className="cc-num text-[11px] text-fg-3 flex-shrink-0">
+            {t('profiles.page.shown', { shown: sortedProfiles.length, total: profiles.length })}
+          </span>
+        )}
+
+        {/* View switch: segmented control */}
+        <div
+          role="group"
+          aria-label={t('profiles.layout.label')}
+          className="flex-shrink-0 flex items-center h-9 p-[3px] gap-[2px] bg-s2 border border-line"
+          style={{ borderRadius: "var(--r-md)" }}
+        >
+          {views.map((view) => {
+            const active = layoutMode === view.id;
+            return (
+              <Tooltip key={view.id} content={view.label} position="bottom">
+                <button
+                  type="button"
+                  onClick={() => setProfilesTabLayoutMode(view.id)}
+                  aria-pressed={active}
+                  aria-label={view.label}
+                  className={cn(
+                    "w-[30px] h-[28px] grid place-items-center transition-colors duration-fast",
+                    active ? "bg-s4 text-fg" : "text-fg-3 hover:text-fg-2 hover:bg-s3",
+                  )}
+                  style={{ borderRadius: "var(--r-sm)" }}
+                >
+                  {view.icon}
+                </button>
+              </Tooltip>
+            );
+          })}
         </div>
       </div>
 
-      {/* Virtualized profile list. Version-divider headers appear only while a version filter is active. */}
-      <div className="flex-1 min-h-0 h-full">
+      {/* Virtualized profile list. Version headings appear only while a version filter is active. */}
+      <div className="flex-1 min-h-0 flex flex-col">
+        {layoutMode === "list" && virtualRows.length > 0 && selectedVersions.length === 0 && (
+          <div className="flex-shrink-0 px-6">
+            <ProfileListHeader />
+          </div>
+        )}
         {virtualRows.length === 0 ? (
-          <EmptyState icon="solar:widget-bold" message={t('profiles.noProfilesFound')} />
+          <div className="px-6 pt-14 text-center">
+            <p className="text-[13px] text-fg-2">{t('profiles.filteredEmpty.title')}</p>
+            <p className="mt-1 text-xs text-fg-3">{t('profiles.filteredEmpty.hint')}</p>
+          </div>
         ) : (
           <Virtuoso
             data={virtualRows}
-            className="custom-scrollbar"
+            className="custom-scrollbar flex-1"
             style={{ height: "100%" }}
-            itemContent={(_index, row) => {
+            components={{ Footer: ListFooter }}
+            itemContent={(index, row) => {
               if (row.type === "header") {
                 return (
-                  // Version divider header, e.g. "── 26.1 ──────────────"
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="h-px w-6 bg-white/10" />
-                    <span className="font-smallcaps text-base text-white/60 whitespace-nowrap">
-                      {row.version}
-                    </span>
-                    <div className="h-px flex-1 bg-white/10" />
+                  <div className={cn("px-6", index > 0 && "pt-4")}>
+                    <div className="flex items-baseline gap-2 pb-2">
+                      <span className="cc-eyebrow">{row.version}</span>
+                      <span className="cc-num text-[11px] text-fg-4">{row.count}</span>
+                    </div>
+                    {layoutMode === "list" && <ProfileListHeader />}
                   </div>
                 );
               }
               return (
-                <div className={`grid ${gridColsClass} gap-3 mb-3`}>
+                <div className={cn("px-6", layoutMode !== "list" && `grid ${gridColsClass} gap-2 pb-2`)}>
                   {row.profiles.map((profile) => (
                     <ProfileCardV2
                       key={profile.id}

@@ -32,9 +32,9 @@ export function ModUpdateText({
   const versionTarget = (
     <>
       {t('content.update.update_to_version')}{" "}
-      <span className="text-white font-medium">{updateVersion.version_number}</span>
+      <span className="cc-num text-fg">{updateVersion.version_number}</span>
       {currentVersion && (
-        <span className="text-gray-500">
+        <span className="text-fg-4">
           {" "}{t('content.update.from_version', { version: currentVersion })}
         </span>
       )}
@@ -48,26 +48,26 @@ export function ModUpdateText({
         <div className="flex items-center gap-2">
           <Icon
             icon="solar:box-bold-duotone"
-            className="w-4 h-4 text-purple-400 flex-shrink-0"
+            className="w-4 h-4 text-fg-3 flex-shrink-0"
           />
-          <span className="text-sm font-semibold text-purple-300">
+          <span className="text-[13px] font-[560] text-fg">
             {isPlatformPack
               ? t('content.update.modpack_mod')
               : t('content.update.managed_mod')}
           </span>
         </div>
 
-        <div className="space-y-1 text-xs text-gray-300">
+        <div className="space-y-1.5 text-xs text-fg-2">
           <div className="flex items-start gap-2">
             <Icon
               icon="solar:shield-warning-bold-duotone"
-              className="w-3 h-3 text-yellow-400 flex-shrink-0 mt-0.5"
+              className="w-3 h-3 text-warn flex-shrink-0 mt-0.5"
             />
             <div>
-              <p className="font-medium text-yellow-300">
+              <p className="font-[520] text-fg-2">
                 {t('content.update.checks_disabled_title')}
               </p>
-              <p className="text-gray-400 leading-relaxed">
+              <p className="text-fg-3 leading-relaxed">
                 {isPlatformPack
                   ? t('content.update.disabled_modpack_desc')
                   : t('content.update.disabled_managed_desc')}
@@ -78,13 +78,13 @@ export function ModUpdateText({
           <div className="flex items-start gap-2">
             <Icon
               icon="solar:refresh-bold-duotone"
-              className="w-3 h-3 text-blue-400 flex-shrink-0 mt-0.5"
+              className="w-3 h-3 text-info flex-shrink-0 mt-0.5"
             />
             <div>
-              <p className="font-medium text-blue-300">
+              <p className="font-[520] text-fg-2">
                 {t('content.update.manual_available_title')}
               </p>
-              <p className="text-gray-400 leading-relaxed">
+              <p className="text-fg-3 leading-relaxed">
                 {t('content.update.manual_available_desc')}{" "}
                 {versionTarget}
               </p>
@@ -100,24 +100,24 @@ export function ModUpdateText({
         <div className="flex items-center gap-2">
           <Icon
             icon="solar:download-minimalistic-bold"
-            className="w-4 h-4 text-gray-400 flex-shrink-0"
+            className="w-4 h-4 text-fg-3 flex-shrink-0"
           />
-          <span className="text-sm font-semibold text-gray-300">
+          <span className="text-[13px] font-[560] text-fg">
             {t('content.update.available')}
           </span>
         </div>
 
-        <div className="space-y-1 text-xs text-gray-300">
+        <div className="space-y-1.5 text-xs text-fg-2">
           <div className="flex items-start gap-2">
             <Icon
               icon="solar:shield-warning-bold-duotone"
-              className="w-3 h-3 text-yellow-400 flex-shrink-0 mt-0.5"
+              className="w-3 h-3 text-warn flex-shrink-0 mt-0.5"
             />
             <div>
-              <p className="font-medium text-yellow-300">
+              <p className="font-[520] text-fg-2">
                 {t('content.update.checks_disabled_short_title')}
               </p>
-              <p className="text-gray-400 leading-relaxed">
+              <p className="text-fg-3 leading-relaxed">
                 {t('content.update.disabled_regular_desc', { version: updateVersion.version_number })}
               </p>
             </div>
@@ -132,24 +132,24 @@ export function ModUpdateText({
       <div className="flex items-center gap-2">
         <Icon
           icon="solar:download-minimalistic-bold"
-          className="w-4 h-4 text-green-400 flex-shrink-0"
+          className="w-4 h-4 text-ok flex-shrink-0"
         />
-        <span className="text-sm font-semibold text-green-300">
+        <span className="text-[13px] font-[560] text-fg">
           {t('content.update.available')}
         </span>
       </div>
 
-      <div className="space-y-1 text-xs text-gray-300">
+      <div className="space-y-1.5 text-xs text-fg-2">
         <div className="flex items-start gap-2">
           <Icon
             icon="solar:refresh-circle-bold-duotone"
-            className="w-3 h-3 text-green-400 flex-shrink-0 mt-0.5"
+            className="w-3 h-3 text-ok flex-shrink-0 mt-0.5"
           />
           <div>
-            <p className="font-medium text-green-300">
+            <p className="font-[520] text-fg-2">
               {t('content.update.ready_title')}
             </p>
-              <p className="text-gray-400 leading-relaxed">
+              <p className="text-fg-3 leading-relaxed">
                 {t('content.update.ready_desc')}{" "}
                 {versionTarget}
               </p>

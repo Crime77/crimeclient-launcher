@@ -125,7 +125,7 @@ export function OverlayBox({
       className={cn(
         "absolute rounded-sm border-2 transition-colors focus:outline-none",
         disabled ? "cursor-not-allowed" : "cursor-move",
-        active ? "bg-white/5" : "border-white/40 bg-black/10 hover:border-white/70",
+        active ? "border-fg bg-fg/5" : "border-fg/40 bg-black/10 hover:border-fg/70",
         blank && "border-dashed",
         !visible && "opacity-40",
       )}
@@ -138,8 +138,7 @@ export function OverlayBox({
           overlay.kind === "blur"
             ? `blur(calc(${blurSigma(overlay.strength)} * ${atReference(1)}))`
             : undefined,
-        borderColor: blank ? "#fcd34d" : active ? color : undefined,
-        boxShadow: active ? `0 0 10px ${color}80` : undefined,
+        borderColor: blank ? "rgb(var(--warn-ch))" : undefined,
       }}
     >
       <OverlayArt overlay={overlay} ratio={ratio} />
@@ -154,10 +153,10 @@ export function OverlayBox({
           onGrab("resize", event);
         }}
         className={cn(
-          "absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-sm border border-black/50",
+          "absolute -bottom-1 -right-1 h-3 w-3 rounded-[2px] border border-black/60",
+          active ? "bg-fg" : "bg-fg/70",
           !disabled && "cursor-nwse-resize",
         )}
-        style={{ backgroundColor: active ? color : "rgba(255, 255, 255, 0.7)" }}
       />
     </div>
   );

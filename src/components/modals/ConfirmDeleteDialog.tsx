@@ -4,7 +4,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { Modal } from "../ui/Modal";
 import { Button } from "../ui/buttons/Button";
-import { Icon } from "@iconify/react";
+import { Loader2, Trash2 } from "lucide-react";
 
 interface ConfirmDeleteDialogProps {
   isOpen: boolean;
@@ -33,23 +33,29 @@ export function ConfirmDeleteDialog({
 
   const dialogTitle = title || t('confirm_delete.title', { name: itemName });
   const dialogMessage = message || (
-    <p className="text-white/80 font-minecraft">
-      {t('confirm_delete.message', { name: itemName })}
-      <br />
-      {t('confirm_delete.cannot_undo')}
-    </p>
+    <div className="space-y-1.5">
+      <p className="text-[13px] text-fg-2 leading-relaxed">{t('confirm_delete.message', { name: itemName })}</p>
+      <p className="text-xs text-fg-3">{t('confirm_delete.cannot_undo')}</p>
+    </div>
   );
 
   const dialogFooter = (
-    <div className="flex justify-end items-center gap-3">
-      <Button variant="secondary" onClick={onClose} disabled={isDeleting}>
+    <div className="flex justify-end items-center gap-2">
+      <Button variant="ghost" size="sm" onClick={onClose} disabled={isDeleting}>
         {t('common.cancel')}
       </Button>
       <Button
         variant="destructive"
+        size="sm"
         onClick={onConfirm}
         disabled={isDeleting}
-        icon={isDeleting ? <Icon icon="svg-spinners:ring-resize" className="h-4 w-4" /> : null}
+        icon={
+          isDeleting ? (
+            <Loader2 size={14} strokeWidth={1.75} className="animate-spin" />
+          ) : (
+            <Trash2 size={14} strokeWidth={1.75} />
+          )
+        }
       >
         {isDeleting ? t('confirm_delete.button.deleting') : t('confirm_delete.button.delete')}
       </Button>
@@ -59,12 +65,12 @@ export function ConfirmDeleteDialog({
   return (
     <Modal
       title={dialogTitle}
-      titleIcon={<Icon icon="solar:trash-bin-trash-bold-duotone" className="w-6 h-6 text-red-400" />}
+      titleIcon={<Trash2 size={16} strokeWidth={1.75} className="text-err" />}
       onClose={onClose}
       width="sm"
       footer={dialogFooter}
     >
-      <div className="p-6">
+      <div className="p-5">
         {dialogMessage}
       </div>
     </Modal>

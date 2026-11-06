@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Icon } from "@iconify/react";
+import { AlertTriangle, ArrowLeft, ChevronDown, Home, RotateCw } from "lucide-react";
 import { isRouteErrorResponse, useNavigate, useRouteError } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { Button } from "./ui/buttons/Button";
 
 // Friendly fallback used by `errorElement` on the root route. Replaces the
 // React Router default "Hey developer" screen so users can recover (reload /
@@ -19,58 +20,64 @@ export function RouteErrorBoundary() {
   const isDev = import.meta.env.DEV;
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-6 bg-neutral-950">
-      <div className="w-full max-w-xl rounded-xl border border-white/10 bg-white/[0.03] p-6 shadow-2xl">
-        <div className="flex items-start gap-4">
-          <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-rose-500/15 border border-rose-400/30 flex items-center justify-center">
-            <Icon icon="solar:danger-triangle-bold" className="w-6 h-6 text-rose-300" />
-          </div>
+    <div className="min-h-screen w-full flex items-center justify-center p-6 bg-bg text-fg">
+      <div className="cc-panel cc-enter w-full max-w-lg p-5">
+        <div className="flex items-start gap-3">
+          <AlertTriangle size={18} strokeWidth={1.75} className="text-err flex-shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
-            <h1 className="text-lg text-white font-minecraft normal-case">{title}</h1>
-            <p className="mt-1 text-sm text-white/60 font-minecraft normal-case break-words">
+            <h1 className="font-display text-[17px] font-[650] text-fg leading-tight">{title}</h1>
+            <p className="mt-1.5 text-[13px] text-fg-2 leading-relaxed break-words">
               {message}
             </p>
           </div>
         </div>
 
         <div className="mt-5 flex items-center gap-2">
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => { navigate("/play"); }}
-            className="h-9 px-4 rounded-md bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/30 text-emerald-100 text-xs font-minecraft uppercase tracking-wider flex items-center gap-1.5 transition-colors"
+            icon={<Home size={14} strokeWidth={1.75} />}
           >
-            <Icon icon="solar:home-bold" className="w-4 h-4" />
             {t("errorBoundary.goHome")}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => { window.location.reload(); }}
-            className="h-9 px-4 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white text-xs font-minecraft uppercase tracking-wider flex items-center gap-1.5 transition-colors"
+            icon={<RotateCw size={14} strokeWidth={1.75} />}
           >
-            <Icon icon="solar:refresh-bold" className="w-4 h-4" />
             {t("errorBoundary.reload")}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => { navigate(-1); }}
-            className="h-9 px-4 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white text-xs font-minecraft uppercase tracking-wider flex items-center gap-1.5 transition-colors"
+            icon={<ArrowLeft size={14} strokeWidth={1.75} />}
           >
-            <Icon icon="solar:arrow-left-linear" className="w-4 h-4" />
             {t("errorBoundary.back")}
-          </button>
+          </Button>
         </div>
 
         {isDev && stack && (
-          <div className="mt-5">
+          <div className="mt-5 pt-4 border-t border-line">
             <button
+              type="button"
               onClick={() => setDetailsOpen(v => !v)}
-              className="text-[11px] text-white/50 hover:text-white/80 font-minecraft uppercase tracking-wider flex items-center gap-1"
+              className="text-xs text-fg-3 hover:text-fg-2 flex items-center gap-1.5 transition-colors duration-fast"
             >
-              <Icon
-                icon="solar:alt-arrow-down-linear"
-                className={`w-3 h-3 transition-transform ${detailsOpen ? "rotate-180" : ""}`}
+              <ChevronDown
+                size={14}
+                strokeWidth={1.75}
+                className={`transition-transform duration-med ${detailsOpen ? "rotate-180" : ""}`}
               />
               {t("errorBoundary.details")}
             </button>
             {detailsOpen && (
-              <pre className="mt-2 p-3 rounded-md bg-black/40 border border-white/5 text-[11px] text-rose-200/90 font-mono overflow-auto max-h-64 whitespace-pre-wrap break-words">
+              <pre
+                className="mt-2 p-3 bg-s2 border border-line text-[11px] text-fg-2 font-mono overflow-auto max-h-64 whitespace-pre-wrap break-words custom-scrollbar"
+                style={{ borderRadius: "var(--r-md)" }}
+              >
                 {stack}
               </pre>
             )}

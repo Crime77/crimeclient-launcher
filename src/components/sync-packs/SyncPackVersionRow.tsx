@@ -4,7 +4,7 @@ import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Icon } from "@iconify/react";
 
-import { useThemeStore } from "../../store/useThemeStore";
+import { cn } from "../../lib/utils";
 import { ModPlatform } from "../../types/unified";
 import type { UnifiedVersion } from "../../types/unified";
 import { loaderIconSrc, loaderLabel } from "../../lib/loader-icons";
@@ -49,7 +49,6 @@ export function SyncPackVersionRow({
   onEnable,
 }: SyncPackVersionRowProps) {
   const { t } = useTranslation();
-  const accentColor = useThemeStore((state) => state.accentColor);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
   const mode: Mode =
@@ -59,20 +58,20 @@ export function SyncPackVersionRow({
         ? "pinned"
         : "latest";
 
-  const marker: Record<Mode, { icon: string; color: string; tip: string }> = {
+  const marker: Record<Mode, { icon: string; className: string; tip: string }> = {
     latest: {
       icon: "solar:refresh-circle-linear",
-      color: "rgba(255,255,255,0.4)",
+      className: "text-fg-4",
       tip: t("syncPacks.entries.modeLatestTip"),
     },
     pinned: {
       icon: "solar:pin-bold",
-      color: accentColor.value,
+      className: "text-fg",
       tip: t("syncPacks.entries.modePinnedTip"),
     },
     off: {
       icon: "solar:forbidden-circle-bold",
-      color: "rgba(248,113,113,0.8)",
+      className: "text-err",
       tip: t("syncPacks.entries.modeOffTip"),
     },
   };
@@ -86,8 +85,11 @@ export function SyncPackVersionRow({
   const canSwitch = !!platform && mode !== "off";
 
   return (
-    <div className="group/version flex items-center gap-3 rounded border border-white/[0.06] bg-white/[0.02] px-2.5 py-1.5">
-      <span className="w-[92px] flex-shrink-0 truncate font-minecraft text-xs text-white/70">
+    <div
+      className="group/version flex items-center gap-3 h-8 px-2 transition-colors duration-fast hover:bg-s2"
+      style={{ borderRadius: "var(--r-sm)" }}
+    >
+      <span className="w-[92px] flex-shrink-0 truncate cc-num text-[12px] text-fg-2">
         {row.mc_version}
       </span>
       <Tooltip content={loaderLabel(row.loader)} position="top">
@@ -95,7 +97,7 @@ export function SyncPackVersionRow({
           <img
             src={loaderIconSrc(row.loader)}
             alt={loaderLabel(row.loader)}
-            className="h-4 w-4 object-contain opacity-70"
+            className="h-4 w-4 object-contain opacity-60"
           />
         </span>
       </Tooltip>
@@ -104,8 +106,7 @@ export function SyncPackVersionRow({
         <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center">
           <Icon
             icon={marker[mode].icon}
-            className="h-3.5 w-3.5"
-            style={{ color: marker[mode].color }}
+            className={cn("h-3.5 w-3.5", marker[mode].className)}
           />
         </span>
       </Tooltip>
@@ -123,16 +124,12 @@ export function SyncPackVersionRow({
             if (canSwitch) onOpenDropdown();
           }}
           disabled={!canSwitch}
-          className={`inline-flex h-5 max-w-full items-center gap-1 truncate rounded px-1.5 font-minecraft text-xs transition-colors ${
-            canSwitch ? "cursor-pointer hover:bg-white/5" : "cursor-default"
-          }`}
-          style={{
-            color: unresolved
-              ? "#fbbf24"
-              : mode === "off"
-                ? "rgba(255,255,255,0.2)"
-                : "rgba(255,255,255,0.75)",
-          }}
+          className={cn(
+            "inline-flex h-6 max-w-full items-center gap-1 truncate px-1.5 cc-num text-[12px] transition-colors duration-fast",
+            canSwitch ? "cursor-pointer hover:bg-s3" : "cursor-default",
+            unresolved ? "text-warn" : mode === "off" ? "text-fg-4" : "text-fg-2",
+          )}
+          style={{ borderRadius: "var(--r-sm)" }}
         >
           {resolving && (
             <Icon
@@ -144,7 +141,7 @@ export function SyncPackVersionRow({
           {canSwitch && !resolving && (
             <Icon
               icon="solar:alt-arrow-down-linear"
-              className="h-3 w-3 flex-shrink-0 opacity-50"
+              className="h-3 w-3 flex-shrink-0 text-fg-4"
             />
           )}
         </button>

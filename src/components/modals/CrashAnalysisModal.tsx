@@ -3,7 +3,23 @@
 import type React from "react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Icon } from "@iconify/react";
+import {
+  AlertTriangle,
+  ArrowDown,
+  ArrowRight,
+  ArrowUp,
+  ArrowUpRight,
+  Bandage,
+  Boxes,
+  Check,
+  ChevronDown,
+  Copy,
+  FileText,
+  Loader2,
+  Play,
+  ShieldCheck,
+  Undo2,
+} from "lucide-react";
 import { toast } from "react-hot-toast";
 import { openExternalUrl } from "../../services/tauri-service";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
@@ -65,7 +81,7 @@ export function CrashAnalysisModal({ result, profileId, onClose }: Props) {
           n.delete(i);
           return n;
         });
-        toast(t("crash_analysis.toast.reverted", { target: a.target }), { icon: "↩️" });
+        toast(t("crash_analysis.toast.reverted", { target: a.target }), { icon: <Undo2 size={16} strokeWidth={1.75} className="text-fg-2" /> });
       } catch (e) {
         logError(`Crash-fix revert failed: ${e}`);
         toast.error(t("crash_analysis.toast.apply_error"));
@@ -85,7 +101,7 @@ export function CrashAnalysisModal({ result, profileId, onClose }: Props) {
     try {
       const outcome = await applyCrashFix(profileId, direction ? { ...a, direction } : a);
       if (outcome.status === "skipped") {
-        toast(t("crash_analysis.toast.not_found", { target: outcome.reason }), { icon: "⚠️" });
+        toast(t("crash_analysis.toast.not_found", { target: outcome.reason }), { icon: <AlertTriangle size={16} strokeWidth={1.75} className="text-warn" /> });
       } else {
         setApplied((p) => new Map(p).set(i, outcome.fix));
         refreshMods();
@@ -113,46 +129,43 @@ export function CrashAnalysisModal({ result, profileId, onClose }: Props) {
   const hasActions = result.actions.length > 0;
   const summary = summaryText(result, t);
   const statusMsg = statusMessageText(result, t);
+  const LookIcon = l.icon;
 
   const footer = (
-    <Button
-      variant="default"
-      size="md"
-      icon={<Icon icon="solar:play-bold" className="w-5 h-5" />}
-      className="w-full justify-center"
-      onClick={launchGame}
-    >
-      {t("crash_analysis.launch")}
-    </Button>
+    <div className="flex justify-end">
+      <Button
+        variant="default"
+        size="sm"
+        icon={<Play size={14} strokeWidth={2} />}
+        onClick={launchGame}
+      >
+        {t("crash_analysis.launch")}
+      </Button>
+    </div>
   );
 
   return (
     <Modal
       title={t("crash_analysis.title")}
-      titleIcon={<Icon icon="solar:shield-check-bold" className="w-7 h-7" style={{ color: l.color }} />}
+      titleIcon={<ShieldCheck size={16} strokeWidth={1.75} style={{ color: l.color }} />}
       onClose={onClose}
       width="md"
       footer={footer}
     >
-      <div className="p-6 space-y-4 text-white">
-        <div
-          className="flex items-start gap-3 rounded-lg p-4 border-l-[3px]"
-          style={{ backgroundColor: `${l.color}14`, borderColor: l.color }}
-        >
-          <Icon icon={l.icon} className="w-8 h-8 shrink-0 mt-0.5" style={{ color: l.color }} />
+      <div className="p-5 space-y-4">
+        {/* the verdict: a state-coloured rule on the left, the text stays neutral */}
+        <div className="flex items-start gap-3 border-l-2 pl-3 py-0.5" style={{ borderColor: l.color }}>
+          <LookIcon size={16} strokeWidth={1.75} className="shrink-0 mt-0.5" style={{ color: l.color }} />
           <div className="min-w-0">
-            <p className="text-base font-smallcaps leading-tight" style={{ color: l.color }}>
-              {t(l.headlineKey)}
-            </p>
-            {summary && (
-              <p className="text-base font-minecraft text-gray-200 mt-1 leading-snug">
-                {summary}
-              </p>
-            )}
+            <p className="text-[13px] font-[600] text-fg leading-snug">{t(l.headlineKey)}</p>
+            {summary && <p className="text-[13px] text-fg-2 mt-1 leading-relaxed">{summary}</p>}
             {result.module && (
-              <span className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/10 px-2 py-1 text-sm font-minecraft text-white/80">
-                <Icon icon="solar:widget-2-bold" className="w-4 h-4" style={{ color: l.color }} />
-                {t("crash_analysis.affected_feature")}: {result.module}
+              <span
+                className="mt-2 inline-flex items-center gap-1.5 border border-line-2 bg-s2 px-2 h-6 text-xs text-fg-2"
+                style={{ borderRadius: "var(--r-sm)" }}
+              >
+                <Boxes size={12} strokeWidth={1.75} className="text-fg-3" />
+                {t("crash_analysis.affected_feature")}: <span className="font-mono">{result.module}</span>
               </span>
             )}
           </div>
@@ -160,10 +173,13 @@ export function CrashAnalysisModal({ result, profileId, onClose }: Props) {
 
         {/* authored workaround text from the wiki entry */}
         {result.workaround && (
-          <div className="flex items-start gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5">
-            <Icon icon="solar:adhesive-plaster-bold" className="w-5 h-5 shrink-0 mt-0.5 text-amber-400" />
-            <p className="font-minecraft text-base text-white/85 leading-snug">
-              <span className="text-white/45">{t("crash_analysis.workaround_label")}: </span>
+          <div
+            className="flex items-start gap-2.5 border border-line bg-s2 px-3 py-2.5"
+            style={{ borderRadius: "var(--r-md)" }}
+          >
+            <Bandage size={14} strokeWidth={1.75} className="shrink-0 mt-0.5 text-warn" />
+            <p className="text-[13px] text-fg-2 leading-relaxed">
+              <span className="text-fg-3">{t("crash_analysis.workaround_label")}: </span>
               {result.workaround}
             </p>
           </div>
@@ -172,22 +188,24 @@ export function CrashAnalysisModal({ result, profileId, onClose }: Props) {
         {/* fixes checklist (same render for 1 or many) */}
         {hasActions && (
           <div>
-            <p className="px-1 pb-1.5 text-sm font-minecraft text-white/40">{t("crash_analysis.fixes_heading")}</p>
-            <div className="rounded-lg border border-white/10 bg-black/20 divide-y divide-white/5 overflow-hidden">
+            <p className="cc-eyebrow pb-1.5">{t("crash_analysis.fixes_heading")}</p>
+            <div className="border border-line divide-y divide-line overflow-hidden" style={{ borderRadius: "var(--r-md)" }}>
               {result.actions.map((a, i) => {
                 const isApplied = applied.has(i);
                 const isBusy = busy.has(i);
                 const isConflict = a.type === "resolve_conflict";
-                const badgeColor = isApplied ? "#22c55e" : actionColor(a, l.color);
+                const badgeColor = isApplied ? "var(--ok)" : actionColor(a, l.color);
+                const ActionIcon = isApplied ? Check : actionIcon(a);
+                const spin = <Loader2 size={13} strokeWidth={1.75} className="animate-spin" />;
                 return (
-                  <div key={i} className="group flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-white/[0.04]">
+                  <div key={i} className="group flex items-center gap-3 px-3 py-2 transition-colors duration-fast hover:bg-s2">
                     <span
-                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-colors"
-                      style={{ backgroundColor: `${badgeColor}24`, color: badgeColor }}
+                      className="flex h-6 w-6 shrink-0 items-center justify-center bg-s3"
+                      style={{ color: badgeColor, borderRadius: "var(--r-sm)" }}
                     >
-                      <Icon icon={isApplied ? "solar:check-circle-bold" : actionIcon(a)} className="w-4 h-4" />
+                      <ActionIcon size={13} strokeWidth={1.75} />
                     </span>
-                    <span className={`flex-1 font-minecraft text-base ${isApplied ? "text-white/45 line-through" : "text-white/90"}`}>
+                    <span className={`flex-1 min-w-0 text-[13px] ${isApplied ? "text-fg-3 line-through" : "text-fg"}`}>
                       {actionLabel(a, t)}
                     </span>
                     {isConflict && !isApplied ? (
@@ -196,7 +214,7 @@ export function CrashAnalysisModal({ result, profileId, onClose }: Props) {
                           variant="success"
                           size="xs"
                           disabled={isBusy}
-                          icon={<Icon icon={isBusy ? "svg-spinners:ring-resize" : "solar:arrow-up-bold"} className="w-4 h-4" />}
+                          icon={isBusy ? spin : <ArrowUp size={13} strokeWidth={1.75} />}
                           onClick={() => onAction(a, i, "upgrade")}
                         >
                           {t("crash_analysis.upgrade")}
@@ -205,7 +223,7 @@ export function CrashAnalysisModal({ result, profileId, onClose }: Props) {
                           variant="info"
                           size="xs"
                           disabled={isBusy}
-                          icon={<Icon icon="solar:arrow-down-bold" className="w-4 h-4" />}
+                          icon={<ArrowDown size={13} strokeWidth={1.75} />}
                           onClick={() => onAction(a, i, "downgrade")}
                         >
                           {t("crash_analysis.downgrade")}
@@ -218,10 +236,7 @@ export function CrashAnalysisModal({ result, profileId, onClose }: Props) {
                         iconPosition="right"
                         disabled={isBusy}
                         icon={
-                          <Icon
-                            icon={isBusy ? "svg-spinners:ring-resize" : isApplied ? "solar:check-circle-bold" : "solar:arrow-right-bold"}
-                            className="w-4 h-4"
-                          />
+                          isBusy ? spin : isApplied ? <Check size={13} strokeWidth={2} /> : <ArrowRight size={13} strokeWidth={1.75} />
                         }
                         onClick={() => onAction(a, i)}
                         title={isApplied ? t("crash_analysis.undo_hint") : undefined}
@@ -233,23 +248,23 @@ export function CrashAnalysisModal({ result, profileId, onClose }: Props) {
                 );
               })}
             </div>
-            <p className="px-1 pt-1.5 text-xs text-white/40 font-sans">{t("crash_analysis.applies_note")}</p>
+            <p className="pt-1.5 text-xs text-fg-3">{t("crash_analysis.applies_note")}</p>
           </div>
         )}
 
         {(statusMsg || result.issueUrl) && (
-          <p className="text-base font-minecraft text-gray-300 px-1">
+          <p className="text-[13px] text-fg-2 leading-relaxed">
             {statusMsg}
             {result.issueUrl && (
               <>
                 {statusMsg ? " " : null}
                 <button
+                  type="button"
                   onClick={() => openExternalUrl(result.issueUrl!).catch(() => {})}
-                  className="inline font-minecraft hover:underline underline-offset-2 whitespace-nowrap"
-                  style={{ color: l.color }}
+                  className="inline-flex items-center gap-0.5 text-fg underline decoration-line-3 underline-offset-2 hover:decoration-fg-2 whitespace-nowrap"
                 >
                   {t("crash_analysis.view_issue")}
-                  <Icon icon="solar:arrow-right-up-linear" className="inline-block w-3.5 h-3.5 ml-0.5 align-[-0.15em]" />
+                  <ArrowUpRight size={13} strokeWidth={1.75} />
                 </button>
               </>
             )}
@@ -257,29 +272,30 @@ export function CrashAnalysisModal({ result, profileId, onClose }: Props) {
         )}
 
         {!hasActions && (
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2">
             <LogLinks logId={result.logId} openTextKey="crash_analysis.open_crash_log" />
           </div>
         )}
 
-        {/* technical details — collapsed by default, normal font */}
+        {/* technical details — collapsed by default */}
         <div className="pt-1">
           <button
+            type="button"
             onClick={() => setShowDetails((s) => !s)}
-            className="flex items-center gap-1.5 text-white/40 hover:text-white/70 font-minecraft text-sm transition-colors"
+            className="flex items-center gap-1.5 text-xs text-fg-3 hover:text-fg-2 transition-colors duration-fast"
           >
-            <Icon icon={showDetails ? "solar:alt-arrow-up-linear" : "solar:alt-arrow-down-linear"} className="w-4 h-4" />
+            <ChevronDown size={14} strokeWidth={1.75} className={`transition-transform duration-med ${showDetails ? "rotate-180" : ""}`} />
             {t("crash_analysis.technical_details")}
           </button>
 
           {showDetails && (
-            <div className="mt-2 rounded-lg border border-white/10 bg-black/20 divide-y divide-white/5">
+            <div className="mt-2 border border-line divide-y divide-line" style={{ borderRadius: "var(--r-md)" }}>
               <Fact label={t("crash_analysis.fact.feature")} value={result.module ?? null} />
               <Fact label={t("crash_analysis.fact.where")} value={result.blamer} />
               <Fact label={t("crash_analysis.fact.cause")} value={result.rootCause} />
               <Fact label={t("crash_analysis.fact.mod")} value={result.culpritMods.join(", ") || null} />
               <Fact label={t("crash_analysis.fact.type")} value={result.classification} />
-              <div className="flex flex-wrap gap-2 p-3">
+              <div className="flex flex-wrap gap-2 p-2.5">
                 <LogLinks logId={result.logId} openTextKey="crash_analysis.open_log" />
               </div>
             </div>
@@ -294,8 +310,8 @@ function Fact({ label, value }: { label: string; value: string | null }) {
   if (!value) return null;
   return (
     <div className="flex gap-3 px-3 py-2">
-      <span className="shrink-0 w-16 text-xs uppercase tracking-wide text-white/40 font-sans pt-1">{label}</span>
-      <span className="text-sm text-white/85 break-all font-sans">{value}</span>
+      <span className="shrink-0 w-20 cc-eyebrow pt-px">{label}</span>
+      <span className="font-mono text-xs text-fg-2 break-all">{value}</span>
     </div>
   );
 }
@@ -309,20 +325,17 @@ function LogLinks({ logId, openTextKey }: { logId: string; openTextKey: string }
       .catch(() => toast.error(t("crash_analysis.toast.copy_failed")));
   return (
     <>
-      <LinkRow icon="solar:document-text-linear" text={t(openTextKey)} onClick={() => openExternalUrl(url).catch(() => {})} />
-      <LinkRow icon="solar:copy-linear" text={t("crash_analysis.copy_log_link")} onClick={copy} />
+      <Button
+        variant="secondary"
+        size="xs"
+        icon={<FileText size={13} strokeWidth={1.75} />}
+        onClick={() => openExternalUrl(url).catch(() => {})}
+      >
+        {t(openTextKey)}
+      </Button>
+      <Button variant="ghost" size="xs" icon={<Copy size={13} strokeWidth={1.75} />} onClick={copy}>
+        {t("crash_analysis.copy_log_link")}
+      </Button>
     </>
-  );
-}
-
-function LinkRow({ icon, text, onClick }: { icon: string; text: string; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white font-minecraft text-sm"
-    >
-      <Icon icon={icon} className="w-4 h-4" />
-      {text}
-    </button>
   );
 }

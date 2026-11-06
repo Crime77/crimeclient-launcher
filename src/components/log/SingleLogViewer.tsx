@@ -19,7 +19,6 @@ interface SingleLogViewerProps {
 
 export function SingleLogViewer({ instanceId, instanceName, profileId, accountName }: SingleLogViewerProps) {
   const { t } = useTranslation();
-  const accentColor = useThemeStore((state) => state.accentColor);
 
   const { logs: mcLogs } = useProcessLogs(instanceId ?? null);
   const launcherLogs = useProcessStore((state) =>
@@ -66,15 +65,10 @@ export function SingleLogViewer({ instanceId, instanceName, profileId, accountNa
   };
 
   return (
-    <div
-      className="h-screen flex flex-col"
-      style={{
-        background: `linear-gradient(135deg, ${accentColor.value}20 0%, ${accentColor.value}10 50%, ${accentColor.value}18 100%)`,
-      }}
-    >
-      <LogWindowTitlebar title={accountName ? `${instanceName} - ${accountName}` : (instanceName || "Logs")} />
+    <div className="h-screen flex flex-col bg-bg text-fg">
+      <LogWindowTitlebar title={instanceName || "Logs"} subtitle={accountName} />
 
-      <div className="flex-1 flex flex-col min-h-0 p-3">
+      <div className="flex-1 flex flex-col min-h-0">
         <LogViewerCore
           logs={logs}
           onClear={handleClear}

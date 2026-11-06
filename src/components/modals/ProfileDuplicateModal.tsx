@@ -6,7 +6,7 @@ import { useProfileDuplicateStore } from "../../store/profile-duplicate-store";
 import { Modal } from "../ui/Modal";
 import { SearchStyleInput } from "../ui/Input";
 import { Button } from "../ui/buttons/Button";
-import { Icon } from "@iconify/react";
+import { Copy, Loader2 } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { toast } from "react-hot-toast";
 import { useProfileStore } from "../../store/profile-store";
@@ -72,14 +72,13 @@ export function ProfileDuplicateModal() {
     <Modal
       title={t('profile_duplicate.title')}
       onClose={handleClose}
-      width="md"
+      width="sm"
       footer={
-        <div className="flex justify-between">
+        <div className="flex justify-end gap-2">
           <Button
-            variant="secondary"
+            variant="ghost"
             onClick={handleClose}
-            size="md"
-            className="text-base"
+            size="sm"
             disabled={isLoading}
           >
             {t('common.cancel')}
@@ -88,39 +87,30 @@ export function ProfileDuplicateModal() {
             variant="default"
             onClick={handleDuplicate}
             disabled={isLoading || !newProfileName.trim()}
-            size="md"
-            className="text-base"
+            size="sm"
+            icon={
+              isLoading
+                ? <Loader2 size={15} strokeWidth={1.75} className="animate-spin" />
+                : <Copy size={15} strokeWidth={1.75} />
+            }
           >
-            {isLoading ? (
-              <div className="flex items-center gap-3">
-                <Icon
-                  icon="svg-spinners:ring-resize"
-                  className="w-6 h-6 text-white"
-                />
-                <span>{t('profile_duplicate.button.duplicating')}</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-3">
-                <Icon icon="solar:copy-bold" className="w-6 h-6 text-white" />
-                <span>{t('profile_duplicate.button.duplicate')}</span>
-              </div>
-            )}
+            {isLoading ? t('profile_duplicate.button.duplicating') : t('profile_duplicate.button.duplicate')}
           </Button>
         </div>
       }
     >
-      <div className="space-y-6 p-6">
-        <div className="text-center">
-          <p className="text-base font-smallcaps text-white/80 mb-4">
+      <div className="space-y-4 px-5 py-5">
+        <div className="space-y-1">
+          <p className="text-[13px] text-fg-2">
             {t('profile_duplicate.description', { name: sourceProfile.name })}
           </p>
-          <p className="text-xs text-white/60 font-minecraft tracking-wide">
+          <p className="text-[12px] text-fg-4">
             {t('profile_duplicate.copy_notice')}
           </p>
         </div>
 
         <div>
-          <label className="block text-base font-smallcaps text-white mb-2">
+          <label className="block text-[12px] font-medium text-fg-2 mb-1.5">
             {t('profile_duplicate.new_name_label')}
           </label>
           <SearchStyleInput

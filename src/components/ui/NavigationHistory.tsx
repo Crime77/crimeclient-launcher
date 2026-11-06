@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Icon } from "@iconify/react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { cn } from "../../lib/utils";
 
 interface NavigationHistoryProps {
@@ -31,11 +31,8 @@ function NavIconButton({
       disabled={disabled}
       aria-label={ariaLabel}
       className={cn(
-        "flex items-center justify-center h-8 w-8 rounded duration-150",
-        "focus:outline-none focus:ring-0 active:bg-transparent",
-        disabled
-          ? "opacity-30 cursor-not-allowed"
-          : "text-white/100 hover:text-white hover:bg-white/5 active:bg-transparent",
+        "cc-icon-btn focus:outline-none",
+        disabled && "opacity-30 cursor-not-allowed",
         className
       )}
     >
@@ -146,15 +143,15 @@ export function NavigationHistory({ className }: NavigationHistoryProps) {
   }, [history, currentIndex]);
 
   return (
-    <div className={`flex items-center gap-1 ${className}`}>
+    <div className={`flex items-center gap-0.5 ${className}`}>
       {createNavButton(
-        <Icon icon="solar:arrow-left-bold" className="w-4 h-4 text-current" />,
+        <ArrowLeft size={15} strokeWidth={1.75} />,
         handleGoBack,
         !canGoBack,
         "Go back"
       )}
       {createNavButton(
-        <Icon icon="solar:arrow-right-bold" className="w-4 h-4 text-current" />,
+        <ArrowRight size={15} strokeWidth={1.75} />,
         handleGoForward,
         !canGoForward,
         "Go forward"

@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { Icon } from "@iconify/react";
+import { ChevronDown, Loader2, ShieldCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useThemeStore } from "../../store/useThemeStore";
+import { cn } from "../../lib/utils";
 import { hasHiddenPacks, packGroups, type Packs } from "../../utils/pack-listing";
 import {
   ThemedDropdown,
@@ -34,7 +34,6 @@ export function PackPicker({
   className = "",
 }: PackPickerProps) {
   const { t } = useTranslation();
-  const accentColor = useThemeStore((s) => s.accentColor);
 
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
@@ -59,31 +58,34 @@ export function PackPicker({
   return (
     <div className={className}>
       {label && (
-        <label className="block text-white font-smallcaps text-lg mb-2">{label}</label>
+        <label className="block text-[12px] font-medium text-fg-2 mb-1.5">{label}</label>
       )}
       <div className="relative">
         <button
           ref={triggerRef}
           disabled={pending}
+          type="button"
           onClick={() => setOpen(v => !v)}
-          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = `${accentColor.value}33`; }}
-          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = `${accentColor.value}1a`; }}
-          style={{ backgroundColor: `${accentColor.value}1a`, borderColor: `${accentColor.value}40` }}
-          className={`rounded-md border font-minecraft text-white flex items-center gap-1.5 transition-colors ${
-            isSm ? "h-8 px-2.5 text-xs max-w-[220px]" : "w-full h-11 px-3 text-base justify-between"
-          } ${pending ? "opacity-60 cursor-default" : ""}`}
+          aria-expanded={open}
+          className={cn(
+            "rounded-md border bg-s2 text-fg flex items-center gap-1.5 transition-colors duration-fast",
+            open ? "border-line-3 bg-s3" : "border-line hover:border-line-2 hover:bg-s3",
+            isSm ? "h-8 px-2.5 text-[12.5px] max-w-[220px]" : "w-full h-9 px-3 text-[13px] justify-between",
+            pending && "opacity-60 cursor-default",
+          )}
         >
           <span className="flex items-center gap-1.5 min-w-0">
-            <Icon
-              icon={pending ? "svg-spinners:ring-resize" : "solar:shield-check-bold"}
-              className={`flex-shrink-0 ${isSm ? "w-3.5 h-3.5" : "w-4 h-4"}`}
-              style={{ color: accentColor.value }}
-            />
+            {pending ? (
+              <Loader2 size={isSm ? 13 : 14} strokeWidth={1.75} className="flex-shrink-0 animate-spin text-fg-3" />
+            ) : (
+              <ShieldCheck size={isSm ? 13 : 14} strokeWidth={1.75} className="flex-shrink-0 text-fg-3" />
+            )}
             <span className="truncate">{pending ? "" : selectedLabel}</span>
           </span>
-          <Icon
-            icon="solar:alt-arrow-down-linear"
-            className={`opacity-60 flex-shrink-0 transition-transform ${isSm ? "w-3 h-3" : "w-4 h-4"} ${open ? "rotate-180" : ""}`}
+          <ChevronDown
+            size={isSm ? 12 : 14}
+            strokeWidth={1.75}
+            className={cn("flex-shrink-0 text-fg-4 transition-transform duration-fast", open && "rotate-180")}
           />
         </button>
 

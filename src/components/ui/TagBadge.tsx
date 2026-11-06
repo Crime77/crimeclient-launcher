@@ -1,18 +1,12 @@
 "use client";
 
 import type React from "react";
-import { forwardRef, useRef, useState } from "react";
-import { useThemeStore } from "../../store/useThemeStore";
+import { forwardRef, useRef } from "react";
 import { cn } from "../../lib/utils";
-import { ThemedSurface } from "./ThemedSurface";
-import { 
-  getVariantColors, 
-  getSizeClasses,
-  getBorderRadiusClass,
+import {
   getAccessibilityProps,
-  getTextSizeClass,
   type ComponentSize,
-  type ComponentVariant 
+  type ComponentVariant
 } from "./design-system";
 
 export interface TagBadgeProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -25,6 +19,39 @@ export interface TagBadgeProps extends React.HTMLAttributes<HTMLDivElement> {
   disabled?: boolean;
   label?: string;
   description?: string;
+}
+
+// "Werkzeug" label: flat s3, fg-2 text, r-sm, 11 px. State variants colour the text and the hairline only.
+const SIZES: Record<ComponentSize, { box: string; text: string; icon: string }> = {
+  xs: { box: "h-4 px-1", text: "text-[10.5px]", icon: "w-2.5 h-2.5" },
+  sm: { box: "h-[18px] px-1.5", text: "text-[11px]", icon: "w-2.5 h-2.5" },
+  md: { box: "h-[18px] px-1.5", text: "text-[11px]", icon: "w-3 h-3" },
+  lg: { box: "h-[22px] px-2", text: "text-xs", icon: "w-3 h-3" },
+  xl: { box: "h-6 px-2.5", text: "text-xs", icon: "w-3.5 h-3.5" },
+};
+
+function variantClasses(variant: TagBadgeProps["variant"], clickable: boolean): string {
+  switch (variant) {
+    case "destructive":
+      return cn("bg-transparent border-err/35 text-err", clickable && "hover:bg-err/10");
+    case "warning":
+      return cn("bg-transparent border-warn/35 text-warn", clickable && "hover:bg-warn/10");
+    case "success":
+      return cn("bg-transparent border-ok/35 text-ok", clickable && "hover:bg-ok/10");
+    case "info":
+      return cn("bg-transparent border-info/35 text-info", clickable && "hover:bg-info/10");
+    case "inactive":
+      return cn("bg-s2 border-transparent text-fg-3", clickable && "hover:text-fg-2 hover:bg-s3");
+    case "ghost":
+      return cn("bg-transparent border-transparent text-fg-3", clickable && "hover:text-fg-2 hover:bg-s3");
+    case "flat":
+      return cn("bg-transparent border-line-2 text-fg-2", clickable && "hover:text-fg hover:border-line-3");
+    case "filter":
+      // an applied filter: one step brighter than a plain label
+      return cn("bg-s3 border-line-3 text-fg", clickable && "hover:bg-s4");
+    default:
+      return cn("bg-s3 border-transparent text-fg-2", clickable && "hover:text-fg hover:bg-s4");
+  }
 }
 
 export const TagBadge = forwardRef<HTMLElement, TagBadgeProps>(
@@ -44,10 +71,6 @@ export const TagBadge = forwardRef<HTMLElement, TagBadgeProps>(
     ref,
   ) => {
     const badgeRef = useRef<HTMLElement>(null);
-    const accentColor = useThemeStore((state) => state.accentColor);
-    const isBackgroundAnimationEnabled = useThemeStore((state) => state.isBackgroundAnimationEnabled);
-    const [isHovered, setIsHovered] = useState(false);
-    const [isPressed, setIsPressed] = useState(false);
     const isClickable = !!onClick && !disabled;
 
     const mergedRef = (node: HTMLElement) => {
@@ -61,128 +84,44 @@ export const TagBadge = forwardRef<HTMLElement, TagBadgeProps>(
       badgeRef.current = node;
     };
 
-    const handleMouseDown = () => {
-      if (disabled || !isClickable) return;
-      setIsPressed(true);
-    };
-
-    const handleMouseUp = () => {
-      if (disabled || !isClickable) return;
-      setIsPressed(false);
-    };
-
-    const handleMouseEnter = () => {
-      if (disabled || !isClickable) return;
-      setIsHovered(true);
-    };
-
-    const handleMouseLeave = () => {
-      if (disabled || !isClickable) return;
-      setIsHovered(false);
-      if (isPressed) {
-        handleMouseUp();
-      }
-    };
-
-    const getVariantStyles = () => {
-      if (variant === "inactive") {
-        return {
-          main: "#6b7280",
-          light: "#9ca3af",
-          dark: "#4b5563",
-          text: "#f3f4f6",
-        };
-      }
-      if (variant === "filter") {
-        return {
-          main: accentColor.value,
-          light: accentColor.value,
-          dark: accentColor.value,
-          text: "#ffffff",
-        };
-      }
-      return getVariantColors(variant as ComponentVariant, accentColor);
-    };    const getSizeClasses = () => {
-      switch (size) {
-        case "sm":
-          return "px-1.5 py-0.5 rounded-sm min-h-[12px]";
-        case "lg":
-          return "px-3 py-1 rounded-md min-h-[28px]";
-        case "xl":
-          return "px-4 py-1.5 rounded-md min-h-[36px]";
-        default:
-          return "px-1.5 py-0.5 rounded-sm min-h-[12px]";
-      }
-    };    const variantStyles = getVariantStyles();
-    const sizeClasses = getSizeClasses();
+    const dims = SIZES[size] ?? SIZES.md;
     const accessibilityProps = getAccessibilityProps({
       label: label || (typeof children === "string" ? children : undefined),
       description,
       disabled
     });
-    const getTextSizeClass = () => {
-      switch (size) {
-        case "sm":
-          return "text-[0.75em]";
-        case "lg":
-          return "text-base";
-        case "xl":
-          return "text-lg";
-        default:
-          return "text-[0.7em]";
-      }
-    };
 
-    const customStyling =
-      variant === "flat"
-        ? {
-            backgroundColor: `${variantStyles.main}20`,
-            boxShadow: "none",
-          }
-        : variant === "destructive"
-        ? {
-            backgroundColor: "#dc262620",
-            borderWidth: "1px",
-            borderStyle: "solid",
-            borderColor: "#dc262680",
-            color: "#ffffff",
-          }
-        : {};    const { 
-      onCopy, 
-      onCut, 
-      onPaste, 
-      onCompositionEnd, 
-      onCompositionStart, 
-      onCompositionUpdate, 
-      ...cleanProps 
+    const {
+      onCopy,
+      onCut,
+      onPaste,
+      onCompositionEnd,
+      onCompositionStart,
+      onCompositionUpdate,
+      ...cleanProps
     } = props;
 
     const baseProps = {
       ref: mergedRef,
       className: cn(
-        "inline-flex items-center justify-center relative overflow-hidden", "w-fit font-smallcaps transition-all duration-200",
-        sizeClasses,
-        isClickable ? "cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/30 focus:ring-offset-1 focus:ring-offset-black/20" : "",
+        "inline-flex items-center justify-center relative w-fit whitespace-nowrap border rounded-sm",
+        "font-[520] leading-none transition-colors duration-fast ease-out",
+        dims.box,
+        variantClasses(variant, isClickable),
+        isClickable ? "cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-line-3" : "",
         disabled ? "opacity-50 cursor-not-allowed" : "",
         className,
       ),
-      style: {
-        backgroundColor: variant === "filter" ? `${variantStyles.main}30` : variant === "destructive" ? undefined : `${variantStyles.main}15`,
-        borderWidth: variant === "filter" ? "1px" : variant === "destructive" ? undefined : "0px",
-        borderStyle: variant === "filter" ? "solid" : variant === "destructive" ? undefined : "none",
-        borderColor: variant === "filter" ? `${variantStyles.main}80` : variant === "destructive" ? undefined : "transparent",
-        color: variant === "filter" ? variantStyles.text : variant === "destructive" ? undefined : "#a1a1aa", // text-zinc-400
-        filter: isHovered && isClickable && !disabled ? "brightness(1.1)" : "brightness(1)",
-        ...customStyling
-      },
       ...accessibilityProps
     };
 
     const content = (
-      <>        <span          className={cn(
-            "relative z-10 flex items-center font-minecraft",
-            iconElement ? "gap-x-1.5" : "",
-            getTextSizeClass(),
+      <>
+        <span
+          className={cn(
+            "relative flex items-center",
+            iconElement ? "gap-x-1" : "",
+            dims.text,
           )}
           style={{
             letterSpacing: "0.01em",
@@ -190,14 +129,14 @@ export const TagBadge = forwardRef<HTMLElement, TagBadgeProps>(
           }}
         >
           {iconElement && (
-            <span className="flex-shrink-0 w-2.5 h-2.5 flex items-center justify-center" aria-hidden="true">
+            <span className={cn("flex-shrink-0 flex items-center justify-center", dims.icon)} aria-hidden="true">
               {iconElement}
             </span>
           )}
           {children}
         </span>
         {description && (
-          <span 
+          <span
             id={accessibilityProps["aria-describedby"]}
             className="sr-only"
           >
@@ -205,16 +144,14 @@ export const TagBadge = forwardRef<HTMLElement, TagBadgeProps>(
           </span>
         )}
       </>
-    );    if (isClickable) {
+    );
+
+    if (isClickable) {
       return (
         <button
           {...baseProps}
           type="button"
           onClick={onClick}
-          onMouseDown={handleMouseDown}
-          onMouseUp={handleMouseUp}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
         >
           {content}
         </button>

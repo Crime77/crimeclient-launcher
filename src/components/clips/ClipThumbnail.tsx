@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Icon } from "@iconify/react";
+import { Loader2, Video } from "lucide-react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 
 import { saveClipThumbnail, type ClipEntry } from "../../services/clip-service";
@@ -116,17 +116,18 @@ export function ClipThumbnail({ clip, onStored }: Props) {
                 src={stored}
                 alt=""
                 draggable={false}
-                className="aspect-video w-full bg-black object-cover"
+                className="aspect-video w-full bg-s2 object-cover"
             />
         );
     }
 
     return (
-        <div className="flex aspect-video w-full items-center justify-center bg-black">
-            <Icon
-                icon={failed ? "solar:videocamera-bold" : "svg-spinners:ring-resize"}
-                className="h-6 w-6 text-white/20"
-            />
+        <div className="flex aspect-video w-full items-center justify-center bg-s2 text-fg-4">
+            {failed ? (
+                <Video size={20} strokeWidth={1.5} />
+            ) : (
+                <Loader2 size={18} strokeWidth={1.75} className="animate-spin" />
+            )}
         </div>
     );
 }

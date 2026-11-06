@@ -2,7 +2,6 @@
 
 import React, { useEffect, useRef } from "react";
 import { Icon } from "@iconify/react";
-import { useThemeStore } from "../../store/useThemeStore";
 import { MENU_PANEL_CLASSES, menuItemClasses, menuSeparatorClasses } from "./design-system";
 import type { Profile } from "../../types/profile";
 
@@ -48,7 +47,6 @@ export function SettingsContextMenu<T = Profile>({
   triggerButtonRef,
   compact = false,
 }: SettingsContextMenuProps<T>) {
-  const accentColor = useThemeStore((state) => state.accentColor);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Close menu when clicking outside
@@ -106,61 +104,49 @@ export function SettingsContextMenu<T = Profile>({
   return (
     <div
       ref={menuRef}
-      className={`absolute ${MENU_PANEL_CLASSES}`}
+      className={`absolute cc-pop ${MENU_PANEL_CLASSES}`}
       style={{
         left: position.x,
         top: position.y,
         minWidth: compact ? "176px" : "200px",
       }}
     >
-      <div className="py-2">
-        {items.map((item) => (
-          <React.Fragment key={item.id}>
-            {/* Separator */}
-            {item.separator && (
-              <div className={compact ? menuSeparatorClasses(true) : "h-px bg-white/10 mx-2 my-2"} />
-            )}
-            
-            <button
-              onClick={() => {
-                if (!item.disabled) {
-                  item.onClick(target);
-                  onClose();
-                }
-              }}
-              className={`${compact ? menuItemClasses(true) : "w-full flex items-center gap-3 px-4 py-3 text-left font-minecraft text-sm transition-colors duration-150"} ${
+      {items.map((item) => (
+        <React.Fragment key={item.id}>
+          {/* Separator */}
+          {item.separator && <div className={menuSeparatorClasses(compact)} />}
+
+          <button
+            type="button"
+            onClick={() => {
+              if (!item.disabled) {
+                item.onClick(target);
+                onClose();
+              }
+            }}
+            className={`${menuItemClasses(compact)} ${
+              item.disabled
+                ? "!text-fg-4 cursor-not-allowed hover:!bg-transparent"
+                : item.destructive
+                  ? "!text-err hover:!bg-err/10"
+                  : ""
+            }`}
+            disabled={item.disabled}
+          >
+            <Icon
+              icon={item.icon}
+              className={`w-4 h-4 flex-shrink-0 ${
                 item.disabled
-                  ? 'text-white/30 cursor-not-allowed opacity-50'
+                  ? "text-fg-4"
                   : item.destructive
-                    ? 'text-red-400 hover:bg-red-600/10 hover:text-red-300'
-                    : 'text-white/80 hover:text-white'
+                    ? "text-err"
+                    : "text-fg-3"
               }`}
-              style={{
-                backgroundColor: item.destructive ? undefined : 'transparent',
-              }}
-              onMouseEnter={!item.destructive && !item.disabled ? (e) => {
-                e.currentTarget.style.backgroundColor = `${accentColor.value}15`;
-              } : undefined}
-              onMouseLeave={!item.destructive && !item.disabled ? (e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              } : undefined}
-              disabled={item.disabled}
-            >
-              <Icon 
-                icon={item.icon} 
-                className={`w-4 h-4 flex-shrink-0 ${
-                  item.disabled
-                    ? 'text-white/30'
-                    : item.destructive 
-                      ? 'text-red-400' 
-                      : 'text-white/70'
-                }`} 
-              />
-              <span className="flex-1">{item.label}</span>
-            </button>
-          </React.Fragment>
-        ))}
-      </div>
+            />
+            <span className="flex-1 truncate">{item.label}</span>
+          </button>
+        </React.Fragment>
+      ))}
     </div>
   );
 }

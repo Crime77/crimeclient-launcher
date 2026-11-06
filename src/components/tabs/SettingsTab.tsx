@@ -1,15 +1,24 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { Icon } from "@iconify/react";
+import {
+  AlertTriangle,
+  Bug,
+  Clapperboard,
+  FolderOpen,
+  Loader2,
+  Palette,
+  RotateCw,
+  Settings,
+  SlidersHorizontal,
+  type LucideIcon,
+} from "lucide-react";
 import { Button } from ".././ui/buttons/Button";
 import type { LauncherConfig } from "../../types/launcherConfig";
 import * as ConfigService from "../../services/launcher-config-service";
-import { useThemeStore } from "../../store/useThemeStore";
 import { useSettingsModalStore } from "../../store/settings-modal-store";
 import { cn } from "../../lib/utils";
 import { toast } from "react-hot-toast";
-import { ActionButton } from ".././ui/ActionButton";
 import { Modal } from ".././ui/Modal";
 import { SearchWithFilters } from ".././ui/SearchWithFilters";
 import { SettingsSearchContext } from ".././ui/settings/SettingsSearchContext";
@@ -80,13 +89,14 @@ export function SettingsTab({ onClose }: SettingsTabProps) {
   const sectionDefs: Record<SettingsTabId, { id: string; label: string }[]> = {
     general: [
       { id: "language", label: t("settings.language") },
-      { id: "accent", label: t("settings.accent_color.title") },
       { id: "behaviour", label: t("settings.sections.behaviour") },
-      { id: "interface", label: t("settings.sections.interface") },
+      { id: "interface", label: t("settings.sections.downloads") },
     ],
     appearance: [
+      { id: "accent", label: t("settings.accent_color.title") },
       { id: "theme", label: t("settings.theme.title") },
       { id: "font", label: t("settings.font.title") },
+      { id: "ui", label: t("settings.sections.ui") },
       { id: "background", label: t("settings.background.title") },
       { id: "custom-background", label: t("settings.custom_background.title") },
     ],
@@ -113,19 +123,51 @@ export function SettingsTab({ onClose }: SettingsTabProps) {
   const allTabs: {
     id: SettingsTabId;
     label: string;
-    icon: string;
+    description: string;
+    icon: LucideIcon;
     children?: { id: string; label: string }[];
   }[] = [
-    { id: "general", label: t("settings.tabs.general"), icon: "solar:settings-bold", children: sectionDefs.general },
-    { id: "appearance", label: t("settings.tabs.appearance"), icon: "solar:palette-bold", children: sectionDefs.appearance },
+    {
+      id: "general",
+      label: t("settings.tabs.general"),
+      description: t("settings.tabs.general.description"),
+      icon: Settings,
+      children: sectionDefs.general,
+    },
+    {
+      id: "appearance",
+      label: t("settings.tabs.appearance"),
+      description: t("settings.tabs.appearance.description"),
+      icon: Palette,
+      children: sectionDefs.appearance,
+    },
     ...(supportsClips()
-      ? [{ id: "clips" as const, label: t("settings.tabs.clips"), icon: "solar:videocamera-record-bold", children: sectionDefs.clips }]
+      ? [{
+          id: "clips" as const,
+          label: t("settings.tabs.clips"),
+          description: t("settings.tabs.clips.description"),
+          icon: Clapperboard,
+          children: sectionDefs.clips,
+        }]
       : []),
-    { id: "advanced", label: t("settings.tabs.advanced"), icon: "solar:tuning-bold", children: sectionDefs.advanced },
-    { id: "debug", label: t("settings.tabs.debug"), icon: "solar:bug-bold", children: sectionDefs.debug },
+    {
+      id: "advanced",
+      label: t("settings.tabs.advanced"),
+      description: t("settings.tabs.advanced.description"),
+      icon: SlidersHorizontal,
+      children: sectionDefs.advanced,
+    },
+    {
+      id: "debug",
+      label: t("settings.tabs.debug"),
+      description: t("settings.tabs.debug.description"),
+      icon: Bug,
+      children: sectionDefs.debug,
+    },
   ];
 
   const tabConfig = onlyTab ? allTabs.filter((tab) => tab.id === onlyTab) : allTabs;
+  const currentTab = allTabs.find((tab) => tab.id === activeTab) ?? allTabs[0];
 
   const selectTab = (id: SettingsTabId) => {
     setSidebarSearch("");
@@ -183,7 +225,6 @@ export function SettingsTab({ onClose }: SettingsTabProps) {
   }, [activeTab, sidebarQuery, config, tempConfig]);
 
   const isResettingRef = useRef<boolean>(false);
-  const { accentColor } = useThemeStore();
 
   const loadConfig = useCallback(async () => {
     setLoading(true);
@@ -255,57 +296,39 @@ export function SettingsTab({ onClose }: SettingsTabProps) {
   const renderTabContent = () => {
     if (loading) {
       return (
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <Icon
-              icon="svg-spinners:ring-resize"
-              className="w-10 h-10 text-white/70 mx-auto mb-4"
-            />
-            <p className="text-base text-white/70 font-smallcaps">
-              {t("settings.loading")}
-            </p>
-          </div>
+        <div className="flex items-center gap-2.5 h-24 text-[13px] text-fg-3">
+          <Loader2 size={16} strokeWidth={1.75} className="animate-spin" />
+          {t("settings.loading")}
         </div>
       );
     }
 
     if (error) {
       return (
-        <div className="bg-red-900/30 border-2 border-red-700/50 rounded-lg p-6 my-4">
-          <div className="flex items-start gap-3">
-            <Icon
-              icon="solar:danger-triangle-bold"
-              className="w-8 h-8 text-red-400 flex-shrink-0 mt-1"
-            />
-            <div>
-              <h3 className="text-base text-red-300 font-smallcaps mb-2">
-                {t("settings.error.title")}
-              </h3>
-              <p className="text-sm text-red-200/80 font-smallcaps mb-4">
-                {error}
-              </p>
-              <Button
-                onClick={loadConfig}
-                variant="secondary"
-                size="sm"
-                icon={<Icon icon="solar:refresh-bold" className="w-5 h-5" />}
-              >
-                {t("common.try_again")}
-              </Button>
-            </div>
+        <div
+          className="flex items-start gap-3 border border-err/30 bg-err/10 p-4"
+          style={{ borderRadius: "var(--r-md)" }}
+        >
+          <AlertTriangle size={16} strokeWidth={1.75} className="text-err flex-shrink-0 mt-0.5" />
+          <div className="min-w-0">
+            <h3 className="text-[13px] font-[560] text-fg">{t("settings.error.title")}</h3>
+            <p className="font-mono text-xs text-fg-2 mt-1 break-words">{error}</p>
+            <Button
+              onClick={loadConfig}
+              variant="secondary"
+              size="sm"
+              className="mt-3"
+              icon={<RotateCw size={14} strokeWidth={1.75} />}
+            >
+              {t("common.try_again")}
+            </Button>
           </div>
         </div>
       );
     }
 
     if (!config || !tempConfig) {
-      return (
-        <div className="text-center p-8">
-          <p className="text-base text-white/70 font-smallcaps">
-            {t("settings.error.no_config")}
-          </p>
-        </div>
-      );
+      return <p className="text-[13px] text-fg-3 py-6">{t("settings.error.no_config")}</p>;
     }
 
     const bodyOf: Partial<Record<SettingsTabId, ReactNode>> = {
@@ -321,7 +344,7 @@ export function SettingsTab({ onClose }: SettingsTabProps) {
         (id) => bodyOf[id],
       ) as SettingsTabId[];
       return (
-        <div className="space-y-6">
+        <div className="space-y-8">
           {ordered.map((id) => (
             <Fragment key={id}>{bodyOf[id]}</Fragment>
           ))}
@@ -333,26 +356,22 @@ export function SettingsTab({ onClose }: SettingsTabProps) {
     return bodyOf[activeTab] ?? null;
   };
 
+  const searching = Boolean(sidebarQuery && !onlyTab);
+
   return (
     <Modal
       title={onlyTab ? tabConfig[0]?.label ?? t("nav.settings") : t("nav.settings")}
-      titleIcon={
-        <Icon
-          icon={onlyTab ? tabConfig[0]?.icon ?? "solar:settings-bold" : "solar:settings-bold"}
-          className="w-8 h-8"
-        />
-      }
+      titleIcon={<Settings size={16} strokeWidth={1.75} />}
       onClose={onClose}
       width="xl"
-      className="!max-w-6xl h-[85vh] min-h-[600px] flex flex-col"
+      className="!max-w-[1080px] h-[86vh] max-h-[780px] flex flex-col"
+      contentClassName="!overflow-hidden"
       headerActions={
-        <ActionButton
-          id="open-directory"
-          label={t("settings.open_directory")}
-          icon="solar:folder-bold"
-          variant="highlight"
-          tooltip={t("settings.open_directory.tooltip")}
+        <Button
+          variant="ghost"
           size="sm"
+          icon={<FolderOpen size={14} strokeWidth={1.75} />}
+          title={t("settings.open_directory.tooltip")}
           onClick={async () => {
             try {
               await openLauncherDirectory();
@@ -361,12 +380,15 @@ export function SettingsTab({ onClose }: SettingsTabProps) {
               toast.error(t("settings.open_directory.error", { error: parseErrorMessage(err) }));
             }
           }}
-        />
+        >
+          {t("settings.open_directory")}
+        </Button>
       }
     >
-      <div className="flex h-full p-4 gap-2">
-        <div className="w-64 flex flex-col flex-shrink-0">
-          <div className="px-1 pb-3">
+      <div className="flex h-full min-h-0">
+        {/* section list: a quiet text list, the active tab marked like the sidebar */}
+        <aside className="w-[216px] flex-shrink-0 flex flex-col border-r border-line">
+          <div className="px-3 pt-3 pb-2">
             <SearchWithFilters
               placeholder={t("common.search")}
               searchValue={sidebarSearch}
@@ -377,51 +399,56 @@ export function SettingsTab({ onClose }: SettingsTabProps) {
               className="w-full"
             />
           </div>
-          <div ref={sidebarListRef} className="space-y-0 flex-1 overflow-y-auto custom-scrollbar">
+          <nav ref={sidebarListRef} className="flex-1 overflow-y-auto custom-scrollbar px-2 pb-3">
             {tabConfig.map((tab) => {
               const isActive = activeTab === tab.id;
+              const TabIcon = tab.icon;
               return (
-                <div key={tab.id}>
+                <div key={tab.id} className="mb-px">
                   <button
+                    type="button"
+                    aria-current={isActive ? "page" : undefined}
                     className={cn(
-                      "w-full text-left px-3 py-2.5 rounded-lg transition-colors border-0 outline-none flex items-center gap-3",
-                      isActive
-                        ? "text-white"
-                        : "bg-transparent text-white/60 hover:bg-white/5 hover:text-white/90",
+                      "group relative h-8 w-full flex items-center gap-2.5 pl-3 pr-2 text-left text-[13px] font-[520] outline-none",
+                      "transition-colors duration-fast ease-out",
+                      isActive && !searching ? "bg-s3 text-fg" : "text-fg-3 hover:text-fg-2 hover:bg-s2",
                     )}
-                    style={isActive ? { backgroundColor: `${accentColor.value}26` } : undefined}
+                    style={{ borderRadius: "var(--r-sm)" }}
                     onClick={() => selectTab(tab.id)}
                   >
-                    <Icon
-                      icon={tab.icon}
-                      className="w-6 h-6 transition-colors duration-200"
-                      style={{ color: isActive ? accentColor.value : undefined }}
-                    />
                     <span
                       className={cn(
-                        "font-smallcaps text-lg transition-colors duration-200",
-                        isActive && "font-medium",
+                        "absolute left-0 top-2 bottom-2 w-[2px] rounded-full bg-accent transition-transform duration-med ease-out",
+                        isActive && !searching ? "scale-y-100" : "scale-y-0",
                       )}
-                    >
-                      {tab.label}
-                    </span>
+                    />
+                    <TabIcon
+                      size={16}
+                      strokeWidth={1.75}
+                      className={cn(
+                        "flex-shrink-0",
+                        isActive && !searching ? "text-fg" : "text-fg-3 group-hover:text-fg-2",
+                      )}
+                    />
+                    <span className="flex-1 truncate">{tab.label}</span>
                   </button>
 
-                  {isActive && !sidebarQuery && tab.children && (
-                    <div className="flex flex-col mt-1 ml-5 border-l border-white/10">
+                  {isActive && !sidebarQuery && tab.children && tab.children.length > 0 && (
+                    <div className="ml-[19px] mt-0.5 mb-2 flex flex-col border-l border-line">
                       {tab.children.map((child) => {
                         const childActive = activeSection === child.id;
                         return (
                           <button
+                            type="button"
                             key={child.id}
                             data-section-id={child.id}
                             className={cn(
-                              "w-full text-left pl-4 pr-2 py-1.5 -ml-px border-l-2 outline-none font-smallcaps text-base transition-[color,border-color] duration-150",
+                              "w-full text-left -ml-px pl-3 pr-2 h-7 border-l outline-none truncate text-[12.5px]",
+                              "transition-[color,border-color] duration-fast",
                               childActive
-                                ? "text-white"
-                                : "border-transparent text-white/40 hover:text-white/75",
+                                ? "border-fg-2 text-fg"
+                                : "border-transparent text-fg-3 hover:text-fg-2",
                             )}
-                            style={childActive ? { borderColor: accentColor.value } : undefined}
                             onClick={() => scrollToSection(child.id)}
                           >
                             {child.label}
@@ -433,18 +460,22 @@ export function SettingsTab({ onClose }: SettingsTabProps) {
                 </div>
               );
             })}
-          </div>
-        </div>
+          </nav>
+        </aside>
 
-        <div className="flex items-center">
-          <div className="border-l border-white/10 mx-4 my-3 h-[85%]"></div>
-        </div>
-
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          <div
-            ref={contentRef}
-            className="flex-1 py-2 px-5 overflow-y-auto overflow-x-hidden custom-scrollbar min-w-0"
-          >
+        <div
+          ref={contentRef}
+          className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden custom-scrollbar"
+        >
+          <div className="max-w-[760px] px-8 pt-6 pb-12">
+            <header className="mb-7">
+              <h2 className="font-display text-[20px] font-[650] leading-tight text-fg">
+                {searching ? t("settings.search_results") : currentTab.label}
+              </h2>
+              <p className="text-[13px] text-fg-3 mt-1">
+                {searching ? `"${sidebarSearch.trim()}"` : currentTab.description}
+              </p>
+            </header>
             <SettingsConfigProvider value={{ config, tempConfig, setTempConfig, saving }}>
               <SettingsSearchContext.Provider value={sidebarQuery}>
                 {renderTabContent()}

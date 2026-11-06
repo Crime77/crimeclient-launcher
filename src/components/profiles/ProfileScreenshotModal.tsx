@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Modal } from "../ui/Modal";
-import { Icon } from "@iconify/react";
+import { Copy, FolderOpen, Image as ImageIcon, Loader2, Trash2 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import type { ScreenshotInfo as ActualScreenshotInfo } from "../../types/profile";
@@ -111,25 +111,55 @@ export function ProfileScreenshotModal({
   return (
     <Modal
       title={screenshot.filename}
-      titleIcon={<Icon icon="solar:gallery-bold-duotone" className="w-6 h-6" />}
+      titleIcon={<ImageIcon size={16} strokeWidth={1.75} />}
       onClose={onClose}
       width="xl"
       closeOnClickOutside
+      headerActions={
+        isModalImageLoaded ? (
+          <div className="flex items-center gap-0.5 mr-1 pr-2 border-r border-line">
+            <IconButton
+              icon={isCopyingImage ? <Loader2 size={16} className="animate-spin" strokeWidth={1.75} /> : <Copy size={16} strokeWidth={1.75} />}
+              title={t('screenshots.copy_image')}
+              onClick={handleCopyImage}
+              disabled={isCopyingImage}
+              variant="ghost"
+              size="sm"
+            />
+            <IconButton
+              icon={<FolderOpen size={16} strokeWidth={1.75} />}
+              title={t('screenshots.open_location')}
+              onClick={handleOpenFolder}
+              variant="ghost"
+              size="sm"
+            />
+            <IconButton
+              icon={isDeleting ? <Loader2 size={16} className="animate-spin" strokeWidth={1.75} /> : <Trash2 size={16} strokeWidth={1.75} />}
+              title={t('screenshots.delete_screenshot')}
+              onClick={handleDeleteScreenshot}
+              disabled={isDeleting}
+              variant="ghost"
+              size="sm"
+              className="hover:!text-err"
+            />
+          </div>
+        ) : undefined
+      }
     >
-      <div className="flex justify-center items-center py-4 bg-transparent min-h-[400px] max-h-[calc(85vh-120px)] relative">
+      <div className="flex justify-center items-center p-4 bg-bg min-h-[400px] max-h-[calc(85vh-120px)] relative">
         {!isModalImageLoaded && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Icon icon="eos-icons:loading" className="w-12 h-12 text-white/70" />
+          <div className="absolute inset-0 flex items-center justify-center text-fg-3">
+            <Loader2 size={20} strokeWidth={1.75} className="animate-spin" />
           </div>
         )}
         <img
           src={convertFileSrc(screenshot.path)}
           alt={`Enlarged screenshot: ${screenshot.filename}`}
           className={cn(
-            "block max-w-full max-h-full w-auto h-auto object-contain rounded-md transition-opacity duration-700 ease-in-out",
+            "block max-w-full max-h-full w-auto h-auto object-contain transition-opacity duration-med ease-out",
             isModalImageLoaded ? "opacity-100" : "opacity-0"
           )}
-          style={{ maxHeight: 'calc(85vh - 150px)' }}
+          style={{ maxHeight: 'calc(85vh - 150px)', borderRadius: "var(--r-sm)" }}
           onLoad={() => setIsModalImageLoaded(true)}
           onError={() => {
             setIsModalImageLoaded(false);
@@ -137,38 +167,6 @@ export function ProfileScreenshotModal({
             // Future: Could show a placeholder error within the modal image area
           }}
         />
-
-        {/* Action Buttons - Visual Only */}
-        {isModalImageLoaded && ( // Show buttons only when image is loaded
-          <div className="absolute bottom-4 right-4 flex gap-2 z-10">
-            <IconButton
-              icon={isCopyingImage ? <Icon icon="eos-icons:loading" /> : <Icon icon="solar:copy-bold-duotone" />}
-              title={t('screenshots.copy_image')}
-              onClick={handleCopyImage}
-              disabled={isCopyingImage}
-              variant="flat"
-              size="sm"
-              className="rounded-md w-9 h-9 flex items-center justify-center"
-            />
-            <IconButton
-              icon={<Icon icon="solar:folder-with-files-bold-duotone" />}
-              title={t('screenshots.open_location')}
-              onClick={handleOpenFolder}
-              variant="flat"
-              size="sm"
-              className="rounded-md w-9 h-9 flex items-center justify-center"
-            />
-            <IconButton
-              icon={isDeleting ? <Icon icon="eos-icons:loading" /> : <Icon icon="solar:trash-bin-trash-bold-duotone" />}
-              title={t('screenshots.delete_screenshot')}
-              onClick={handleDeleteScreenshot}
-              disabled={isDeleting}
-              variant="destructive"
-              size="sm"
-              className="w-9 h-9 flex items-center justify-center"
-            />
-          </div>
-        )}
       </div>
     </Modal>
   );

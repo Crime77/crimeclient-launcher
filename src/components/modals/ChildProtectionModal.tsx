@@ -10,6 +10,7 @@ import {
 import { useGlobalModal } from "../../hooks/useGlobalModal";
 import { Modal } from "../ui/Modal";
 import { Button } from "../ui/buttons/Button";
+import { ArrowUpRight, ShieldAlert } from "lucide-react";
 import { openExternalUrl } from "../../services/tauri-service";
 
 export default function ChildProtectionModal() {
@@ -35,38 +36,41 @@ export default function ChildProtectionModal() {
                   "child-protection-modal",
                   <Modal
                     title={t('child_protection.title')}
+                    titleIcon={<ShieldAlert size={16} strokeWidth={1.75} className="text-warn" />}
                     onClose={async () => {
                       hideModal("child-protection-modal");
                     }}
-                    width="xl"
+                    width="md"
                     variant="flat"
-                  >
-                    <div className="p-4">
-                      <p className="text-white/90 mb-6 text-center font-minecraft">
-                        {t('child_protection.description')}
-                      </p>
-                      <p className="text-white/90 mb-6 text-center font-minecraft">
-                        {t('child_protection.review_settings')}
-                      </p>
-                      <p className="text-white/90 mb-6 text-center font-minecraft">
-                        {t('child_protection.setting_location')}
-                      </p>
-                      <div className="flex justify-center gap-4">
+                    footer={
+                      <div className="flex justify-end gap-2">
                         <Button
-                          variant="secondary"
-                          size="md"
+                          variant="ghost"
+                          size="sm"
                           onClick={() => hideModal("child-protection-modal")}
                         >
                           {t('child_protection.button.ignore')}
                         </Button>
                         <Button
                           onClick={() => openExternalUrl(`https://www.xbox.com/user/settings/privacy-and-safety?gamertag=${event.payload.message}&activetab=main:privilegetab`)}
-                          variant="info"
-                          size="md"
+                          variant="secondary"
+                          size="sm"
+                          iconPosition="right"
+                          icon={<ArrowUpRight size={14} strokeWidth={1.75} />}
                         >
                           {t('child_protection.button.open_settings')}
                         </Button>
                       </div>
+                    }
+                  >
+                    <div className="p-5 space-y-3 text-[13px] text-fg-2 leading-relaxed">
+                      <p>{t('child_protection.description')}</p>
+                      <p>{t('child_protection.review_settings')}</p>
+                      <p
+                        className="text-xs text-fg-3 border-l-2 border-line-2 pl-3"
+                      >
+                        {t('child_protection.setting_location')}
+                      </p>
                     </div>
                   </Modal>,
                 );

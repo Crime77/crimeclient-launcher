@@ -1,10 +1,9 @@
 "use client";
 
 import type React from "react";
-import { Icon } from "@iconify/react";
 import { useTranslation } from "react-i18next";
+import { Check, Loader2, RefreshCw } from "lucide-react";
 
-import { useThemeStore } from "../../../../store/useThemeStore";
 import type { UnifiedVersion } from "../../../../types/unified";
 import { ThemedDropdown, ThemedDropdownHeader } from "./ThemedDropdown";
 
@@ -27,6 +26,9 @@ export interface VersionSelectDropdownProps {
   width?: string;
 }
 
+const ROW =
+  "w-full flex items-center gap-2.5 px-2 py-1.5 text-left transition-colors duration-fast";
+
 export function VersionSelectDropdown({
   open,
   onClose,
@@ -41,7 +43,6 @@ export function VersionSelectDropdown({
   width = "w-72",
 }: VersionSelectDropdownProps) {
   const { t } = useTranslation();
-  const accentColor = useThemeStore((state) => state.accentColor);
 
   return (
     <ThemedDropdown
@@ -57,65 +58,49 @@ export function VersionSelectDropdown({
       </ThemedDropdownHeader>
 
       {latestOption && (
-        <button
-          onClick={(event) => {
-            event.stopPropagation();
-            if (!latestOption.selected) latestOption.onSelect();
-          }}
-          disabled={latestOption.selected}
-          onMouseEnter={(event) => {
-            if (!latestOption.selected)
-              event.currentTarget.style.backgroundColor = `${accentColor.value}40`;
-          }}
-          onMouseLeave={(event) => {
-            if (!latestOption.selected)
-              event.currentTarget.style.backgroundColor = "transparent";
-          }}
-          className={`w-full flex items-center gap-2 border-b border-white/10 px-3 py-1.5 text-xs font-minecraft text-left transition-colors ${
-            latestOption.selected
-              ? "text-white/40 cursor-default"
-              : "text-white/85 hover:text-white cursor-pointer"
-          }`}
-        >
-          <Icon
-            icon={
+        <>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              if (!latestOption.selected) latestOption.onSelect();
+            }}
+            disabled={latestOption.selected}
+            className={`${ROW} ${
               latestOption.selected
-                ? "solar:check-circle-bold"
-                : "solar:refresh-circle-linear"
-            }
-            className="w-3.5 h-3.5 flex-shrink-0"
-            style={
-              latestOption.selected
-                ? { color: accentColor.value }
-                : { color: "rgba(255,255,255,0.4)" }
-            }
-          />
-          <div className="flex-1 min-w-0">
-            <div className="truncate">{latestOption.label}</div>
-            {latestOption.hint && (
-              <div className="text-[10px] text-white/35 truncate normal-case">
-                {latestOption.hint}
-              </div>
+                ? "bg-s3 text-fg cursor-default"
+                : "text-fg-2 hover:bg-s3 hover:text-fg"
+            }`}
+            style={{ borderRadius: "var(--r-sm)" }}
+          >
+            <RefreshCw size={14} strokeWidth={1.75} className="flex-shrink-0 text-fg-3" />
+            <div className="flex-1 min-w-0">
+              <div className="text-[13px] truncate">{latestOption.label}</div>
+              {latestOption.hint && (
+                <div className="text-[11px] text-fg-3 truncate">{latestOption.hint}</div>
+              )}
+            </div>
+            {latestOption.selected && (
+              <Check size={14} strokeWidth={2} className="flex-shrink-0 text-fg-2" />
             )}
-          </div>
-        </button>
+          </button>
+          <div className="h-px bg-line my-1 -mx-1" />
+        </>
       )}
 
       {loading && (
-        <div className="flex items-center justify-center py-6 text-white/50 text-xs font-minecraft gap-2">
-          <Icon icon="svg-spinners:ring-resize" className="w-3.5 h-3.5" />
+        <div className="flex items-center justify-center gap-2 py-6 text-[12px] text-fg-3">
+          <Loader2 size={14} className="animate-spin" />
           {t("profiles.v3.versions.loading")}
         </div>
       )}
 
       {!loading && error && (
-        <div className="px-3 py-4 text-xs text-rose-300 font-minecraft">
-          {error}
-        </div>
+        <div className="px-2 py-3 text-[12px] text-err">{error}</div>
       )}
 
       {!loading && !error && versions && versions.length === 0 && (
-        <div className="px-3 py-4 text-xs text-white/40 font-minecraft">
+        <div className="px-2 py-3 text-[12px] text-fg-3">
           {t("profiles.v3.versions.none")}
         </div>
       )}
@@ -127,57 +112,41 @@ export function VersionSelectDropdown({
           const isCurrent = version.id === currentVersionId;
           return (
             <button
+              type="button"
               key={version.id}
               onClick={(event) => {
                 event.stopPropagation();
                 if (!isCurrent) onSelect(version);
               }}
               disabled={isCurrent}
-              onMouseEnter={(event) => {
-                if (!isCurrent)
-                  event.currentTarget.style.backgroundColor = `${accentColor.value}40`;
-              }}
-              onMouseLeave={(event) => {
-                if (!isCurrent)
-                  event.currentTarget.style.backgroundColor = "transparent";
-              }}
-              className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs font-minecraft text-left transition-colors ${
+              className={`${ROW} ${
                 isCurrent
-                  ? "text-white/40 cursor-default"
-                  : "text-white/85 hover:text-white cursor-pointer"
+                  ? "bg-s3 text-fg cursor-default"
+                  : "text-fg-2 hover:bg-s3 hover:text-fg"
               }`}
+              style={{ borderRadius: "var(--r-sm)" }}
             >
-              {isCurrent ? (
-                <Icon
-                  icon="solar:check-circle-bold"
-                  className="w-3.5 h-3.5 flex-shrink-0"
-                  style={{ color: accentColor.value }}
-                />
-              ) : (
-                <Icon
-                  icon="solar:tag-linear"
-                  className="w-3.5 h-3.5 flex-shrink-0 text-white/40"
-                />
-              )}
               <div className="flex-1 min-w-0">
-                <div className="truncate">{version.version_number}</div>
-                <div className="text-[10px] text-white/35 truncate normal-case">
-                  {version.name}
-                </div>
+                <div className="cc-num text-[12px] truncate">{version.version_number}</div>
+                {version.name && version.name !== version.version_number && (
+                  <div className="text-[11px] text-fg-3 truncate">{version.name}</div>
+                )}
               </div>
               {version.release_type !== "release" && (
                 <span
-                  className={`text-[9px] uppercase px-1 py-0.5 rounded flex-shrink-0 ${
-                    version.release_type === "beta"
-                      ? "bg-amber-400/15 text-amber-200 border border-amber-400/25"
-                      : version.release_type === "alpha"
-                        ? "bg-rose-400/15  text-rose-200  border border-rose-400/25"
-                        : "bg-white/10 text-white/60 border border-white/15"
+                  className={`cc-num text-[10px] uppercase tracking-[0.04em] px-1 h-4 inline-flex items-center border flex-shrink-0 ${
+                    version.release_type === "alpha"
+                      ? "text-err border-err/30"
+                      : version.release_type === "beta"
+                        ? "text-warn border-warn/30"
+                        : "text-fg-3 border-line-2"
                   }`}
+                  style={{ borderRadius: "var(--r-sm)" }}
                 >
                   {version.release_type}
                 </span>
               )}
+              {isCurrent && <Check size={14} strokeWidth={2} className="flex-shrink-0 text-fg-2" />}
             </button>
           );
         })}

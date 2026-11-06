@@ -1,6 +1,7 @@
 [Desktop Entry]
 Name=CrimeClient Launcher
-Exec=noriskclient-launcher-v3
+Exec=noriskclient-launcher-v3 %u
 Type=Application
 Icon=de.crime77.CrimeClientLauncher
 Categories=Game;
+MimeType=x-scheme-handler/crimeclient;

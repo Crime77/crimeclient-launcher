@@ -209,9 +209,9 @@ const calculateColorVariants = (baseColor: string): Partial<AccentColor> => {
   };
 };
 
-export const DEFAULT_BORDER_RADIUS = 12;
+export const DEFAULT_BORDER_RADIUS = 6;
 export const MIN_BORDER_RADIUS = 0;
-export const MAX_BORDER_RADIUS = 32;
+export const MAX_BORDER_RADIUS = 14;
 
 interface ThemeState {
   accentColor: AccentColor;
@@ -409,10 +409,19 @@ export const useThemeStore = create<ThemeState>()(
         const rgbValue = hexToRgb(accentColor.value);
         if (rgbValue) {
           document.documentElement.style.setProperty("--accent-rgb", rgbValue);
+          // space separated for rgb(var(--accent-ch) / a), Tailwind's bg-accent/20 and lib/accent.ts
+          document.documentElement.style.setProperty("--accent-ch", rgbValue.replace(/,/g, ""));
+          // dark text on light accents (amber, steel ...), white on the rest
+          const [r, g, b] = rgbValue.split(",").map((v) => Number.parseInt(v, 10) / 255);
+          const lin = (c: number) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+          const luminance = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+          document.documentElement.style.setProperty("--on-accent", luminance > 0.36 ? "#141416" : "#ffffff");
         }
       },      applyBorderRadiusToDOM: () => {
         const { borderRadius } = get();
         
+        // globals.css derives --r-sm/--r-md/--r-lg from --r
+        document.documentElement.style.setProperty("--r", `${borderRadius}px`);
         document.documentElement.style.setProperty("--border-radius", `${borderRadius}px`);
         
         document.documentElement.setAttribute("data-border-radius", borderRadius.toString());
@@ -495,14 +504,15 @@ export const useThemeStore = create<ThemeState>()(
       name: "norisk-theme-storage",
       // v1: CrimeClient design, existing installs switch once to crimson with animated embers
       // v2: own launcher design with rounded corners
-      version: 2,
+      // v3: "Werkzeug" design, small radii
+      version: 3,
       migrate: (persisted, version) => {
         const state = persisted as ThemeState;
         if (version < 1) {
           state.accentColor = ACCENT_COLORS.crimson;
           state.isBackgroundAnimationEnabled = true;
         }
-        if (version < 2) state.borderRadius = DEFAULT_BORDER_RADIUS;
+        if (version < 3) state.borderRadius = DEFAULT_BORDER_RADIUS;
         return state;
       },
       onRehydrateStorage: () => (state) => {

@@ -25,22 +25,23 @@ export function SettingRow({
   children,
 }: SettingRowProps) {
   const labelNode = (
-    <span className="font-minecraft text-base text-white">{label}</span>
+    <span className="text-[13px] font-[520] text-fg leading-snug">{label}</span>
   );
 
+  // "Werkzeug" row: label and description left, the control right, a hairline between rows
   return (
     <div
       className={cn(
-        "flex gap-4 py-3 border-b border-white/10 last:border-b-0",
-        vertical ? "flex-col" : "items-center justify-between",
+        "flex py-3 border-b border-line last:border-b-0",
+        vertical ? "flex-col gap-2.5" : "items-center justify-between gap-6",
         disabled && "opacity-50",
         className,
       )}
     >
-      <div className="min-w-0">
+      <div className="min-w-0 max-w-[560px]">
         {tooltip ? <SimpleTooltip content={tooltip}>{labelNode}</SimpleTooltip> : labelNode}
         {description && (
-          <div className="font-minecraft text-xs text-white/50 mt-0.5">
+          <div className="text-xs text-fg-3 leading-[1.45] mt-0.5">
             {description}
           </div>
         )}

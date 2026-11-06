@@ -11,8 +11,9 @@ export function LoadingIndicator({
     <div
       className={`flex flex-col items-center justify-center p-6 select-none ${className}`}
     >
-      <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin mb-4"></div>
-      {message && ( <p className="text-white/70 text-sm font-smallcaps tracking-wide">
+      <div className="w-[18px] h-[18px] border-[1.5px] border-line-2 border-t-fg-3 rounded-full animate-spin mb-3"></div>
+      {message && (
+        <p className="text-fg-3 text-xs">
           {message}
         </p>
       )}

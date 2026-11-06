@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Icon } from "@iconify/react";
+import { Check, Plus } from "lucide-react";
+import { cn } from "../lib/utils";
 import { ACCENT_COLORS, useThemeStore } from "../store/useThemeStore";
 import { Button } from "./ui/buttons/Button";
 import { Input } from "./ui/Input";
@@ -14,6 +15,18 @@ interface ColorPickerProps {
   disabled?: boolean;
 }
 
+const HEX = /^#[0-9A-F]{6}$/i;
+
+/** Dark check on light swatches, light check on dark ones. */
+function checkColorOn(hex: string): string {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!m) return "#ffffff";
+  const [r, g, b] = [m[1], m[2], m[3]].map((v) => Number.parseInt(v, 16) / 255);
+  const lin = (c: number) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b) > 0.36 ? "#141416" : "#ffffff";
+}
+
+/** Accent swatches: small flat squares with a hairline, a check on the chosen one. */
 export function ColorPicker({
   shape = "square",
   size = "md",
@@ -24,195 +37,128 @@ export function ColorPicker({
   const { accentColor, setAccentColor, setCustomAccentColor, customColorHistory } = useThemeStore();
   const [showCustomPicker, setShowCustomPicker] = useState(false);
   const [customColor, setCustomColor] = useState("#4f8eff");
+  const [invalid, setInvalid] = useState(false);
 
-  const sizeClasses = {
-    sm: "w-8 h-8",
-    md: "w-12 h-12",
-    lg: "w-16 h-16",
-  };
+  const px = size === "sm" ? 18 : size === "lg" ? 28 : 22;
+  const radius = shape === "circle" ? "9999px" : "var(--r-sm)";
 
-  const shapeClasses = {
-    square: "rounded-md",
-    circle: "rounded-full",
-  };  const handleCustomColorSubmit = () => {
-    const isValidHex = /^#[0-9A-F]{6}$/i.test(customColor);
-
-    if (isValidHex) {
+  const handleCustomColorSubmit = () => {
+    if (HEX.test(customColor)) {
       setCustomAccentColor(customColor);
       setShowCustomPicker(false);
     } else {
-      const input = document.querySelector('input[placeholder="#RRGGBB"]') as HTMLInputElement;
-      if (input) {
-        input.style.borderColor = '#ef4444';
-        input.style.animation = 'shake 0.5s ease-in-out';
-        setTimeout(() => {
-          input.style.borderColor = '';
-          input.style.animation = '';
-        }, 500);
-      }
-    }
-  };
-  const handleCustomColorChange = (value: string) => {
-    setCustomColor(value);
-    const input = document.querySelector('input[placeholder="#RRGGBB"]') as HTMLInputElement;
-    if (input) {
-      input.style.borderColor = '';
+      setInvalid(true);
+      setTimeout(() => setInvalid(false), 500);
     }
   };
 
+  const swatch = (value: string, selected: boolean, onClick: () => void, label: string, small = false) => (
+    <button
+      key={label + value}
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={label}
+      aria-label={label}
+      aria-pressed={selected}
+      className={cn(
+        "group relative flex items-center justify-center flex-shrink-0 transition-[box-shadow,opacity] duration-fast ease-out",
+        "outline-none focus-visible:ring-1 focus-visible:ring-line-3 focus-visible:ring-offset-2 focus-visible:ring-offset-s1",
+        selected && "ring-1 ring-fg/60 ring-offset-2 ring-offset-s1",
+        disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer",
+      )}
+      style={{ width: small ? px - 4 : px, height: small ? px - 4 : px, borderRadius: radius, backgroundColor: value }}
+    >
+      {/* the hairline sits inside the colour so every swatch has the same edge */}
+      <span
+        aria-hidden
+        className={cn(
+          "absolute inset-0 border border-white/[0.14] transition-colors duration-fast",
+          !disabled && !selected && "group-hover:border-white/30",
+        )}
+        style={{ borderRadius: radius }}
+      />
+      {selected && <Check size={small ? 11 : 13} strokeWidth={2.5} style={{ color: checkColorOn(value) }} />}
+    </button>
+  );
+
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap gap-3 p-1">
-        {Object.values(ACCENT_COLORS).map((color) => (
-          <button
-            key={color.name}
-            onClick={() => !disabled && setAccentColor(color)}
-            disabled={disabled}
-            className={`
-              ${sizeClasses[size]} 
-              ${shapeClasses[shape]} 
-              relative transition-all duration-200
-              ${disabled 
-                ? "opacity-40 cursor-not-allowed" 
-                : "cursor-pointer shadow-[0_4px_0_rgba(0,0,0,0.2),0_6px_10px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.3)] hover:shadow-[0_5px_0_rgba(0,0,0,0.15),0_8px_15px_rgba(0,0,0,0.25),inset_0_1px_1px_rgba(255,255,255,0.4)] hover:translate-y-[-2px] active:shadow-[0_2px_0_rgba(0,0,0,0.1),0_3px_5px_rgba(0,0,0,0.2),inset_0_1px_1px_rgba(255,255,255,0.2)] active:translate-y-[1px]"
-              }
-              ${accentColor.value === color.value ? "ring-2 ring-white ring-offset-2 ring-offset-black/50" : ""}
-            `}
-            style={{ backgroundColor: color.value }}
-            aria-label={`Set accent color to ${color.name}`}
-          >
-            {accentColor.value === color.value && (
-              <span className="absolute inset-0 flex items-center justify-center">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="white"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="w-6 h-6 drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]"
-                >
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-              </span>
-            )}
-          </button>
-        ))}
+    <div className="space-y-3">
+      <div className="grid grid-flow-row gap-1.5" style={{ gridTemplateColumns: `repeat(9, ${px}px)` }}>
+        {Object.values(ACCENT_COLORS).map((color) =>
+          swatch(
+            color.value,
+            accentColor.value === color.value,
+            () => !disabled && setAccentColor(color),
+            color.name,
+          ),
+        )}
 
         {showCustomOption && (
           <button
+            type="button"
             onClick={() => !disabled && setShowCustomPicker(!showCustomPicker)}
             disabled={disabled}
-            className={`
-              ${sizeClasses[size]} 
-              ${shapeClasses[shape]} 
-              relative transition-all duration-200
-              ${disabled 
-                ? "opacity-40 cursor-not-allowed" 
-                : "cursor-pointer shadow-[0_4px_0_rgba(0,0,0,0.2),0_6px_10px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.3)] hover:shadow-[0_5px_0_rgba(0,0,0,0.15),0_8px_15px_rgba(0,0,0,0.25),inset_0_1px_1px_rgba(255,255,255,0.4)] hover:translate-y-[-2px] active:shadow-[0_2px_0_rgba(0,0,0,0.1),0_3px_5px_rgba(0,0,0,0.2),inset_0_1px_1px_rgba(255,255,255,0.2)] active:translate-y-[1px]"
-              }
-              bg-gradient-to-r from-purple-500 via-pink-500 to-red-500
-              ${accentColor.isCustom ? "ring-2 ring-white ring-offset-2 ring-offset-black/50" : ""}
-            `}
-            aria-label={t('settings.accent_color.custom')}
+            className={cn(
+              "flex items-center justify-center bg-s3 border border-line-2 text-fg-3 hover:text-fg hover:border-line-3 transition-colors duration-fast",
+              accentColor.isCustom && "ring-1 ring-fg/60 ring-offset-2 ring-offset-s1",
+              disabled && "opacity-40 cursor-not-allowed",
+            )}
+            style={{ width: px, height: px, borderRadius: radius }}
+            aria-label={t("settings.accent_color.custom")}
+            title={t("settings.accent_color.custom")}
           >
-            <span className="absolute inset-0 flex items-center justify-center">
-              <Icon
-                icon="solar:palette-bold"
-                className="w-6 h-6 text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]"
-              />
-            </span>
+            <Plus size={13} strokeWidth={1.75} />
           </button>
         )}
       </div>
 
       {showCustomPicker && (
-        <div className="mt-4 p-4 bg-black/30 rounded-lg border border-white/10">
-          <h5 className="font-smallcaps text-sm text-white/80 mb-3">
-            Custom Color
-          </h5>          <div className="flex items-center gap-3">
-            <div className="flex-1">              <Input
+        <div className="p-3 bg-s2 border border-line space-y-3" style={{ borderRadius: "var(--r-md)" }}>
+          <div className="cc-eyebrow">{t("settings.accent_color.custom")}</div>
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <Input
                 type="text"
                 value={customColor}
-                onChange={(e) => handleCustomColorChange(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    handleCustomColorSubmit();
-                  }
+                onChange={(e) => {
+                  setCustomColor(e.target.value);
+                  setInvalid(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleCustomColorSubmit();
                 }}
                 placeholder="#RRGGBB"
-                icon={<Icon icon="solar:palette-bold" />}
+                className={cn("font-mono", invalid && "!border-err/60")}
+                style={invalid ? { animation: "shake 0.5s ease-in-out" } : undefined}
               />
-            </div>            <div
-              className={`w-10 h-10 rounded-md border-2 transition-all duration-200 cursor-pointer hover:scale-110 ${
-                /^#[0-9A-F]{6}$/i.test(customColor) 
-                  ? 'border-white/40 shadow-lg' 
-                  : 'border-red-400/60 animate-pulse'
-              }`}
-              style={{ backgroundColor: customColor }}
-              onClick={() => {
-                if (/^#[0-9A-F]{6}$/i.test(customColor)) {
-                  handleCustomColorSubmit();
-                }
-              }}
-              title={/^#[0-9A-F]{6}$/i.test(customColor) ? `Click to apply ${customColor}` : 'Invalid color format - use 6-digit hex (e.g., #FF5733)'}
+            </div>
+            <span
+              className={cn("w-8 h-8 flex-shrink-0 border", HEX.test(customColor) ? "border-line-2" : "border-err/60")}
+              style={{ backgroundColor: HEX.test(customColor) ? customColor : "transparent", borderRadius: "var(--r-sm)" }}
+              title={customColor}
             />
-            <Button
-              onClick={handleCustomColorSubmit}
-              size="sm"
-              icon={<Icon icon="solar:check-circle-bold" />}
-            >
-              Apply
+            <Button onClick={handleCustomColorSubmit} size="sm" variant="secondary" icon={<Check size={14} strokeWidth={1.75} />}>
+              {t("color_picker.button.apply")}
             </Button>
           </div>
 
           {customColorHistory.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-white/10">
-              <h6 className="font-smallcaps text-xs text-white/70 mb-2">
-                Recent Colors
-              </h6>
-              <div className="flex flex-wrap gap-2">
-                {customColorHistory.map((historyColor, index) => (
-                  <button
-                    key={index}
-                    onClick={() => {
+            <div className="pt-3 border-t border-line">
+              <div className="cc-eyebrow mb-2">{t("color_picker.recent")}</div>
+              <div className="flex flex-wrap gap-1.5">
+                {customColorHistory.map((historyColor) =>
+                  swatch(
+                    historyColor,
+                    accentColor.value === historyColor,
+                    () => {
                       setCustomColor(historyColor);
                       setCustomAccentColor(historyColor);
-                    }}
-                    className={`
-                      ${sizeClasses.sm} 
-                      ${shapeClasses[shape]} 
-                      relative cursor-pointer transition-all duration-200
-                      shadow-[0_2px_0_rgba(0,0,0,0.2),0_3px_5px_rgba(0,0,0,0.3)]
-                      hover:shadow-[0_3px_0_rgba(0,0,0,0.15),0_4px_8px_rgba(0,0,0,0.25)]
-                      hover:translate-y-[-1px]
-                      active:shadow-[0_1px_0_rgba(0,0,0,0.1),0_2px_3px_rgba(0,0,0,0.2)]
-                      active:translate-y-[1px]
-                      ${accentColor.value === historyColor ? "ring-1 ring-white ring-offset-1 ring-offset-black/50" : ""}
-                    `}
-                    style={{ backgroundColor: historyColor }}
-                    aria-label={`Apply color ${historyColor}`}
-                    title={historyColor}
-                  >
-                    {accentColor.value === historyColor && (
-                      <span className="absolute inset-0 flex items-center justify-center">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="white"
-                          strokeWidth="3"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="w-4 h-4 drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]"
-                        >
-                          <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                      </span>
-                    )}
-                  </button>
-                ))}
+                    },
+                    historyColor,
+                    true,
+                  ),
+                )}
               </div>
             </div>
           )}

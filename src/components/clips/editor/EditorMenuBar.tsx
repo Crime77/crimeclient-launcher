@@ -63,7 +63,7 @@ export function EditorMenuBar({
   }, [menus, onOpenChange, open]);
 
   return (
-    <nav className="pointer-events-auto flex shrink-0 items-center gap-0.5" role="menubar">
+    <nav className="pointer-events-auto ml-2 flex shrink-0 items-center gap-px" role="menubar">
       {menus.map((menu) => (
         <MenuTrigger
           key={menu.id}
@@ -88,7 +88,6 @@ function MenuTrigger({
   anyOpen: boolean;
   onOpenChange: (id: string | null) => void;
 }) {
-  const accentColor = useThemeStore((state) => state.accentColor);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
   return (
@@ -104,9 +103,8 @@ function MenuTrigger({
           if (anyOpen && !open) onOpenChange(menu.id);
         }}
         className={cn(
-          "flex h-7 items-center px-2.5 font-minecraft text-xs tracking-wide transition-colors focus:outline-none focus-visible:bg-white/10",
-          getBorderRadiusClass(),
-          open ? "bg-white/10 text-white" : "text-white/70 hover:bg-white/10 hover:text-white",
+          "flex h-7 items-center rounded-sm px-2 text-[12.5px] transition-colors duration-fast focus:outline-none focus-visible:bg-s3",
+          open ? "bg-s3 text-fg" : "text-fg-2 hover:bg-s2 hover:text-fg",
         )}
       >
         {menu.label}
@@ -146,7 +144,7 @@ function MenuTrigger({
                       className="h-4 w-4"
                       style={
                         entry.checked
-                          ? { color: accentColor.value }
+                          ? { color: "var(--fg)" }
                           : entry.checked === undefined && !entry.icon
                             ? { opacity: 0 }
                             : undefined
@@ -169,7 +167,6 @@ function MenuTrigger({
 }
 
 export function EditorHelpModal({ onClose, t }: { onClose: () => void; t: Translate }) {
-  const accentColor = useThemeStore((state) => state.accentColor);
   const steps = [
     { icon: "solar:scissors-bold", text: t("clips.editor.help.step_trim") },
     isMacOS()
@@ -188,7 +185,7 @@ export function EditorHelpModal({ onClose, t }: { onClose: () => void; t: Transl
   return (
     <Modal
       title={t("clips.editor.help.title")}
-      titleIcon={<Icon icon="solar:question-circle-bold" className="h-6 w-6" />}
+      titleIcon={<Icon icon="solar:question-circle-bold" className="h-4 w-4" />}
       onClose={onClose}
       width="sm"
       footer={
@@ -199,23 +196,14 @@ export function EditorHelpModal({ onClose, t }: { onClose: () => void; t: Transl
         </div>
       }
     >
-      <ol className="flex flex-col gap-3 p-1">
+      <ol className="flex flex-col divide-y divide-line px-1">
         {steps.map((step, index) => (
-          <li key={step.icon} className="flex items-center gap-3">
-            <span
-              className={cn(
-                "flex h-10 w-10 shrink-0 items-center justify-center border-2",
-                getBorderRadiusClass(),
-              )}
-              style={{
-                borderColor: `${accentColor.value}66`,
-                backgroundColor: `${accentColor.value}26`,
-              }}
-            >
-              <Icon icon={step.icon} className="h-5 w-5" style={{ color: accentColor.value }} />
+          <li key={step.icon} className="flex items-start gap-3 py-3">
+            <span className="mt-px w-5 shrink-0 font-mono text-[11px] leading-5 text-fg-4">
+              {String(index + 1).padStart(2, "0")}
             </span>
-            <span className="min-w-0 flex-1 font-minecraft text-sm leading-snug text-white">
-              <span className="mr-1.5 text-white/40">{index + 1}.</span>
+            <Icon icon={step.icon} className="mt-0.5 h-4 w-4 shrink-0 text-fg-3" />
+            <span className="min-w-0 flex-1 text-[13px] leading-5 text-fg-2">
               {step.text}
             </span>
           </li>

@@ -3,7 +3,6 @@
 import { Children, isValidElement, type ReactNode } from "react";
 import { Icon } from "@iconify/react";
 import { cn } from "../../../lib/utils";
-import { useThemeStore } from "../../../store/useThemeStore";
 import { fuzzyMatch, useSettingsSearch } from "./SettingsSearchContext";
 
 interface SettingsSectionProps {
@@ -29,7 +28,6 @@ export function SettingsSection({
   className,
   bodyClassName,
 }: SettingsSectionProps) {
-  const accentColor = useThemeStore((s) => s.accentColor);
   const query = useSettingsSearch();
 
   let body: ReactNode = children;
@@ -56,30 +54,28 @@ export function SettingsSection({
 
   return (
     <section id={id} className={cn("scroll-mt-4", className)}>
-      <div className="flex items-center justify-between gap-3 pb-2 border-b border-white/10">
-        <div className="flex items-center gap-2 min-w-0">
-          {icon && (
-            <Icon
-              icon={icon}
-              className="w-6 h-6 flex-shrink-0"
-              style={{ color: accentColor.value }}
-            />
-          )}
-          <h3
-            className="font-smallcaps text-lg leading-none tracking-wide"
-            style={{ color: accentColor.value }}
-          >
-            {title}
-          </h3>
+      <div className="pb-2.5 border-b border-line">
+        <div className="flex items-center justify-between gap-3 min-h-7">
+          <div className="flex items-center gap-2 min-w-0">
+            {icon && (
+              <Icon
+                icon={icon}
+                className="w-4 h-4 flex-shrink-0 text-fg-3"
+              />
+            )}
+            <h3 className="font-display text-[14px] font-[620] leading-tight text-fg truncate">
+              {title}
+            </h3>
+          </div>
+          {headerActions && <div className="flex-shrink-0">{headerActions}</div>}
         </div>
-        {headerActions && <div className="flex-shrink-0">{headerActions}</div>}
+
+        {description && (
+          <p className="text-xs text-fg-3 leading-[1.45] mt-1 max-w-[640px]">{description}</p>
+        )}
       </div>
 
-      {description && (
-        <p className="font-minecraft text-xs text-white/45 mt-2">{description}</p>
-      )}
-
-      <div className={cn("mt-1", bodyClassName)}>{body}</div>
+      <div className={cn("mt-0.5", bodyClassName)}>{body}</div>
     </section>
   );
 }

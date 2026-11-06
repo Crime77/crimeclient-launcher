@@ -11,9 +11,8 @@
  * an explicit per-loader override.
  */
 
-import { Icon } from "@iconify/react";
+import { Check, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useThemeStore } from "../../../../store/useThemeStore";
 import type { LoaderVersionReason } from "../../../../types/profile";
 
 // Only surface a badge when the effective version comes from something OTHER
@@ -54,24 +53,23 @@ export function LoaderVersionPickerV3({
   onSelect,
 }: LoaderVersionPickerV3Props) {
   const { t } = useTranslation();
-  const accent = useThemeStore((s) => s.accentColor);
   const sourceKey = resolvedSource ? SOURCE_LABEL_KEY[resolvedSource] : null;
   const currentNormalized = stripStable(currentVersion);
 
   return (
     <div className="flex flex-col">
-      <div className="px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] text-white/40 font-minecraft border-b border-white/10">
+      <div className="cc-eyebrow px-2 pt-1.5 pb-1">
         {t("profiles.v3.chips.loaderVersion.header", { loader })}
       </div>
 
-      <div className="py-1 max-h-[220px] overflow-y-auto custom-scrollbar">
+      <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
         {isLoading ? (
-          <div className="flex items-center justify-center gap-2 px-3 py-6 text-xs text-white/40 font-minecraft">
-            <Icon icon="svg-spinners:ring-resize" className="w-3.5 h-3.5" />
+          <div className="flex items-center justify-center gap-2 px-2 py-6 text-[12px] text-fg-3">
+            <Loader2 size={14} className="animate-spin" />
             {t("profiles.v3.chips.loaderVersion.loading")}
           </div>
         ) : !versions || versions.length === 0 ? (
-          <div className="px-3 py-4 text-center text-xs text-white/30 font-minecraft">
+          <div className="px-2 py-4 text-center text-[12px] text-fg-3">
             {t("profiles.v3.chips.loaderVersion.empty")}
           </div>
         ) : (
@@ -79,38 +77,24 @@ export function LoaderVersionPickerV3({
             const isCurrent = stripStable(v) === currentNormalized;
             return (
               <button
+                type="button"
                 key={v}
                 onClick={() => onSelect(v)}
-                style={isCurrent ? { backgroundColor: `${accent.value}33` } : undefined}
-                onMouseEnter={(e) => {
-                  if (!isCurrent) e.currentTarget.style.backgroundColor = `${accent.value}40`;
-                }}
-                onMouseLeave={(e) => {
-                  if (!isCurrent) e.currentTarget.style.backgroundColor = "transparent";
-                }}
-                className="w-full flex items-center gap-2.5 px-3 py-1.5 text-left transition-colors"
+                className={`w-full h-7 flex items-center gap-2 px-2 text-left transition-colors duration-fast ${
+                  isCurrent ? "bg-s3 text-fg" : "text-fg-2 hover:bg-s3 hover:text-fg"
+                }`}
+                style={{ borderRadius: "var(--r-sm)" }}
               >
-                <span className={`flex-1 text-xs font-minecraft ${isCurrent ? "text-white" : "text-white/80"}`}>
-                  {v}
-                </span>
+                <span className="flex-1 cc-num text-[12px] truncate">{v}</span>
                 {isCurrent && sourceKey && (
                   <span
-                    className="text-[9px] uppercase tracking-[0.1em] font-minecraft px-1.5 py-0.5 rounded"
-                    style={{
-                      backgroundColor: `${accent.value}22`,
-                      color: accent.light,
-                    }}
+                    className="text-[10px] px-1 h-4 inline-flex items-center border border-line-2 text-fg-3"
+                    style={{ borderRadius: "var(--r-sm)" }}
                   >
                     {t(sourceKey)}
                   </span>
                 )}
-                {isCurrent && (
-                  <Icon
-                    icon="solar:check-circle-bold"
-                    className="w-3.5 h-3.5 flex-shrink-0"
-                    style={{ color: accent.light }}
-                  />
-                )}
+                {isCurrent && <Check size={14} strokeWidth={2} className="flex-shrink-0 text-fg-2" />}
               </button>
             );
           })

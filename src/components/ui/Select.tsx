@@ -2,14 +2,11 @@
 
 import type React from "react";
 import { useRef, useState } from "react";
-import { Icon } from "@iconify/react";
+import { ChevronDown } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { useThemeStore } from "../../store/useThemeStore";
-import { getRadiusClasses, createRadiusStyle } from "./design-system";
 import { Dropdown } from "./dropdown/Dropdown.tsx";
 import { DropdownItem } from "./dropdown/DropdownItem.tsx";
-import { gsap } from "gsap";
-import { ThemedSurface } from "./ThemedSurface";
 
 export interface SelectOption {
   value: string;
@@ -28,6 +25,13 @@ interface SelectProps {
   variant?: "default" | "themed-surface" | "flat" | "3d";
 }
 
+// trigger heights 32 / 36 / 40 px
+const SIZES = {
+  sm: "h-8 pl-2.5 pr-2 text-xs",
+  md: "h-9 pl-3 pr-2.5 text-[13px]",
+  lg: "h-10 pl-3 pr-2.5 text-[13px]",
+} as const;
+
 export function Select({
   value,
   onChange,
@@ -39,16 +43,9 @@ export function Select({
   variant = "default",
 }: SelectProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isPressed, setIsPressed] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);  const accentColor = useThemeStore((state) => state.accentColor);
+  const containerRef = useRef<HTMLDivElement>(null);
   const borderRadius = useThemeStore((state) => state.borderRadius);
-  const isBackgroundAnimationEnabled = useThemeStore(
-    (state) => state.isBackgroundAnimationEnabled,
-  );
-  const shouldAnimate =
-    isBackgroundAnimationEnabled && variant !== "themed-surface";
 
   const selectedOption = options.find((option) => option.value === value);
 
@@ -57,210 +54,48 @@ export function Select({
     setIsOpen(!isOpen);
   };
 
-  const handleMouseDown = () => {
-    if (disabled) return;
-    setIsPressed(true);
-  };
-
-  const handleMouseUp = () => {
-    if (disabled) return;
-    setIsPressed(false);
-  };
-
-  const handleMouseEnter = () => {
-    if (disabled) return;
-    setIsHovered(true);
-
-    if (triggerRef.current && shouldAnimate && variant === "3d") {
-      gsap.to(triggerRef.current, {
-        boxShadow: `0 14px 34px -18px rgba(0,0,0,0.85)`,
-        duration: 0.2,
-        ease: "power2.out",
-      });
-    }
-  };
-
-  const handleMouseLeave = () => {
-    if (disabled) return;
-    setIsHovered(false);
-    if (isPressed) handleMouseUp();
-
-    if (triggerRef.current && shouldAnimate && variant === "3d") {
-      gsap.to(triggerRef.current, {
-        boxShadow: `0 10px 30px -18px rgba(0,0,0,0.8)`,
-        duration: 0.2,
-        ease: "power2.out",
-      });
-    }
-  };
-
   const handleOptionSelect = (optionValue: string) => {
     onChange(optionValue);
     setIsOpen(false);
-  };  const sizeStyles = {
-    sm: {
-      container: "h-[42px]",
-      padding: "py-2 px-6",
-      text: "text-sm",
-      icon: "w-5 h-5",
-    },
-    md: {
-      container: "h-[50px]",
-      padding: "py-2.5 px-8",
-      text: "text-base",
-      icon: "w-6 h-6",
-    },
-    lg: {
-      container: "h-[58px]",
-      padding: "py-3 px-10",
-      text: "text-lg",
-      icon: "w-7 h-7",
-    },
   };
-
-  const getVariantColors = () => {
-    return {
-      main: accentColor.value,
-      light: accentColor.hoverValue,
-      dark: accentColor.value,
-      text: "#ffffff",
-    };
-  };
-
-  const colors = getVariantColors();
-
-  const getBackgroundColor = () => {
-    return isHovered || isOpen ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.045)";
-  };
-
-  const getBorderColor = () => {
-    return isOpen ? colors.main : "rgba(255,255,255,0.09)";
-  };
-  const getBorderClasses = () => {
-    if (variant === "3d") return "border";
-    return "border";
-  };
-
-  const getBoxShadow = () => {
-    if (variant !== "3d") return "none";
-
-    return isHovered || isOpen
-      ? `0 0 0 3px ${colors.main}26`
-      : "none";
-  };
-
-  const buttonContent = (
-    <>
-      <div
-        className="flex items-center gap-2 truncate transition-transform duration-200"
-        style={{
-          transform: "none",
-        }}
-      >
-        {selectedOption?.icon && (
-          <span className="flex-shrink-0">{selectedOption.icon}</span>
-        )}
-        <span className="truncate">
-          {selectedOption ? selectedOption.label : placeholder}
-        </span>
-      </div>
-      <Icon
-        icon="solar:alt-arrow-down-bold"
-        className={cn(
-          "w-5 h-5 transition-transform duration-200 flex-shrink-0",
-          isOpen && "transform rotate-180",
-        )}
-      />
-    </>
-  );
-
-  if (variant === "themed-surface") {
-    return (
-      <ThemedSurface
-        className={cn("relative w-full", className)}
-        aria-disabled={disabled}
-      >
-        <div
-          ref={containerRef}
-          onClick={disabled ? undefined : handleClick}
-          className={cn(
-            "w-full h-full flex items-center justify-between",
-            disabled ? "cursor-not-allowed" : "cursor-pointer",
-            "font-smallcaps text-white",
-            sizeStyles[size].container,
-            sizeStyles[size].padding,
-            sizeStyles[size].text,
-          )}
-          onMouseEnter={() => !disabled && setIsHovered(true)}
-          onMouseLeave={() => !disabled && setIsHovered(false)}
-          role="button"
-          tabIndex={disabled ? -1 : 0}
-          aria-haspopup="listbox"
-          aria-expanded={isOpen}
-        >
-          {buttonContent}
-        </div>
-        <Dropdown
-          isOpen={isOpen}
-          onClose={() => setIsOpen(false)}
-          triggerRef={triggerRef}
-          width={triggerRef.current?.offsetWidth || 300}
-          position={options.length > 6 ? "top" : "bottom"}
-        >
-          <div className="max-h-60 overflow-y-auto custom-scrollbar">
-            {options.map((option) => (
-              <DropdownItem
-                key={option.value}
-                isActive={option.value === value}
-                icon={option.icon}
-                onClick={() => handleOptionSelect(option.value)}
-              >
-                {option.label}
-              </DropdownItem>
-            ))}
-          </div>
-        </Dropdown>
-      </ThemedSurface>
-    );
-  }
 
   return (
-    <div ref={containerRef} className={cn("relative", className)}>
+    <div ref={containerRef} className={cn("relative", className)} data-variant={variant}>
       <button
         ref={triggerRef}
         type="button"
         onClick={handleClick}
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}        className={cn(
-          "font-smallcaps relative overflow-hidden backdrop-blur-md",
-          "text-white tracking-wider",
-          "flex items-center justify-between w-full",
-          "text-shadow-sm",
-          getBorderClasses(),
-          getRadiusClasses(borderRadius, "input"),
-          "focus:outline-none focus:ring-2 focus:ring-white/30 focus:ring-offset-1 focus:ring-offset-black/20",
+        className={cn(
+          "relative flex items-center justify-between gap-2 w-full overflow-hidden",
+          "bg-s2 border text-fg font-[450] transition-colors duration-fast ease-out",
+          "focus:outline-none focus-visible:border-line-3",
+          isOpen ? "border-line-3" : "border-line",
+          !disabled && !isOpen && "hover:border-line-2",
           disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
-          sizeStyles[size].container,
-          sizeStyles[size].padding,
-          sizeStyles[size].text,
+          SIZES[size] ?? SIZES.md,
           className,
-        )}        style={{
-          backgroundColor: getBackgroundColor(),
-          borderColor: getBorderColor(),
-          
-          boxShadow: getBoxShadow(),
-          filter:
-            (isHovered || isOpen) && !disabled
-              ? "brightness(1.1)"
-              : "brightness(1)",
-          ...createRadiusStyle(borderRadius),
-        }}
+        )}
+        style={{ borderRadius: borderRadius === 0 ? 0 : "var(--r-md)" }}
         disabled={disabled}
-      >        
-
-        {buttonContent}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+      >
+        <span className="flex items-center gap-2 min-w-0">
+          {selectedOption?.icon && (
+            <span className="flex-shrink-0 flex items-center text-fg-3">{selectedOption.icon}</span>
+          )}
+          <span className={cn("truncate", !selectedOption && "text-fg-4")}>
+            {selectedOption ? selectedOption.label : placeholder}
+          </span>
+        </span>
+        <ChevronDown
+          size={14}
+          strokeWidth={1.75}
+          className={cn(
+            "flex-shrink-0 text-fg-3 transition-transform duration-med ease-out",
+            isOpen && "rotate-180",
+          )}
+        />
       </button>
 
       <Dropdown
@@ -269,8 +104,9 @@ export function Select({
         triggerRef={triggerRef}
         width={triggerRef.current?.offsetWidth || 300}
         position={options.length > 6 ? "top" : "bottom"}
+        offset={4}
       >
-        <div className="max-h-60 overflow-y-auto custom-scrollbar">
+        <div className="max-h-60 overflow-y-auto custom-scrollbar py-1">
           {options.map((option) => (
             <DropdownItem
               key={option.value}

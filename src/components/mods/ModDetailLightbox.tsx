@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Icon } from "@iconify/react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import type { UnifiedGalleryImage } from "../../types/unified";
 
 interface ModDetailLightboxProps {
@@ -11,6 +11,10 @@ interface ModDetailLightboxProps {
   isOpen: boolean;
   onClose: () => void;
 }
+
+// Square, flat control on the dark scrim
+const NAV_BTN =
+  "w-9 h-9 grid place-items-center bg-s2 border border-line text-fg-2 hover:text-fg hover:border-line-3 transition-colors duration-fast";
 
 export function ModDetailLightbox({
   images,
@@ -72,87 +76,97 @@ export function ModDetailLightbox({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center"
+      className="fixed inset-0 z-50 flex flex-col"
+      style={{ backgroundColor: "color-mix(in srgb, var(--bg) 96%, transparent)" }}
       onClick={onClose}
     >
-      {/* Close Button */}
-      <button
-        onClick={onClose}
-        className="absolute top-4 right-4 z-10 p-2 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors"
-      >
-        <Icon icon="solar:close-circle-bold" className="w-8 h-8" />
-      </button>
-
-      {/* Navigation - Previous */}
-      {images.length > 1 && (
+      {/* Top bar: counter, keyboard hints, close */}
+      <div className="flex-shrink-0 h-12 px-4 flex items-center gap-4" onClick={(e) => e.stopPropagation()}>
+        <span className="cc-num text-[12px] text-fg-2">
+          {t('lightbox.counter', { current: currentIndex + 1, total: images.length })}
+        </span>
+        <span className="flex-1" />
+        <span className="hidden md:flex items-center gap-2 cc-num text-[11px] text-fg-4">
+          <span>{t('lightbox.press_space_zoom')}</span>
+          <span>·</span>
+          <span>{t('lightbox.arrow_keys_navigate')}</span>
+          <span>·</span>
+          <span>{t('lightbox.esc_close')}</span>
+        </span>
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            goToPrevious();
-          }}
-          className="absolute left-4 top-1/2 -translate-y-1/2 z-10 p-3 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors"
+          type="button"
+          onClick={onClose}
+          className={NAV_BTN}
+          style={{ borderRadius: "var(--r-md)" }}
+          aria-label={t('lightbox.esc_close')}
         >
-          <Icon icon="solar:arrow-left-bold" className="w-6 h-6" />
+          <X size={16} strokeWidth={1.75} />
         </button>
-      )}
-
-      {/* Navigation - Next */}
-      {images.length > 1 && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            goToNext();
-          }}
-          className="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-3 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors"
-        >
-          <Icon icon="solar:arrow-right-bold" className="w-6 h-6" />
-        </button>
-      )}
-
-      {/* Image Container */}
-      <div
-        className="relative w-[80vw] h-[60vh]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <img
-          src={currentImage.url}
-          alt={currentImage.title || `Image ${currentIndex + 1}`}
-          className={`
-            w-full h-full object-contain
-            transition-transform duration-300 cursor-pointer
-            ${isZoomed ? "scale-150" : "scale-100"}
-          `}
-          onClick={() => setIsZoomed((prev) => !prev)}
-        />
       </div>
 
-      {/* Bottom Info Bar */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6">
-        <div className="max-w-4xl mx-auto">
-          {/* Counter */}
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-white/70 font-minecraft text-sm">
-              {t('lightbox.counter', { current: currentIndex + 1, total: images.length })}
-            </span>
-            <div className="flex items-center gap-2 text-white/50 text-xs font-minecraft">
-              <span>{t('lightbox.press_space_zoom')}</span>
-              <span>|</span>
-              <span>{t('lightbox.arrow_keys_navigate')}</span>
-              <span>|</span>
-              <span>{t('lightbox.esc_close')}</span>
-            </div>
-          </div>
+      {/* Image with previous / next */}
+      <div className="flex-1 min-h-0 flex items-center gap-4 px-4">
+        <div className="w-9 flex-shrink-0">
+          {images.length > 1 && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                goToPrevious();
+              }}
+              className={NAV_BTN}
+              style={{ borderRadius: "var(--r-md)" }}
+            >
+              <ChevronLeft size={16} strokeWidth={1.75} />
+            </button>
+          )}
+        </div>
 
-          {/* Title & Description */}
+        <div
+          className="relative flex-1 h-full min-w-0 overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <img
+            src={currentImage.url}
+            alt={currentImage.title || `${currentIndex + 1}`}
+            className={`
+              w-full h-full object-contain
+              transition-transform duration-300 cursor-pointer
+              ${isZoomed ? "scale-150" : "scale-100"}
+            `}
+            onClick={() => setIsZoomed((prev) => !prev)}
+          />
+        </div>
+
+        <div className="w-9 flex-shrink-0">
+          {images.length > 1 && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                goToNext();
+              }}
+              className={NAV_BTN}
+              style={{ borderRadius: "var(--r-md)" }}
+            >
+              <ChevronRight size={16} strokeWidth={1.75} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Bottom bar: title, description, thumbnails */}
+      <div className="flex-shrink-0 px-6 pt-3 pb-4" onClick={(e) => e.stopPropagation()}>
+        <div className="max-w-4xl mx-auto">
           {(currentImage.title || currentImage.description) && (
-            <div className="mt-2">
+            <div className="text-center">
               {currentImage.title && (
-                <h3 className="text-lg font-minecraft text-white">
+                <h3 className="text-[14px] font-[600] text-fg normal-case tracking-normal">
                   {currentImage.title}
                 </h3>
               )}
               {currentImage.description && (
-                <p className="text-sm text-white/70 font-minecraft mt-1">
+                <p className="text-[12.5px] text-fg-3 mt-0.5">
                   {currentImage.description}
                 </p>
               )}
@@ -161,23 +175,25 @@ export function ModDetailLightbox({
 
           {/* Thumbnail Navigation */}
           {images.length > 1 && (
-            <div className="flex gap-2 mt-4 overflow-x-auto pb-2 justify-center">
+            <div className="flex gap-1.5 mt-3 overflow-x-auto no-scrollbar justify-center">
               {images.map((image, index) => (
                 <button
                   key={image.url}
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     setCurrentIndex(index);
                     setIsZoomed(false);
                   }}
                   className={`
-                    flex-shrink-0 w-16 h-12 rounded overflow-hidden border-2 transition-all
-                    ${index === currentIndex ? "border-white" : "border-transparent opacity-50 hover:opacity-100"}
+                    flex-shrink-0 w-16 h-10 overflow-hidden border transition-[opacity,border-color] duration-fast
+                    ${index === currentIndex ? "border-fg-2" : "border-line opacity-50 hover:opacity-100"}
                   `}
+                  style={{ borderRadius: "var(--r-sm)" }}
                 >
                   <img
                     src={image.thumbnail_url || image.url}
-                    alt={`Thumbnail ${index + 1}`}
+                    alt=""
                     className="w-full h-full object-cover"
                   />
                 </button>

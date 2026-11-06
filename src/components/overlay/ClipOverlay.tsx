@@ -1,12 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Icon } from "@iconify/react";
+import { AlertTriangle, Check, Video } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
 
-import { useThemeStore } from "../../store/useThemeStore";
 import { errorKey } from "../../services/clip-service";
 
 const HOLD_MS = 2600;
@@ -85,18 +84,17 @@ export function ClipOverlay() {
 
   if (shown.kind === "error") {
     return (
-      <OverlayPanel leaving={leaving} tone="warning">
-        <Icon
-          icon="solar:danger-triangle-bold"
-          className="h-6 w-6 shrink-0 text-yellow-400"
-        />
+      <OverlayPanel leaving={leaving}>
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-warn/10 text-warn">
+          <AlertTriangle size={16} strokeWidth={1.75} />
+        </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate font-smallcaps text-base tracking-wider text-white text-shadow-sm">
+          <p className="truncate text-[13px] font-[600] text-fg">
             {t(`overlay.clip.error.${errorKey(shown.error.code)}`, {
               defaultValue: t("overlay.clip.error.generic"),
             })}
           </p>
-          <p className="mt-0.5 truncate font-minecraft text-xs text-white/60">
+          <p className="mt-0.5 truncate text-xs text-fg-3">
             {t(`overlay.clip.error.${errorKey(shown.error.code)}.hint`, { defaultValue: "" })}
           </p>
         </div>
@@ -110,14 +108,17 @@ export function ClipOverlay() {
   const megabytes = Math.round(clip.size_bytes / 1_000_000);
 
   return (
-    <OverlayPanel leaving={leaving} tone="accent">
-      <AccentIcon icon="solar:videocamera-record-bold" />
+    <OverlayPanel leaving={leaving}>
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-s3 text-fg">
+        <Video size={16} strokeWidth={1.75} />
+      </span>
 
       <div className="min-w-0 flex-1">
-        <p className="truncate font-smallcaps text-base tracking-wider text-white text-shadow-sm">
+        <p className="flex items-center gap-1.5 truncate text-[13px] font-[600] text-fg">
           {t("overlay.clip.saved")}
+          <Check size={14} strokeWidth={2} className="shrink-0 text-ok" />
         </p>
-        <p className="mt-0.5 truncate font-minecraft text-xs text-white/60">
+        <p className="mt-0.5 truncate font-mono text-[11px] text-fg-3">
           {t("overlay.clip.details", { seconds, megabytes })}
         </p>
       </div>
@@ -125,41 +126,24 @@ export function ClipOverlay() {
   );
 }
 
-function AccentIcon({ icon }: { icon: string }) {
-  const accentColor = useThemeStore((state) => state.accentColor);
-  return <Icon icon={icon} className="h-6 w-6 shrink-0" style={{ color: accentColor.value }} />;
-}
-
+/** The whole overlay window: one flat, opaque panel so it stays readable over any game picture. */
 function OverlayPanel({
   leaving,
-  tone,
   children,
 }: {
   leaving: boolean;
-  tone: "accent" | "warning";
   children: React.ReactNode;
 }) {
-  const accentColor = useThemeStore((state) => state.accentColor);
-  const edge = tone === "accent" ? accentColor.value : "#facc15";
-
   return (
     <div
       className="flex h-screen w-screen items-center justify-center"
       style={{
         opacity: leaving ? 0 : 1,
-        transform: leaving ? "translateY(8px)" : "translateY(0)",
-        transition: `opacity ${FADE_MS}ms ease, transform ${FADE_MS}ms ease`,
+        transform: leaving ? "translateY(6px)" : "translateY(0)",
+        transition: `opacity ${FADE_MS}ms var(--ease), transform ${FADE_MS}ms var(--ease)`,
       }}
     >
-      <div
-        className="flex h-full w-full items-center gap-3 rounded-lg border bg-black/85 px-4 backdrop-blur-md"
-        style={{
-          borderColor: `${edge}80`,
-          borderBottomWidth: 2,
-          borderBottomColor: edge,
-          backgroundImage: `linear-gradient(${edge}20, ${edge}20)`,
-        }}
-      >
+      <div className="flex h-full w-full items-center gap-3 rounded-xl border border-line-2 bg-s1 px-3.5">
         {children}
       </div>
     </div>

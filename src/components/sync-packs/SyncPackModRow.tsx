@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Icon } from "@iconify/react";
+import { ChevronDown, RefreshCw } from "lucide-react";
 
-import { useThemeStore } from "../../store/useThemeStore";
 import { useVersionOptions } from "../../hooks/useVersionOptions";
 import { ModPlatform } from "../../types/unified";
 import type {
@@ -49,7 +48,6 @@ export function SyncPackModRow({
   onSetOverride,
 }: SyncPackModRowProps) {
   const { t } = useTranslation();
-  const accentColor = useThemeStore((state) => state.accentColor);
   const [isExpanded, setIsExpanded] = useState(false);
   const versionOptions = useVersionOptions();
 
@@ -113,25 +111,26 @@ export function SyncPackModRow({
             </Tooltip>
             <RowAction
               label={t("syncPacks.targets.remove")}
-                        icon="solar:trash-bin-trash-bold"
+              icon="solar:trash-bin-trash-bold"
               onClick={onRemove}
               danger
             />
           </>
         }
         trailing={
-          <Icon
-            icon="solar:alt-arrow-down-linear"
-            className="h-4 w-4 flex-shrink-0 text-white/15 transition-all group-hover/row:text-white/40"
+          <ChevronDown
+            size={14}
+            strokeWidth={1.75}
+            className="flex-shrink-0 text-fg-4 transition-[color,transform] duration-fast group-hover/row:text-fg-2"
             style={{ transform: isExpanded ? "rotate(180deg)" : undefined }}
           />
         }
       />
 
       {isExpanded && (
-        <div className="mt-2 rounded-lg border border-white/10 bg-black/30 p-3">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="font-minecraft text-[10px] uppercase tracking-wider text-white/35">
+        <div className="border-t border-line bg-bg/30 py-2 pl-10 pr-3">
+          <div className="mb-1 flex items-center justify-between">
+            <span className="cc-eyebrow">
               {t("syncPacks.entries.overridesTitle")}
             </span>
             <Tooltip
@@ -143,22 +142,24 @@ export function SyncPackModRow({
                 onClick={() => onResolve()}
                 disabled={resolving}
                 aria-label={t("syncPacks.entries.resolveAll")}
-                className="flex h-7 w-7 items-center justify-center rounded-md border border-white/10 bg-black/40 text-white/45 transition-colors hover:border-white/20 hover:bg-black/60 hover:!text-white disabled:opacity-30"
+                type="button"
+                className="cc-icon-btn disabled:opacity-30"
               >
-                <Icon
-                  icon="solar:refresh-bold"
-                  className={`h-3.5 w-3.5 ${resolving ? "animate-spin" : ""}`}
+                <RefreshCw
+                  size={14}
+                  strokeWidth={1.75}
+                  className={resolving ? "animate-spin" : ""}
                 />
               </button>
             </Tooltip>
           </div>
 
           {!matrix || matrix.rows.length === 0 ? (
-            <div className="py-2 font-minecraft text-xs text-white/40">
+            <div className="py-2 text-[12px] text-fg-3">
               {t("syncPacks.entries.noVersions")}
             </div>
           ) : (
-            <div className="space-y-1">
+            <div className="space-y-px">
               {matrix.rows.map((row) => {
                 const key = `${row.mc_version}:${row.loader}`;
                 return (

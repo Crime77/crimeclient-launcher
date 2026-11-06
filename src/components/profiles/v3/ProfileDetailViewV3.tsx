@@ -1,11 +1,10 @@
 "use client";
 
 /**
- * ProfileDetailViewV3 — Redesign des Profile-Detail-Views.
+ * ProfileDetailViewV3 — the profile detail view.
  *
- * Struktur: Top-Bar (Breadcrumb + 4 Icon-Actions) · Hero (Icon + Chips + Play)
- * · Stats-Strip · Left-Rail Navigation · Main-Content (V3 Content-Tabs +
- * noch-V2 Worlds/Screenshots/Logs bis zur Migration).
+ * Structure: header (breadcrumb + utility actions · icon, name, editable meta, stats, PLAY)
+ * · left rail navigation · main content (content tabs, worlds, screenshots, logs).
  *
  * Wrapper-Toggle in `ProfileDetailViewV2Wrapper.tsx` (USE_V3) schaltet
  * zwischen altem V2 und V3 um.
@@ -14,28 +13,26 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import type React from "react";
 import { useNavigate } from "react-router-dom";
-import { Icon } from "@iconify/react";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
+import {
+  ArrowLeft, Copy, FolderOpen, Layers, Loader2, MoreHorizontal, Package, PenLine,
+  Play, Settings2, Square, Upload, User,
+} from "lucide-react";
 import { preloadIcons } from "../../../lib/icon-utils";
 
+// iconify names still used by the context menu and the tabs' empty states
 preloadIcons([
-  "solar:gamepad-bold", "solar:box-bold", "solar:folder-bold",
-  "solar:widget-bold", "solar:user-bold", "solar:pen-linear",
-  "solar:lock-keyhole-minimalistic-bold",
-  "solar:play-bold", "solar:stop-bold", "solar:settings-bold",
-  "solar:refresh-bold",
-  "solar:arrow-left-linear", "solar:folder-linear", "solar:copy-linear",
-  "solar:upload-linear", "solar:menu-dots-bold", "solar:refresh-circle-bold",
-  "solar:clock-circle-bold", "solar:hourglass-bold", "solar:ssd-round-bold",
-  "solar:copy-bold", "solar:download-bold", "solar:archive-bold",
-  "solar:trash-bin-trash-bold",
+  "solar:settings-bold", "solar:copy-bold", "solar:download-bold", "solar:archive-bold",
+  "solar:folder-bold", "solar:trash-bin-trash-bold",
 ]);
 
 import type { Profile } from "../../../types/profile";
 import { setDiscordState } from "../../../utils/discordRpc";
 import { formatRelativeTime, formatPlaytime, formatBytes } from "../../../utils/format-relative-time";
 import { parseMotdToHtml } from "../../../utils/motd-utils";
+import { cn } from "../../../lib/utils";
+import { loaderLabel } from "../../../lib/loader-icons";
 import { useThemeStore } from "../../../store/useThemeStore";
 import { useProfileStore } from "../../../store/profile-store";
 import { useGlobalModal } from "../../../hooks/useGlobalModal";
@@ -49,7 +46,6 @@ import { useMinecraftAuthStore } from "../../../store/minecraft-auth-store";
 import { usePlayerAvatar } from "../../../hooks/usePlayerAvatar";
 import { useResolvedLoaderVersion } from "../../../hooks/useResolvedLoaderVersion";
 
-import { Button } from "../../ui/buttons/Button";
 import { ProfileIconV2 } from "../ProfileIconV2";
 import { ExportProfileModal } from "../ExportProfileModal";
 import { ModpackVersionsModal } from "../../modals/ModpackVersionsModal";
@@ -82,21 +78,27 @@ interface ProfileDetailViewV3Props {
 }
 
 // ─── Atoms ─────────────────────────────────────────────────────────────────
-const Chip: React.FC<{ icon?: string; children: React.ReactNode }> = ({ icon, children }) => (
-  <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/30 border border-white/10 text-sm text-white/75 font-minecraft">
-    {icon && <Icon icon={icon} className="w-4 h-4 flex-shrink-0" />}
-    {children}
+const Sep: React.FC = () => <span className="text-fg-4 select-none px-0.5">·</span>;
+
+/** One stat of the mono meta line: quiet label, value in fg-2. */
+const Stat: React.FC<{ label: string; value: string; muted?: boolean }> = ({ label, value, muted }) => (
+  <span className="inline-flex items-baseline gap-1.5 whitespace-nowrap">
+    <span className="text-fg-4">{label}</span>
+    <span className={cn("cc-num", muted ? "text-fg-3" : "text-fg-2")} title={value}>{value}</span>
   </span>
 );
 
-const Stat: React.FC<{ icon: string; label: string; value: string; muted?: boolean }> = ({ icon, label, value, muted }) => (
-  <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-black/30 border border-white/10 hover:border-white/20 transition-colors min-w-[160px] max-w-[240px]">
-    <Icon icon={icon} className={`w-5 h-5 flex-shrink-0 ${muted ? "text-white/25" : "text-white/60"}`} />
-    <div className="flex flex-col leading-tight min-w-0">
-      <span className="text-xs uppercase tracking-wider text-white/50 font-minecraft">{label}</span>
-      <span className={`text-sm font-minecraft truncate ${muted ? "text-white/40" : "text-white/95"}`} title={value}>{value}</span>
-    </div>
-  </div>
+const UtilityButton: React.FC<{
+  label: string;
+  onClick: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  children: React.ReactNode;
+  buttonRef?: React.Ref<HTMLButtonElement>;
+}> = ({ label, onClick, children, buttonRef }) => (
+  <Tooltip content={label} position="bottom" delay={0}>
+    <button ref={buttonRef} type="button" onClick={onClick} className="cc-icon-btn" aria-label={label}>
+      {children}
+    </button>
+  </Tooltip>
 );
 
 // ─── Main ──────────────────────────────────────────────────────────────────
@@ -396,87 +398,72 @@ export function ProfileDetailViewV3({
     ? `${modpackVersions.installed_version.name ?? t("profiles.v3.stats.modpack")}`
     : hasModpack ? t("profiles.v3.stats.modpack") : t("profiles.v3.time.placeholder");
   const modpackVersionNumber = modpackVersions?.installed_version?.version_number ?? null;
+  const modCount = currentProfile.mod_count ?? currentProfile.mods?.length ?? 0;
+  const nameHtml = parseMotdToHtml(currentProfile.name || currentProfile.id);
 
   return (
     <div className="h-full flex flex-col overflow-hidden relative">
-      {/* ── Top Bar ─────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between px-5 h-11 border-b border-white/5 flex-shrink-0">
-        <button
-          onClick={onClose}
-          className="flex items-center gap-2 text-white/60 hover:text-white transition-colors"
-        >
-          <Icon icon="solar:arrow-left-linear" className="w-4 h-4" />
-          <span className="text-xs font-minecraft uppercase tracking-wider">{t('profiles.back')}</span>
-          <span className="text-white/30">/</span>
-          <span
-            className="text-xs font-minecraft text-white/80 normal-case max-w-[240px] truncate"
-            dangerouslySetInnerHTML={{ __html: parseMotdToHtml(currentProfile.name || currentProfile.id) }}
-          />
-        </button>
-
-        <div className="flex items-center gap-1 relative">
+      {/* ── Header ──────────────────────────────────────────────────────── */}
+      <header className="flex-shrink-0 border-b border-line px-6 pt-3 pb-5">
+        {/* breadcrumb + utility actions */}
+        <div className="flex items-center justify-between gap-4 h-7 -ml-2">
           <button
-            onClick={() => navigate("/sync-packs", { state: { fromProfileId: currentProfile.id } })}
-            className="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-white/5 text-white/50 hover:text-white transition-colors"
+            type="button"
+            onClick={onClose}
+            className="group h-7 min-w-0 flex items-center gap-1.5 pl-2 pr-2.5 text-[12px] text-fg-3 hover:text-fg-2 hover:bg-s2 transition-colors duration-fast"
+            style={{ borderRadius: "var(--r-sm)" }}
           >
-            <span className="text-xs font-minecraft uppercase tracking-wider">{t('syncPacks.title')}</span>
+            <ArrowLeft size={14} strokeWidth={1.75} className="flex-shrink-0 transition-transform duration-fast group-hover:-translate-x-0.5" />
+            <span className="flex-shrink-0">{t('profiles.back')}</span>
+            <span className="text-fg-4 flex-shrink-0">/</span>
+            <span
+              className="text-fg-2 max-w-[260px] truncate"
+              dangerouslySetInnerHTML={{ __html: nameHtml }}
+            />
           </button>
-          <div className="w-px h-5 bg-white/10 mx-1" />
-          <Tooltip content={t('profiles.openFolder')} position="top" delay={0}>
-            <button
-              onClick={handleOpenFolder}
-              className="p-2 rounded hover:bg-white/5 text-white/50 hover:text-white transition-colors"
-            >
-              <Icon icon="solar:folder-linear" className="w-4 h-4" />
-            </button>
-          </Tooltip>
-          <Tooltip content={t('profiles.duplicate')} position="top" delay={0}>
-            <button
-              onClick={handleDuplicateProfile}
-              className="p-2 rounded hover:bg-white/5 text-white/50 hover:text-white transition-colors"
-            >
-              <Icon icon="solar:copy-linear" className="w-4 h-4" />
-            </button>
-          </Tooltip>
-          <Tooltip content={t('profiles.export')} position="top" delay={0}>
-            <button
-              onClick={handleOpenExportModal}
-              className="p-2 rounded hover:bg-white/5 text-white/50 hover:text-white transition-colors"
-            >
-              <Icon icon="solar:upload-linear" className="w-4 h-4" />
-            </button>
-          </Tooltip>
-          <div className="w-px h-5 bg-white/10 mx-1" />
-          <Tooltip content={t('profiles.moreOptions')} position="top" delay={0}>
-            <button
-              ref={moreButtonRef}
-              onClick={toggleContextMenu}
-              className="p-2 rounded hover:bg-white/5 text-white/50 hover:text-white transition-colors"
-            >
-              <Icon icon="solar:menu-dots-bold" className="w-4 h-4" />
-            </button>
-          </Tooltip>
 
-          <SettingsContextMenu
-            target={currentProfile}
-            isOpen={isContextMenuOpen}
-            position={contextMenuPosition}
-            items={contextMenuItems}
-            onClose={() => {
-              setIsContextMenuOpen(false);
-              setOpenContextMenuId(null);
-            }}
-            triggerButtonRef={moreButtonRef}
-          />
+          <div className="flex items-center gap-0.5 relative flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => navigate("/sync-packs", { state: { fromProfileId: currentProfile.id } })}
+              className="h-7 flex items-center gap-1.5 px-2 text-[12px] font-[520] text-fg-3 hover:text-fg hover:bg-s3 transition-colors duration-fast"
+              style={{ borderRadius: "var(--r-sm)" }}
+            >
+              <Layers size={14} strokeWidth={1.75} />
+              {t('syncPacks.title')}
+            </button>
+            <div className="w-px h-4 bg-line-2 mx-1.5" />
+            <UtilityButton label={t('profiles.openFolder')} onClick={handleOpenFolder}>
+              <FolderOpen size={15} strokeWidth={1.75} />
+            </UtilityButton>
+            <UtilityButton label={t('profiles.duplicate')} onClick={handleDuplicateProfile}>
+              <Copy size={15} strokeWidth={1.75} />
+            </UtilityButton>
+            <UtilityButton label={t('profiles.export')} onClick={handleOpenExportModal}>
+              <Upload size={15} strokeWidth={1.75} />
+            </UtilityButton>
+            <UtilityButton label={t('profiles.moreOptions')} onClick={toggleContextMenu} buttonRef={moreButtonRef}>
+              <MoreHorizontal size={16} strokeWidth={1.75} />
+            </UtilityButton>
+
+            <SettingsContextMenu
+              target={currentProfile}
+              isOpen={isContextMenuOpen}
+              position={contextMenuPosition}
+              items={contextMenuItems}
+              onClose={() => {
+                setIsContextMenuOpen(false);
+                setOpenContextMenuId(null);
+              }}
+              triggerButtonRef={moreButtonRef}
+            />
+          </div>
         </div>
-      </div>
 
-      {/* ── Hero ────────────────────────────────────────────────────────── */}
-      <div className="px-5 pt-5 pb-4 flex-shrink-0">
-        <div className="flex items-start gap-5">
-          {/* Icon + loader overlay */}
+        {/* identity + play */}
+        <div className="flex items-center gap-4 mt-3">
           <div className="relative flex-shrink-0">
-            <ProfileIconV2 profile={currentProfile} size="lg" className="w-24 h-24 rounded-lg ring-1 ring-white/10" />
+            <ProfileIconV2 profile={currentProfile} size="md" className="w-14 h-14 border-line-2" />
             <LoaderBadgeV3
               loader={currentProfile.loader}
               disabled={chipEditors.isLocked}
@@ -485,15 +472,17 @@ export function ProfileDetailViewV3({
             />
           </div>
 
-          {/* Identity + chips */}
-          <div className="flex-1 min-w-0 pt-1">
+          <div className="flex-1 min-w-0">
             <h1
-              className="font-minecraft text-3xl text-white normal-case truncate"
-              dangerouslySetInnerHTML={{ __html: parseMotdToHtml(currentProfile.name || currentProfile.id) }}
+              className="font-display text-[24px] font-[680] leading-[1.15] text-fg truncate"
+              dangerouslySetInnerHTML={{ __html: nameHtml }}
             />
-            <div className="flex flex-wrap items-center gap-1.5 mt-2">
+
+            {/* editable meta */}
+            <div className="flex flex-wrap items-center gap-x-0.5 gap-y-0.5 mt-1 -ml-1 min-h-6">
               <EditableChipV3
-                icon="solar:gamepad-bold"
+                mono
+                title={t("profiles.v3.chips.gameVersion.title")}
                 withSaveCancel={false}
                 width="w-64"
                 disabled={chipEditors.isLocked}
@@ -537,41 +526,45 @@ export function ProfileDetailViewV3({
                   ? t("profiles.v3.chips.loaderVersion.notSupported")
                   : stripped || t("profiles.v3.chips.loaderVersion.latest");
                 return (
-                  <EditableChipV3
-                    icon="solar:box-bold"
-                    withSaveCancel={false}
-                    width="w-48"
-                    disabled={chipEditors.isLocked}
-                    disabledReason={chipEditors.lockReason}
-                    onOpen={() => { void chipEditors.loadLoaderVersions(currentProfile.loader!, currentProfile.game_version); }}
-                    renderEditor={({ close }) => (
-                      <LoaderVersionPickerV3
-                        loader={currentProfile.loader!}
-                        currentVersion={effectiveVersion}
-                        resolvedSource={resolvedLoaderVersion?.reason}
-                        versions={chipEditors.loaderVersions}
-                        isLoading={chipEditors.loaderLoading}
-                        onSelect={(v) => {
-                          void chipEditors.saveLoaderVersion(v);
-                          close();
-                        }}
-                      />
-                    )}
-                  >
-                    <span className={notSupported ? "italic text-white/50" : undefined}>
-                      {displayVersion}
-                    </span>
-                  </EditableChipV3>
+                  <>
+                    <Sep />
+                    <EditableChipV3
+                      withSaveCancel={false}
+                      width="w-48"
+                      disabled={chipEditors.isLocked}
+                      disabledReason={chipEditors.lockReason}
+                      onOpen={() => { void chipEditors.loadLoaderVersions(currentProfile.loader!, currentProfile.game_version); }}
+                      renderEditor={({ close }) => (
+                        <LoaderVersionPickerV3
+                          loader={currentProfile.loader!}
+                          currentVersion={effectiveVersion}
+                          resolvedSource={resolvedLoaderVersion?.reason}
+                          versions={chipEditors.loaderVersions}
+                          isLoading={chipEditors.loaderLoading}
+                          onSelect={(v) => {
+                            void chipEditors.saveLoaderVersion(v);
+                            close();
+                          }}
+                        />
+                      )}
+                    >
+                      <span>{loaderLabel(currentProfile.loader)}</span>{" "}
+                      <span className={notSupported ? "italic text-fg-3" : "cc-num"}>
+                        {displayVersion}
+                      </span>
+                    </EditableChipV3>
+                  </>
                 );
               })()}
+              <Sep />
               <EditableChipV3
-                icon="solar:folder-bold"
+                title={t("profiles.v3.chips.group.title")}
                 disabled={chipEditors.isLocked}
                 disabledReason={chipEditors.lockReason}
                 onSave={() => { void chipEditors.saveGroup(groupDraft); }}
                 onCancel={() => setGroupDraft(currentProfile.group ?? "")}
                 renderEditor={({ commit }) => (
-                  <div className="px-2 pt-2 pb-1">
+                  <div className="p-1">
                     <input
                       autoFocus
                       type="text"
@@ -579,12 +572,13 @@ export function ProfileDetailViewV3({
                       onChange={(e) => setGroupDraft(e.target.value)}
                       onKeyDown={(e) => { if (e.key === "Enter") commit(); }}
                       placeholder={t("profiles.v3.chips.group.placeholder")}
-                      className="w-full h-7 px-2 rounded bg-white/5 border border-white/10 focus:border-white/25 outline-none text-xs text-white placeholder:text-white/30 font-minecraft"
+                      className="w-full h-7 px-2 bg-s1 border border-line focus:border-line-3 outline-none text-[12px] text-fg placeholder:text-fg-4 transition-colors duration-fast"
+                      style={{ borderRadius: "var(--r-sm)" }}
                     />
                   </div>
                 )}
               >
-                {currentProfile.group || <span className="italic text-white/40">{t("profiles.v3.chips.group.empty")}</span>}
+                {currentProfile.group || <span className="text-fg-3">{t("profiles.v3.chips.group.empty")}</span>}
               </EditableChipV3>
               {hasModpack && (() => {
                 const versionsReady = !!modpackVersions;
@@ -592,117 +586,138 @@ export function ProfileDetailViewV3({
                   ? t("profiles.v3.chips.modpack.loading")
                   : modpackVersionNumber ? `${modpackLabel} · ${modpackVersionNumber}` : modpackLabel;
                 return (
-                  <Tooltip content={tooltip}>
-                    <button
-                      type="button"
-                      disabled={!versionsReady}
-                      onClick={() => versionsReady && handleOpenModpackVersionsModal()}
-                      className={`group inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm font-minecraft transition-colors max-w-[280px] ${
-                        !versionsReady
-                          ? "bg-black/20 border-white/5 text-white/30 cursor-wait"
-                          : "bg-black/30 border-white/10 text-white/75 hover:bg-black/40 hover:border-white/20 hover:text-white cursor-pointer"
-                      }`}
-                    >
-                      <Icon icon="solar:widget-bold" className="w-4 h-4 flex-shrink-0" />
-                      <span className="truncate">{modpackLabel}</span>
-                      {modpackVersionNumber && <span className="text-white/40 flex-shrink-0">· {modpackVersionNumber}</span>}
-                      {versionsReady && (
-                        <Icon
-                          icon="solar:pen-linear"
-                          className="w-3.5 h-3.5 ml-0.5 flex-shrink-0 opacity-40 group-hover:opacity-80 transition-opacity"
-                        />
-                      )}
-                    </button>
-                  </Tooltip>
+                  <>
+                    <Sep />
+                    <Tooltip content={tooltip}>
+                      <button
+                        type="button"
+                        disabled={!versionsReady}
+                        onClick={() => versionsReady && handleOpenModpackVersionsModal()}
+                        className={cn(
+                          "group inline-flex items-center gap-1.5 h-6 px-1.5 -mx-0.5 text-[12px] max-w-[280px] transition-colors duration-fast",
+                          !versionsReady ? "text-fg-3 cursor-wait" : "text-fg-2 hover:bg-s2 hover:text-fg",
+                        )}
+                        style={{ borderRadius: "var(--r-sm)" }}
+                      >
+                        <Package size={13} strokeWidth={1.75} className="flex-shrink-0 text-fg-3" />
+                        <span className="truncate">{modpackLabel}</span>
+                        {modpackVersionNumber && <span className="cc-num text-fg-3 flex-shrink-0">{modpackVersionNumber}</span>}
+                        {versionsReady && (
+                          <PenLine
+                            size={11}
+                            strokeWidth={1.75}
+                            className="flex-shrink-0 text-fg-3 opacity-0 group-hover:opacity-100 transition-opacity duration-fast"
+                          />
+                        )}
+                      </button>
+                    </Tooltip>
+                  </>
                 );
               })()}
               {preferredAccount && (
-                <Tooltip content={t('profiles.launchWith', { account: preferredAccount.username })}>
-                  <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/30 border border-white/10 text-sm text-white/75 font-minecraft">
-                    {preferredAccountAvatarUrl ? (
-                      <img
-                        src={preferredAccountAvatarUrl}
-                        alt={preferredAccount.username}
-                        className="w-4 h-4 rounded-sm flex-shrink-0"
-                        style={{ imageRendering: 'pixelated' }}
-                      />
-                    ) : (
-                      <Icon icon="solar:user-bold" className="w-4 h-4 flex-shrink-0" />
-                    )}
-                    {preferredAccount.username}
-                  </span>
-                </Tooltip>
+                <>
+                  <Sep />
+                  <Tooltip content={t('profiles.launchWith', { account: preferredAccount.username })}>
+                    <span className="inline-flex items-center gap-1.5 h-6 px-1.5 -mx-0.5 text-[12px] text-fg-2">
+                      {preferredAccountAvatarUrl ? (
+                        <img
+                          src={preferredAccountAvatarUrl}
+                          alt={preferredAccount.username}
+                          className="w-3.5 h-3.5 flex-shrink-0"
+                          style={{ imageRendering: 'pixelated', borderRadius: 2 }}
+                        />
+                      ) : (
+                        <User size={13} strokeWidth={1.75} className="flex-shrink-0 text-fg-3" />
+                      )}
+                      {preferredAccount.username}
+                    </span>
+                  </Tooltip>
+                </>
+              )}
+            </div>
+
+            {/* stats — replaced by the launch status while starting; same height */}
+            <div className="flex items-center gap-x-2.5 gap-y-1 flex-wrap mt-1 h-[18px] overflow-hidden text-[11px]">
+              {isLaunching && statusMessage ? (
+                <span className="flex items-center gap-2 min-w-0 animate-in fade-in duration-200">
+                  <Loader2 size={12} className="animate-spin text-fg-3 flex-shrink-0" />
+                  <span className="text-fg-3 flex-shrink-0">{t("profiles.card.starting")}</span>
+                  <span className="text-fg-2 truncate" title={statusMessage}>{statusMessage}</span>
+                </span>
+              ) : (
+                <>
+                  <Stat
+                    label={t('profiles.sort.lastPlayed')}
+                    value={formatRelativeTime(currentProfile.last_played)}
+                  />
+                  <Stat
+                    label={t("profiles.v3.stats.playtime")}
+                    value={formatPlaytime(currentProfile.playtime_seconds)}
+                    muted={!currentProfile.playtime_seconds}
+                  />
+                  <Stat
+                    label={t("profiles.v3.stats.disk")}
+                    value={diskSize == null ? "…" : formatBytes(diskSize)}
+                    muted={diskSize == null || diskSize === 0}
+                  />
+                  {!isVanillaLoader && (
+                    <Stat
+                      label={t("profiles.content.mods")}
+                      value={String(modCount)}
+                      muted={modCount === 0}
+                    />
+                  )}
+                </>
               )}
             </div>
           </div>
 
-          {/* Primary CTA cluster */}
+          {/* settings + PLAY */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            <Button
-              onClick={handleLaunch}
-              variant={isLaunching ? "destructive" : "3d"}
-              size="lg"
-              heightClassName="h-14"
-              widthClassName="w-[200px]"
-              icon={<Icon icon={isLaunching ? "solar:stop-bold" : "solar:play-bold"} width="24" height="24" />}
-            >
-              {isLaunching ? t('profiles.stop') : t('profiles.play')}
-            </Button>
             <Tooltip content={t('profiles.editProfile')}>
               <button
+                type="button"
                 onClick={onEdit}
-                className="h-14 w-12 rounded-lg bg-white/[0.03] hover:bg-white/10 border border-white/10 text-white/60 hover:text-white flex items-center justify-center transition-colors"
+                aria-label={t('profiles.editProfile')}
+                className="h-10 w-10 flex items-center justify-center bg-s2 border border-line-2 text-fg-2 hover:text-fg hover:bg-s3 transition-colors duration-fast"
+                style={{ borderRadius: "var(--r-md)" }}
               >
-                <Icon icon="solar:settings-bold" className="w-5 h-5" />
+                <Settings2 size={16} strokeWidth={1.75} />
               </button>
             </Tooltip>
+            <button
+              type="button"
+              onClick={handleLaunch}
+              className={cn(
+                "cc-play-button group h-10 w-[164px] flex items-center justify-center gap-2.5 overflow-hidden",
+                isLaunching && "is-running",
+              )}
+              style={{ borderRadius: "var(--r-md)" }}
+            >
+              {isLaunching ? (
+                <Square size={12} fill="currentColor" strokeWidth={0} />
+              ) : (
+                <Play size={15} fill="currentColor" strokeWidth={0} className="transition-transform duration-fast group-hover:translate-x-0.5" />
+              )}
+              <span
+                className="font-display text-[15px] font-[720] uppercase tracking-[0.08em] leading-none"
+                style={{ fontStretch: "120%" }}
+              >
+                {isLaunching ? t('profiles.stop') : t('profiles.play')}
+              </span>
+            </button>
           </div>
         </div>
+      </header>
 
-        {/* Stats-Strip — waehrend Launch durch Status-Card ersetzt. IDENTISCHER
-            Wrapper (flex + gap-2 + flex-wrap) damit die Row-Hoehe stabil bleibt
-            auch wenn die Stats auf schmalen Viewports wrappen. Launch-Card
-            nutzt EXAKT das Stat-Padding/-Struktur (px-3 py-2 + gap-2.5 +
-            leading-tight) damit 1:1 gleiche Pixel. */}
-        <div className="flex items-center gap-2 flex-wrap mt-5">
-          {isLaunching && statusMessage ? (
-            <div className="flex-1 flex items-center gap-3 px-4 py-2.5 rounded-lg bg-emerald-500/10 border border-emerald-400/25 min-w-[160px] animate-in fade-in duration-200">
-              <Icon icon="svg-spinners:ring-resize" className="w-5 h-5 text-emerald-300 flex-shrink-0" />
-              <div className="flex flex-col leading-tight min-w-0">
-                <span className="text-xs uppercase tracking-wider text-emerald-300/70 font-minecraft">
-                  {t("profiles.card.starting")}
-                </span>
-                <span className="text-sm text-emerald-100/95 font-minecraft truncate" title={statusMessage}>
-                  {statusMessage}
-                </span>
-              </div>
-            </div>
-          ) : (
-            <>
-              <Stat
-                icon="solar:clock-circle-bold"
-                label={t('profiles.sort.lastPlayed')}
-                value={formatRelativeTime(currentProfile.last_played)}
-              />
-              <Stat
-                icon="solar:hourglass-bold"
-                label={t("profiles.v3.stats.playtime")}
-                value={formatPlaytime(currentProfile.playtime_seconds)}
-                muted={!currentProfile.playtime_seconds}
-              />
-              <Stat
-                icon="solar:ssd-round-bold"
-                label={t("profiles.v3.stats.disk")}
-                value={diskSize == null ? "…" : formatBytes(diskSize)}
-                muted={diskSize == null || diskSize === 0}
-              />
-            </>
-          )}
-        </div>
-      </div>
+      {/* ── Body: Rail + Main ───────────────────────────────────────────── */}
+      <div className={`flex-1 min-h-0 flex ${activeNavItem === "logs" ? "" : "overflow-hidden"}`}>
+        <ProfileLeftRailV3
+          profile={currentProfile}
+          activeNavItem={activeNavItem}
+          onNavChange={setActiveNavItem}
+        />
 
-      {/* ── Body: Main + Right-Rail ─────────────────────────────────────── */}
-      <div className={`flex-1 min-h-0 flex border-t border-white/5 ${activeNavItem === "logs" ? "" : "overflow-hidden"}`}>
         <main className="flex-1 min-w-0 flex flex-col min-h-0">
           {activeNavItem === "mods" && (
             <LocalContentTabV3<LocalContentItem>
@@ -797,12 +812,6 @@ export function ProfileDetailViewV3({
             <LogsTabV3 profile={currentProfile} isActive={true} onRefresh={handleRefresh} />
           )}
         </main>
-
-        <ProfileLeftRailV3
-          profile={currentProfile}
-          activeNavItem={activeNavItem}
-          onNavChange={setActiveNavItem}
-        />
       </div>
 
       {/* ── Modals ──────────────────────────────────────────────────────── */}
@@ -814,7 +823,7 @@ export function ProfileDetailViewV3({
         isDeleting={isDeleting}
         title={t('profiles.deleteProfileTitle')}
         message={
-          <p className="text-white/80 font-minecraft">
+          <p className="text-[13px] text-fg-2">
             {t('profiles.deleteConfirmMessage', { name: currentProfile.name })}
           </p>
         }

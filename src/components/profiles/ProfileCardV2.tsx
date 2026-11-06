@@ -3,13 +3,12 @@
 import type React from "react";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { Boxes, FolderOpen, MoreHorizontal, Pin, Play, Square, Star } from "lucide-react";
 
 import type { Profile } from "../../types/profile";
 import { ProfileIconV2 } from "./ProfileIconV2";
 import { toast } from "react-hot-toast";
-import { ProfileActionButtons, type ProfileActionButton } from "../ui/ProfileActionButtons";
 import { SettingsContextMenu, type ContextMenuItem } from "../ui/SettingsContextMenu";
-import { Icon } from "@iconify/react";
 import { useProfileSettingsStore } from "../../store/profile-settings-store";
 import { useProfileDuplicateStore } from "../../store/profile-duplicate-store";
 import { useThemeStore } from "../../store/useThemeStore";
@@ -24,26 +23,52 @@ import { parseMotdToHtml } from "../../utils/motd-utils";
 import { useTranslation } from "react-i18next";
 import { usePinnedProfilesStore } from "../../store/usePinnedProfilesStore";
 import { useResolvedLoaderVersion } from "../../hooks/useResolvedLoaderVersion";
-import { loaderIconSrc } from "../../lib/loader-icons";
+import { cn } from "../../lib/utils";
+
+// Column widths of the list view, shared by the rows and the header above them (ProfileListHeader)
+const COL = {
+  version: "w-[172px]",
+  mods: "w-[52px]",
+  lastPlayed: "w-[96px]",
+  playtime: "w-[64px]",
+  actions: "w-[92px]",
+};
+
+/** Column labels above the list view; the widths match the rows of ProfileCardV2. */
+export function ProfileListHeader({ className }: { className?: string }) {
+  const { t } = useTranslation();
+  return (
+    <div className={cn("flex items-center gap-3 h-8 pl-2 pr-2 border-b border-line cc-eyebrow select-none", className)}>
+      <span className="w-8 flex-shrink-0" />
+      <span className="flex-1 min-w-0">{t("profiles.columns.name")}</span>
+      <span className={cn(COL.version, "flex-shrink-0")}>{t("profiles.columns.version")}</span>
+      <span className={cn(COL.mods, "flex-shrink-0 text-right")}>{t("profiles.columns.mods")}</span>
+      <span className={cn(COL.lastPlayed, "flex-shrink-0")}>{t("profiles.columns.lastPlayed")}</span>
+      <span className={cn(COL.playtime, "flex-shrink-0 text-right")}>{t("profiles.columns.playtime")}</span>
+      <span className={cn(COL.actions, "flex-shrink-0")} />
+    </div>
+  );
+}
 
 // Custom JSX component for tooltip content
 function StandardVersionTooltipContent() {
   const { t } = useTranslation();
   return (
-    <div className="space-y-3">
-      <div className="text-left">
-        <div className="text-sm leading-relaxed text-white">
-          {t('profiles.card.standardVersionInfo')}
-        </div>
-      </div>
-      <div className="flex items-start gap-2">
-        <Icon icon="solar:lightbulb-bold" className="text-yellow-400 text-base flex-shrink-0" />
-        <div className="text-gray-300 text-xs leading-snug italic">
-          <span className="text-yellow-300 font-medium">{t('profiles.card.tip')}:</span> {t('profiles.card.createOwnProfiles')}
-        </div>
+    <div className="max-w-[260px] space-y-1.5">
+      <div className="text-[13px] leading-snug text-fg">{t('profiles.card.standardVersionInfo')}</div>
+      <div className="text-xs leading-snug text-fg-3">
+        <span className="text-fg-2">{t('profiles.card.tip')}:</span> {t('profiles.card.createOwnProfiles')}
       </div>
     </div>
   );
+}
+
+/** Playtime as "42 min", "3,5 h" or "412 h"; null when the profile was never played. */
+function formatPlaytime(seconds: number | undefined, lang: string): string | null {
+  if (!seconds) return null;
+  if (seconds < 3600) return `${Math.max(1, Math.round(seconds / 60))} min`;
+  const hours = seconds / 3600;
+  return `${(hours >= 10 ? Math.round(hours) : hours).toLocaleString(lang, { maximumFractionDigits: 1 })} h`;
 }
 
 interface ProfileCardV2Props {
@@ -67,13 +92,11 @@ export function ProfileCardV2({
   layoutMode = "list",
   variant = "default",
 }: ProfileCardV2Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
-  const [modsButtonHovered, setModsButtonHovered] = useState(false);
-  const accentColor = useThemeStore((state) => state.accentColor);
   const { openContextMenuId, setOpenContextMenuId } = useThemeStore();
-  
+
   // Settings context menu state
   const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
   const contextMenuId = `profile-${profile.id}`;
@@ -85,7 +108,7 @@ export function ProfileCardV2({
 
   // Profile settings store
   const { openModal } = useProfileSettingsStore();
-  
+
   // Profile duplicate store
   const { openModal: openDuplicateModal } = useProfileDuplicateStore();
 
@@ -96,9 +119,9 @@ export function ProfileCardV2({
 
   // Get accounts from Minecraft Auth Store
   const accounts = useMinecraftAuthStore((state) => state.accounts);
-  
+
   // Find preferred account if one is set
-  const preferredAccount = profile.preferred_account_id 
+  const preferredAccount = profile.preferred_account_id
     ? accounts.find(acc => acc.id === profile.preferred_account_id)
     : null;
 
@@ -159,7 +182,7 @@ export function ProfileCardV2({
       id: "switch_modpack",
       label: t('profiles.modpackVersions'),
       icon: "solar:refresh-circle-bold",
-      onClick: (profile) => {
+      onClick: (profile: Profile) => {
         console.log("Switch modpack version for profile:", profile.name);
         if (profile.modpack_info?.source) {
           // Import ModpackVersionsModal dynamically to avoid circular imports
@@ -216,80 +239,12 @@ export function ProfileCardV2({
     skipLastPlayedUpdate: variant === "3d", // Skip for featured profiles in 3D mode
   });
 
-
-
   // Close this menu if another context menu opens globally
   useEffect(() => {
     if (openContextMenuId && openContextMenuId !== contextMenuId && isContextMenuOpen) {
       setIsContextMenuOpen(false);
     }
   }, [openContextMenuId, contextMenuId, isContextMenuOpen]);
-
-
-
-
-
-
-
-  // Get mod loader icon - reused from ProfileCard.tsx
-  const getModLoaderIcon = () => loaderIconSrc(profile.loader);
-
-  // Get 3D styling for variant (matching Button.tsx exactly)
-  const get3DStyling = () => {
-    if (variant !== "3d") return {};
-
-    const colors = {
-      main: accentColor.value,
-      light: accentColor.hoverValue || accentColor.value,
-      dark: accentColor.value,
-    };
-
-    const shadowDepth = "short";
-
-    const backgroundColor = isHovered ? `${colors.main}50` : `${colors.main}30`;
-    const borderColor = isHovered ? colors.light : `${colors.main}80`;
-    const borderBottomColor = isHovered ? colors.light : colors.dark;
-
-    const part1Y = shadowDepth === "short" ? "4px" : "8px";
-    const part2Y = shadowDepth === "short" ? "6px" : "10px";
-    const part2Blur = shadowDepth === "short" ? "10px" : "15px";
-    const boxShadow = `0 10px 30px -18px rgba(0,0,0,0.8), inset 0 1px 0 ${colors.light}40, inset 0 0 0 1px ${colors.main}20`;
-
-    // CrimeClient: accent-tinted glass instead of the chunky 3D frame
-    return {
-      backgroundColor: isHovered ? `${colors.main}26` : `${colors.main}17`,
-      border: `1px solid ${isHovered ? `${colors.main}80` : `${colors.main}40`}`,
-      boxShadow: isHovered ? `0 12px 30px -16px ${accentColor.shadowValue}` : "none",
-      transform: isHovered ? "translateY(-1px)" : "none",
-      transition: "all 0.2s ease",
-    };
-  };
-
-  // Get 3D styling for small buttons (settings/mods buttons)
-  const get3DButtonStyling = (isHovered: boolean = false) => {
-    if (variant !== "3d") return {};
-
-    const colors = {
-      main: accentColor.value,
-      light: accentColor.hoverValue || accentColor.value,
-      dark: accentColor.value,
-    };
-
-    const backgroundColor = isHovered ? `${colors.main}40` : `${colors.main}25`;
-    const borderColor = isHovered ? colors.light : `${colors.main}70`;
-    const borderBottomColor = isHovered ? colors.light : colors.dark;
-
-    const boxShadow = isHovered
-      ? `0 2px 0 rgba(0,0,0,0.4), 0 4px 8px rgba(0,0,0,0.3), inset 0 1px 0 ${colors.light}50, inset 0 0 0 1px ${colors.main}30`
-      : `0 2px 0 rgba(0,0,0,0.3), 0 3px 6px rgba(0,0,0,0.25), inset 0 1px 0 ${colors.light}30, inset 0 0 0 1px ${colors.main}20`;
-
-    return {
-      backgroundColor: isHovered ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.06)",
-      border: "1px solid rgba(255,255,255,0.1)",
-      color: "#ffffff",
-      transition: "all 0.2s ease",
-    };
-  };
 
   // Format last played date
   const formatLastPlayed = (lastPlayed: string | null): string => {
@@ -315,178 +270,253 @@ export function ProfileCardV2({
     return t('profiles.card.yearsAgo', { count: diffInYears });
   };
 
+  const play = () => {
+    if (onPlay) {
+      onPlay(profile);
+    } else {
+      handleLaunch();
+    }
+  };
 
+  const openMods = () => {
+    if (onMods) {
+      onMods(profile);
+    } else {
+      toast.success(t('profiles.toast.managing_mods', { name: profile.name }));
+      console.log("Managing mods for profile:", profile.name);
+    }
+  };
 
-  // Action button configuration
-  const actionButtons: ProfileActionButton[] = [
-    {
-      id: "play",
-      label: isLaunching ? t('profiles.stop') : t('profiles.play'),
-      icon: isLaunching ? "solar:stop-bold" : "solar:play-bold",
-      variant: isLaunching ? "destructive" : "primary",
-      tooltip: isLaunching ? t('profiles.stopPlaying') : t('profiles.startPlaying'),
-      onClick: (profile, e) => {
-        if (onPlay) {
-          onPlay(profile);
-        } else {
-          handleLaunch();
-        }
-      },
-    },
-    {
-      id: "mods",
-      label: "MODS",
-      icon: "solar:box-bold",
-      variant: "secondary",
-      tooltip: t('profiles.manageMods'),
-      onClick: (profile, e) => {
-        if (onMods) {
-          onMods(profile);
-        } else {
-          toast.success(t('profiles.toast.managing_mods', { name: profile.name }));
-          console.log("Managing mods for profile:", profile.name);
-        }
-      },
-    },
-    {
-      id: "settings",
-      label: "SETTINGS",
-      icon: "solar:settings-bold",
-      variant: "icon-only",
-      tooltip: t('profiles.profileOptions'),
-             onClick: (profile, e) => {
-         e.preventDefault();
-         e.stopPropagation();
-         
-         // Close any other open context menus first
-         if (openContextMenuId && openContextMenuId !== contextMenuId) {
-           setOpenContextMenuId(null);
-         }
-         
-         // Simple toggle like CustomDropdown
-         const newState = !isContextMenuOpen;
-         setIsContextMenuOpen(newState);
-         setOpenContextMenuId(newState ? contextMenuId : null);
-         
-         // Calculate position when opening
-         if (!isContextMenuOpen) {
-           const buttonRect = e.currentTarget.getBoundingClientRect();
-           const cardRect = e.currentTarget.closest('.relative')?.getBoundingClientRect();
-           
-           if (cardRect) {
-             setContextMenuPosition({
-               x: buttonRect.right - cardRect.left - 200, // Position menu to the left of the button
-               y: buttonRect.bottom - cardRect.top + 4,   // Position below the button
-             });
-           }
-         }
-       },
-    },
-  ];
+  const openFolder = () => {
+    if (onOpenFolder) {
+      onOpenFolder(profile);
+    } else {
+      toast.success(t('profiles.toast.opening_folder', { name: profile.name }));
+    }
+  };
 
-    // Grid layout (more compact, similar to ProfileCard.tsx)
+  // The "more" button toggles the profile menu, placed under the button (relative to the card's `.relative` root)
+  const toggleMenuFromButton = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Close any other open context menus first
+    if (openContextMenuId && openContextMenuId !== contextMenuId) {
+      setOpenContextMenuId(null);
+    }
+
+    const newState = !isContextMenuOpen;
+    setIsContextMenuOpen(newState);
+    setOpenContextMenuId(newState ? contextMenuId : null);
+
+    if (!isContextMenuOpen) {
+      const buttonRect = e.currentTarget.getBoundingClientRect();
+      const cardRect = e.currentTarget.closest('.relative')?.getBoundingClientRect();
+
+      if (cardRect) {
+        setContextMenuPosition({
+          x: buttonRect.right - cardRect.left - 200, // Position menu to the left of the button
+          y: buttonRect.bottom - cardRect.top + 4,   // Position below the button
+        });
+      }
+    }
+  };
+
+  const openMenuAtCursor = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (openContextMenuId && openContextMenuId !== contextMenuId) {
+      setOpenContextMenuId(null);
+    }
+    setIsContextMenuOpen(true);
+    setOpenContextMenuId(contextMenuId);
+
+    const cardRect = e.currentTarget.getBoundingClientRect();
+    setContextMenuPosition({
+      x: e.clientX - cardRect.left,
+      y: e.clientY - cardRect.top,
+    });
+  };
+
+  const handleCardClick = (e: React.MouseEvent<HTMLDivElement>, ignorePlayOverlay: boolean) => {
+    // Don't trigger if clicking on action buttons (or the play overlay on the icon)
+    const target = e.target as Element;
+    if (
+      e.target === e.currentTarget ||
+      (!target.closest('button') && (!ignorePlayOverlay || !target.closest('.play-overlay')))
+    ) {
+      // 3D mode launches the profile, the default opens it (mods)
+      if (variant === "3d") play();
+      else openMods();
+    }
+  };
+
+  const loaderText =
+    profile.loader === "vanilla"
+      ? t('common.vanilla').toLowerCase()
+      : `${profile.loader} ${resolvedLoaderVersion?.version || profile.loader_version || ""}`.trim();
+  const modCount = profile.mod_count ?? profile.mods.length;
+  const playtime = formatPlaytime(profile.playtime_seconds, i18n.language);
+  const lastPlayed = formatLastPlayed(profile.last_played);
+
+  // name, then the small markers: standard version, pin, preferred account
+  const nameLine = (nameClass: string) => (
+    <div className="flex items-center gap-1.5 min-w-0">
+      <h3 className={cn("min-w-0 truncate normal-case text-fg", nameClass)} title={profile.name}>
+        <span dangerouslySetInnerHTML={{ __html: parseMotdToHtml(profile.name) }} />
+      </h3>
+      {profile.is_standard_version && (
+        <Tooltip content={<StandardVersionTooltipContent />} position="top" wrapperClassName="flex-shrink-0">
+          <Star size={12} strokeWidth={1.75} className="text-fg-3" />
+        </Tooltip>
+      )}
+      {(pinned || isHovered) && (
+        <button
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); togglePin(profile.id); }}
+          className={cn(
+            "flex-shrink-0 grid place-items-center w-5 h-5 rounded-sm transition-colors duration-fast",
+            pinned ? "text-fg-2 hover:text-fg" : "text-fg-4 hover:text-fg-2",
+          )}
+          title={pinned ? t('profiles.unpin') : t('profiles.pinToTop')}
+          data-action="pin"
+        >
+          <Pin size={12} strokeWidth={1.75} className={pinned ? "fill-current" : undefined} />
+        </button>
+      )}
+      {preferredAccount && (
+        <Tooltip
+          content={t('profiles.launchWith', { account: preferredAccount.username })}
+          position="top"
+          wrapperClassName="flex-shrink-0 min-w-0"
+        >
+          <span className="flex items-center gap-1.5 min-w-0 text-fg-3">
+            {preferredAccountAvatarUrl && (
+              <img
+                src={preferredAccountAvatarUrl}
+                alt={preferredAccount.username}
+                className="w-4 h-4 rounded-sm flex-shrink-0"
+                style={{ imageRendering: 'pixelated' }}
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+            )}
+            <span className="truncate max-w-[96px] text-xs">{preferredAccount.username}</span>
+          </span>
+        </Tooltip>
+      )}
+    </div>
+  );
+
+  const contextMenu = (
+    <SettingsContextMenu
+      target={profile}
+      isOpen={isContextMenuOpen}
+      position={contextMenuPosition}
+      items={contextMenuItems}
+      onClose={() => {
+        setIsContextMenuOpen(false);
+        setOpenContextMenuId(null);
+      }}
+      triggerButtonRef={settingsButtonRef}
+    />
+  );
+
+  const moreButton = (small?: boolean) => (
+    <button
+      ref={settingsButtonRef}
+      onClick={toggleMenuFromButton}
+      className={cn("cc-icon-btn", small && "w-6 h-6", isContextMenuOpen && "bg-s3 text-fg")}
+      title={t('profiles.profileOptions')}
+      aria-label={t('profiles.profileOptions')}
+      data-action="settings"
+    >
+      <MoreHorizontal size={small ? 14 : 16} strokeWidth={1.75} />
+    </button>
+  );
+
+  // Grid and compact layouts: flat tiles
   if (layoutMode === "grid" || layoutMode === "compact") {
     const isCompact = layoutMode === "compact";
-    const iconSize = isCompact ? 16 : 20; // Smaller icons for compact mode
-    const padding = isCompact ? "p-3" : "p-4"; // Less padding for compact mode
-    const gap = isCompact ? "gap-2" : "gap-3"; // Smaller gaps for compact mode
-    
+
     return (
       <div
-        className={`relative flex flex-col ${gap} ${padding} rounded-lg ${variant === "3d" ? "backdrop-blur-md" : "bg-white/[0.035] border border-white/[0.07] hover:bg-white/[0.065] hover:border-white/[0.12]"} transition-all duration-200 cursor-pointer`}
-        style={variant === "3d" ? get3DStyling() : {}}
+        className={cn(
+          "group relative flex items-center bg-s1 border cursor-pointer transition-colors duration-fast",
+          isCompact ? "gap-2.5 p-2.5" : "gap-3 p-3",
+          isContextMenuOpen ? "bg-s2 border-line-2" : "border-line hover:bg-s2 hover:border-line-2",
+        )}
+        style={{ borderRadius: "var(--r-lg)" }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        onClick={(e) => {
-          // Don't trigger if clicking on action buttons or play overlay
-          const target = e.target as Element;
-          if (e.target === e.currentTarget || (!target.closest('button') && !target.closest('.play-overlay'))) {
-            if (variant === "3d") {
-              // In 3D mode, launch the profile when clicking the card
-              if (onPlay) {
-                onPlay(profile);
-              } else {
-                handleLaunch();
-              }
-            } else {
-              // Default behavior: manage mods
-              if (onMods) {
-                onMods(profile);
-              } else {
-                toast.success(t('profiles.toast.managing_mods', { name: profile.name }));
-                console.log("Managing mods for profile:", profile.name);
-              }
-            }
-          }
-        }}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-
-          if (openContextMenuId && openContextMenuId !== contextMenuId) {
-            setOpenContextMenuId(null);
-          }
-          setIsContextMenuOpen(true);
-          setOpenContextMenuId(contextMenuId);
-
-          const cardRect = e.currentTarget.getBoundingClientRect();
-          setContextMenuPosition({
-            x: e.clientX - cardRect.left,
-            y: e.clientY - cardRect.top,
-          });
-        }}
+        onClick={(e) => handleCardClick(e, true)}
+        onContextMenu={openMenuAtCursor}
       >
-        {/* Standard version badge */}
-        {profile.is_standard_version && (
-          <div className={`absolute ${isCompact ? 'top-2 left-2' : 'top-3 left-3'} z-20`}>
-            <Tooltip content={<StandardVersionTooltipContent />}>
-              <div className="flex items-center justify-center w-6 h-6 rounded-full ">
-                <Icon icon="solar:star-bold" className="w-4 h-4 text-yellow-400" />
-              </div>
-            </Tooltip>
-          </div>
-        )}
+        <div className={cn("relative flex-shrink-0", isCompact ? "w-10 h-10" : "w-12 h-12")}>
+          <ProfileIconV2 profile={profile} size="sm" className="w-full h-full" />
 
-        <div className={`absolute ${isCompact ? 'top-2 right-2' : 'top-3 right-3'} z-20 flex flex-col gap-1`}>
-          {variant === "default" && (
-            <button
-            ref={settingsButtonRef}
-                         onClick={(e) => {
-               e.preventDefault();
-               e.stopPropagation();
-
-               // Close any other open context menus first
-               if (openContextMenuId && openContextMenuId !== contextMenuId) {
-                 setOpenContextMenuId(null);
-               }
-
-               // Simple toggle like CustomDropdown
-               const newState = !isContextMenuOpen;
-               setIsContextMenuOpen(newState);
-               setOpenContextMenuId(newState ? contextMenuId : null);
-
-               // Calculate position when opening
-               if (!isContextMenuOpen) {
-                 const buttonRect = e.currentTarget.getBoundingClientRect();
-                 const cardRect = e.currentTarget.closest('.relative')?.getBoundingClientRect();
-
-                 if (cardRect) {
-                   setContextMenuPosition({
-                     x: buttonRect.right - cardRect.left - 200, // Position menu to the left of the button
-                     y: buttonRect.bottom - cardRect.top + 4,   // Position below the button
-                   });
-                 }
-               }
-             }}
-            className={`${isCompact ? 'w-6 h-6' : 'w-8 h-8'} flex items-center justify-center rounded transition-all duration-200 bg-white/[0.05] hover:bg-white/[0.1] text-white/70 hover:text-white border border-white/[0.08]`}
-            title={t('profiles.profileOptions')}
-            data-action="settings"
-          >
-            <Icon icon="solar:settings-bold" className={isCompact ? 'w-3 h-3' : 'w-4 h-4'} />
-          </button>
+          {/* play on the icon */}
+          {(isLaunching || isHovered) && (
+            <div
+              className="play-overlay absolute inset-0 grid place-items-center bg-bg/75 cursor-pointer"
+              style={{ borderRadius: "var(--r-md)" }}
+            >
+              <button
+                onClick={() => handleLaunch()}
+                className="w-full h-full grid place-items-center text-fg hover:text-white transition-colors duration-fast"
+                title={isLaunching ? t('profiles.stopPlaying') : t('profiles.startPlaying')}
+                aria-label={isLaunching ? t('profiles.stopPlaying') : t('profiles.startPlaying')}
+              >
+                {isLaunching ? (
+                  <Square size={isCompact ? 13 : 15} fill="currentColor" strokeWidth={0} />
+                ) : (
+                  <Play size={isCompact ? 15 : 18} fill="currentColor" strokeWidth={0} />
+                )}
+              </button>
+            </div>
           )}
+        </div>
 
-          {/* Mods button */}
+        <div className="flex-1 min-w-0 pr-14">
+          {nameLine(isCompact ? "text-[13px] font-[600] leading-tight" : "text-[13.5px] font-[600] leading-tight")}
+          {isLaunching ? (
+            <div className="mt-1 text-[11px] text-fg-3 truncate">
+              {statusMessage || t('profiles.card.starting')}
+            </div>
+          ) : isCompact ? (
+            <div className="mt-1 cc-num text-[11px] text-fg-3 truncate">
+              <span className="text-fg-2">{profile.game_version}</span>
+              <span className="text-fg-4"> · </span>
+              {lastPlayed}
+            </div>
+          ) : (
+            <>
+              <div className="mt-1 cc-num text-[11.5px] text-fg-2 truncate">
+                {profile.game_version} <span className="text-fg-3">{loaderText}</span>
+              </div>
+              <div className="mt-0.5 cc-num text-[11px] text-fg-3 truncate">
+                {t('profiles.card.modCount', { count: modCount })}
+                {playtime && (
+                  <>
+                    <span className="text-fg-4"> · </span>
+                    {playtime}
+                  </>
+                )}
+                <span className="text-fg-4"> · </span>
+                {lastPlayed}
+              </div>
+            </>
+          )}
+        </div>
+
+        <div
+          className={cn(
+            "absolute flex items-center gap-0.5 transition-opacity duration-fast",
+            isCompact ? "top-1.5 right-1.5" : "top-2 right-2",
+            isContextMenuOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100 focus-within:opacity-100",
+          )}
+        >
           <button
             onClick={(e) => {
               e.preventDefault();
@@ -498,338 +528,98 @@ export function ProfileCardV2({
                 navigate(`/profilesv2/${profile.id}`);
               }
             }}
-            className={`${variant === "3d" ? (isCompact ? 'w-auto px-2 h-6' : 'w-auto px-3 h-8') : (isCompact ? 'w-6 h-6' : 'w-8 h-8')} flex items-center justify-center gap-1 rounded transition-all duration-200 ${variant === "3d" ? "" : "bg-white/[0.05] hover:bg-white/[0.1] text-white/70 hover:text-white border border-white/[0.08]"}`}
-            style={variant === "3d" ? get3DButtonStyling(modsButtonHovered) : {}}
-            onMouseEnter={() => setModsButtonHovered(true)}
-            onMouseLeave={() => setModsButtonHovered(false)}
+            className={cn("cc-icon-btn", isCompact && "w-6 h-6")}
             title={t('profiles.manageMods')}
+            aria-label={t('profiles.manageMods')}
           >
-            <Icon icon="solar:box-bold" className={isCompact ? 'w-3 h-3' : 'w-4 h-4'} />
-            {variant === "3d" && (
-              <span className={`font-minecraft ${isCompact ? 'text-xs' : 'text-sm'} `}>Mods</span>
-            )}
+            <Boxes size={isCompact ? 14 : 15} strokeWidth={1.75} />
           </button>
+          {variant === "default" && moreButton(isCompact)}
         </div>
 
-        <div className={`flex items-center ${isCompact ? 'gap-3' : 'gap-4'} relative z-10 w-full`}>
-          <div className={`relative ${isCompact ? 'w-16 h-16' : 'w-20 h-20'} flex-shrink-0 rounded-lg flex items-center justify-center overflow-hidden border-2 transition-all duration-200`}
-            style={{
-              backgroundColor: isHovered ? `${accentColor.value}20` : 'transparent',
-              borderColor: isHovered ? `${accentColor.value}60` : 'transparent',
-            }}
-          >
-            <ProfileIconV2 profile={profile} size={isCompact ? "md" : "lg"} className="w-full h-full" />
-            
-            {/* Play button overlay - similar to ProfileCard.tsx */}
-            {(isLaunching || isHovered) && (
-              <div className="play-overlay absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity duration-150 cursor-pointer rounded-lg">
-                <button
-                  onClick={() => handleLaunch()}
-                  className={`${isCompact ? 'w-8 h-8' : 'w-12 h-12'} flex items-center justify-center text-white hover:text-white/80 transition-colors`}
-                  disabled={false}
-                >
-                  {isLaunching ? (
-                    <Icon icon="solar:stop-bold" className={isCompact ? 'w-6 h-6' : 'w-8 h-8'} />
-                  ) : (
-                    <Icon icon="solar:play-bold" className={isCompact ? 'w-6 h-6' : 'w-8 h-8'} />
-                  )}
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className={`flex-grow min-w-0 mr-auto pr-2 ${isCompact ? 'max-w-[calc(100%-64px)]' : 'max-w-[calc(100%-80px)]'}`}>
-            <div className="flex items-center gap-2 mb-0.5">
-              <h3
-                className={`font-minecraft text-white ${isCompact ? 'text-base' : 'text-lg'} whitespace-nowrap overflow-hidden text-ellipsis normal-case`}
-                style={{ textShadow: '0 2px 4px rgba(0,0,0,0.7)' }}
-                title={profile.name}
-              >
-                <span dangerouslySetInnerHTML={{ __html: parseMotdToHtml(profile.name) }} />
-              </h3>
-              {(pinned || isHovered) && (
-                <button
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); togglePin(profile.id); }}
-                  className={`flex-shrink-0 transition-all duration-200 ${pinned ? 'text-white' : 'text-white/40 hover:text-white'}`}
-                  title={pinned ? "Unpin" : "Pin to Top"}
-                  data-action="pin"
-                >
-                  <Icon icon={pinned ? "solar:pin-bold" : "solar:pin-bold-duotone"} className="w-4 h-4" />
-                </button>
-              )}
-              {preferredAccount && (
-                <Tooltip content={t('profiles.launchWith', { account: preferredAccount.username })}>
-                  <div className="flex items-center gap-1.5 text-white/60">
-                    {preferredAccountAvatarUrl && (
-                      <img
-                        src={preferredAccountAvatarUrl}
-                        alt={preferredAccount.username}
-                        className={`${isCompact ? 'w-4 h-4' : 'w-5 h-5'} rounded-sm pixelated flex-shrink-0`}
-                        style={{ imageRendering: 'pixelated' }}
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                    )}
-                    <span className={`truncate max-w-[100px] ${isCompact ? 'text-base' : 'text-lg'} lowercase`}>{preferredAccount.username}</span>
-                  </div>
-                </Tooltip>
-              )}
-            </div>
-            {isLaunching ? (
-              <div
-                className="text-white/60 text-xs font-minecraft opacity-70 whitespace-nowrap overflow-hidden text-ellipsis max-w-full"
-                style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}
-              >
-                {statusMessage || t('profiles.card.starting')}
-              </div>
-            ) : (
-              isCompact ? (
-                 // Compact mode: Only MC version + last played
-                 <div className="flex items-center gap-1.5 text-xs font-minecraft" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
-                   {/* Minecraft Version */}
-                   <div className="text-white/70 flex items-center gap-0.5">
-                     <img
-                       src="/icons/minecraft.png"
-                       alt="Minecraft"
-                       className="w-2.5 h-2.5 object-contain"
-                     />
-                     <span>{profile.game_version}</span>
-                   </div>
-
-                   <div className="w-px h-2.5 bg-white/30"></div>
-
-                   {/* Last Played */}
-                   <div className="text-white/50">
-                     {formatLastPlayed(profile.last_played)}
-                   </div>
-                 </div>
-               ) : (
-                 // Grid mode: Full info display
-                 <div className="flex items-center gap-2 text-xs font-minecraft" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
-                   {/* Minecraft Version */}
-                   <div className="text-white/70 flex items-center gap-1">
-                     <img
-                       src="/icons/minecraft.png"
-                       alt="Minecraft"
-                       className="w-3 h-3 object-contain"
-                     />
-                     <span>{profile.game_version}</span>
-                   </div>
-                   
-                   <div className="w-px h-3 bg-white/30"></div>
-                   
-                   {/* Loader Version */}
-                   <div className="text-white/60 flex items-center gap-1">
-                     <img
-                       src={getModLoaderIcon()}
-                       alt={profile.loader || t('common.vanilla')}
-                       className="w-3 h-3 object-contain"
-                     />
-                     <span>
-                       {profile.loader === "vanilla" 
-                         ? "Vanilla" 
-                         : `${resolvedLoaderVersion?.version || profile.loader_version || "Unknown"}`
-                       }
-                     </span>
-                   </div>
-                   
-                   <div className="w-px h-3 bg-white/30"></div>
-                   
-                   {/* Last Played */}
-                   <div className="text-white/50">
-                     {formatLastPlayed(profile.last_played)}
-                   </div>
-                 </div>
-               )
-            )}
-          </div>
-        </div>
-
-        {/* Settings Context Menu */}
-                 <SettingsContextMenu
-           target={profile}
-           isOpen={isContextMenuOpen}
-           position={contextMenuPosition}
-           items={contextMenuItems}
-           onClose={() => {
-             setIsContextMenuOpen(false);
-             setOpenContextMenuId(null);
-           }}
-           triggerButtonRef={settingsButtonRef}
-         />
+        {contextMenu}
       </div>
     );
   }
 
-  // List layout (original layout)
+  // List layout: one table-like row, actions appear on hover
   return (
     <div
-      className={`relative flex items-center gap-4 p-3 rounded-lg ${variant === "3d" ? "backdrop-blur-md" : "bg-white/[0.035] border border-white/[0.07] hover:bg-white/[0.065] hover:border-white/[0.12]"} transition-all duration-200 cursor-pointer`}
-      style={variant === "3d" ? get3DStyling() : {}}
+      className={cn(
+        "group relative flex items-center gap-3 h-12 pl-2 pr-2 border-b border-line cursor-pointer transition-colors duration-fast",
+        isContextMenuOpen ? "bg-s2" : "hover:bg-s2",
+      )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      onClick={(e) => {
-        // Don't trigger if clicking on action buttons
-        const target = e.target as Element;
-        if (e.target === e.currentTarget || !target.closest('button')) {
-          if (variant === "3d") {
-            // In 3D mode, launch the profile when clicking the card
-            if (onPlay) {
-              onPlay(profile);
-            } else {
-              handleLaunch();
-            }
-          } else {
-            // Default behavior: manage mods
-            if (onMods) {
-              onMods(profile);
-            } else {
-              toast.success(t('profiles.toast.managing_mods', { name: profile.name }));
-              console.log("Managing mods for profile:", profile.name);
-            }
-          }
-        }
-      }}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        if (openContextMenuId && openContextMenuId !== contextMenuId) {
-          setOpenContextMenuId(null);
-        }
-        setIsContextMenuOpen(true);
-        setOpenContextMenuId(contextMenuId);
-
-        const cardRect = e.currentTarget.getBoundingClientRect();
-        setContextMenuPosition({
-          x: e.clientX - cardRect.left,
-          y: e.clientY - cardRect.top,
-        });
-      }}
+      onClick={(e) => handleCardClick(e, false)}
+      onContextMenu={openMenuAtCursor}
     >
-      {/* Profile Icon */}
-      <div className="relative">
-        <ProfileIconV2 profile={profile} size="md" />
-        {profile.is_standard_version && (
-          <div className="absolute -top-1 -right-1 z-10">
-            <Tooltip content={<StandardVersionTooltipContent />}>
-              <div className="flex items-center justify-center w-6 h-6 rounded-full ">
-                <Icon icon="solar:star-bold" className="w-4 h-4 text-yellow-400" />
-              </div>
-            </Tooltip>
-          </div>
-        )}
-      </div>
+      <ProfileIconV2 profile={profile} size="xs" />
 
-      {/* Profile Info */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          <h3
-            className="text-white font-minecraft text-sm whitespace-nowrap overflow-hidden text-ellipsis normal-case"
-            style={{ textShadow: '0 2px 4px rgba(0,0,0,0.7)' }}
-            title={profile.name}
-          >
-            <span dangerouslySetInnerHTML={{ __html: parseMotdToHtml(profile.name) }} />
-          </h3>
-          {(pinned || isHovered) && (
-            <button
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); togglePin(profile.id); }}
-              className={`flex-shrink-0 transition-all duration-200 ${pinned ? 'text-white' : 'text-white/40 hover:text-white'}`}
-              title={pinned ? "Unpin" : "Pin to Top"}
-              data-action="pin"
-            >
-              <Icon icon={pinned ? "solar:pin-bold" : "solar:pin-bold-duotone"} className="w-4 h-4" />
-            </button>
-          )}
-          {preferredAccount && (
-            <Tooltip content={t('profiles.launchWith', { account: preferredAccount.username })}>
-              <div className="flex items-center gap-1.5 text-white/60">
-                {preferredAccountAvatarUrl && (
-                  <img
-                    src={preferredAccountAvatarUrl}
-                    alt={preferredAccount.username}
-                    className="w-5 h-5 rounded-sm pixelated flex-shrink-0"
-                    style={{ imageRendering: 'pixelated' }}
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                    }}
-                  />
-                )}
-                <span className="truncate max-w-[100px] text-lg lowercase">{preferredAccount.username}</span>
-              </div>
-            </Tooltip>
-          )}
-        </div>
-        
-        {isLaunching ? (
-          <div
-            className="text-white/60 text-xs font-minecraft opacity-70 whitespace-nowrap overflow-hidden text-ellipsis max-w-full"
-            style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}
-          >
+        {nameLine("text-[13.5px] font-[600] leading-tight")}
+        {isLaunching && (
+          <div className="mt-0.5 text-[11px] text-fg-3 truncate">
             {statusMessage || t('profiles.card.starting')}
           </div>
-        ) : (
-          <div className="flex items-center gap-2 text-xs font-minecraft" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
-          {/* Minecraft Version */}
-          <div className="text-white/70 flex items-center gap-1">
-            <img
-              src="/icons/minecraft.png"
-              alt="Minecraft"
-              className="w-3 h-3 object-contain"
-            />
-            <span>{profile.game_version}</span>
-          </div>
-          
-          <div className="w-px h-3 bg-white/30"></div>
-          
-          {/* Loader Version */}
-          <div className="text-white/60 flex items-center gap-1">
-            <img
-              src={getModLoaderIcon()}
-              alt={profile.loader || t('common.vanilla')}
-              className="w-3 h-3 object-contain"
-            />
-            <span>
-              {profile.loader === "vanilla"
-                ? t('common.vanilla')
-                : `${resolvedLoaderVersion?.version || profile.loader_version || t('common.unknown')}`
-              }
-            </span>
-          </div>
-          
-          <div className="w-px h-3 bg-white/30"></div>
-          
-          {/* Last Played */}
-          <div className="text-white/50">
-            {formatLastPlayed(profile.last_played)}
-          </div>
-        </div>
         )}
       </div>
 
-      {/* Action Buttons */}
-      <ProfileActionButtons
-        profile={profile}
-        actions={actionButtons}
-        useFlexSpacer={true}
-        flexSpacerAfterIndex={1}
-      />
+      <div
+        className={cn(COL.version, "flex-shrink-0 cc-num text-[12px] text-fg-2 truncate")}
+        title={`${profile.game_version} ${loaderText}`}
+      >
+        {profile.game_version} <span className="text-fg-3">{loaderText}</span>
+      </div>
+      <div className={cn(COL.mods, "flex-shrink-0 cc-num text-[12px] text-right", modCount ? "text-fg-2" : "text-fg-4")}>
+        {modCount}
+      </div>
+      <div className={cn(COL.lastPlayed, "flex-shrink-0 cc-num text-[12px] truncate", profile.last_played ? "text-fg-3" : "text-fg-4")}>
+        {lastPlayed}
+      </div>
+      <div className={cn(COL.playtime, "flex-shrink-0 cc-num text-[12px] text-right", playtime ? "text-fg-3" : "text-fg-4")}>
+        {playtime ?? "–"}
+      </div>
 
-             {/* Settings Context Menu */}
-       <SettingsContextMenu
-         target={profile}
-         isOpen={isContextMenuOpen}
-         position={contextMenuPosition}
-         items={contextMenuItems}
-         onClose={() => {
-           setIsContextMenuOpen(false);
-           setOpenContextMenuId(null);
-         }}
-         triggerButtonRef={undefined} // List layout doesn't have direct button ref
-       />
+      <div
+        className={cn(
+          COL.actions,
+          "flex-shrink-0 flex items-center justify-end gap-0.5 transition-opacity duration-fast",
+          isLaunching || isContextMenuOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100 focus-within:opacity-100",
+        )}
+      >
+        <Tooltip content={isLaunching ? t('profiles.stopPlaying') : t('profiles.startPlaying')} position="top">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              play();
+            }}
+            className={cn("cc-icon-btn", isLaunching && "text-fg bg-s3")}
+            aria-label={isLaunching ? t('profiles.stop') : t('profiles.play')}
+          >
+            {isLaunching ? (
+              <Square size={12} fill="currentColor" strokeWidth={0} />
+            ) : (
+              <Play size={14} fill="currentColor" strokeWidth={0} />
+            )}
+          </button>
+        </Tooltip>
+        <Tooltip content={t('profiles.openFolder')} position="top">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              openFolder();
+            }}
+            className="cc-icon-btn"
+            aria-label={t('profiles.openFolder')}
+          >
+            <FolderOpen size={15} strokeWidth={1.75} />
+          </button>
+        </Tooltip>
+        {moreButton()}
+      </div>
 
-
+      {contextMenu}
     </div>
   );
 }

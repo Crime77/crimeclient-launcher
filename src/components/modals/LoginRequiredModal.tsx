@@ -2,10 +2,10 @@
 
 import { useEffect, useRef } from "react";
 import { Icon } from "@iconify/react";
+import { Loader2, LogIn, Play } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Modal } from "../ui/Modal";
 import { Button } from "../ui/buttons/Button";
-import { useThemeStore } from "../../store/useThemeStore";
 import { useMinecraftAuthStore } from "../../store/minecraft-auth-store";
 import { useAddMinecraftAccount } from "../../hooks/useAddMinecraftAccount";
 
@@ -36,7 +36,6 @@ export function LoginRequiredModal({
   onAuthenticated,
 }: LoginRequiredModalProps) {
   const { t } = useTranslation();
-  const accentColor = useThemeStore((s) => s.accentColor);
   const isLoading = useMinecraftAuthStore((s) => s.isLoading);
   const activeAccount = useMinecraftAuthStore((s) => s.activeAccount);
   const { startLogin } = useAddMinecraftAccount();
@@ -54,47 +53,43 @@ export function LoginRequiredModal({
   return (
     <Modal
       title={t("auth.login_required.headline")}
-      titleIcon={<Icon icon="solar:login-3-bold" className="w-5 h-5" />}
+      titleIcon={<LogIn size={16} strokeWidth={1.75} />}
       onClose={onClose}
       width="sm"
+      footer={
+        <div className="flex items-center justify-end gap-2">
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            {t("auth.login_required.later")}
+          </Button>
+          <Button
+            onClick={startLogin}
+            disabled={isLoading}
+            variant="default"
+            size="sm"
+            icon={
+              isLoading ? (
+                <Loader2 size={14} strokeWidth={1.75} className="animate-spin" />
+              ) : (
+                <Icon icon="simple-icons:microsoft" className="w-3.5 h-3.5" />
+              )
+            }
+          >
+            {isLoading ? t("auth.login_required.cta_loading") : t("auth.login_required.cta")}
+          </Button>
+        </div>
+      }
     >
-      <div className="p-6 flex flex-col items-center text-center">
+      <div className="p-5">
         {profileName && (
-          <div className="flex items-center gap-2 mb-4">
-            <Icon icon="solar:play-bold" className="w-3.5 h-3.5" style={{ color: accentColor.value }} />
-            <span className="text-xs font-minecraft text-white/70 truncate max-w-[18rem]">
-              {t("auth.login_required.for_profile", { profile: profileName })}
-            </span>
+          <div className="flex items-center gap-2 mb-3 text-xs text-fg-3 min-w-0">
+            <Play size={12} strokeWidth={2} className="flex-shrink-0" />
+            <span className="truncate">{t("auth.login_required.for_profile", { profile: profileName })}</span>
           </div>
         )}
 
-        <p className="text-sm font-minecraft text-white/70 leading-relaxed">
+        <p className="text-[13px] text-fg-2 leading-relaxed">
           {t("auth.login_required.description")}
         </p>
-
-        <Button
-          onClick={startLogin}
-          disabled={isLoading}
-          variant="default"
-          size="md"
-          widthClassName="w-full"
-          className="mt-6"
-          icon={
-            <Icon
-              icon={isLoading ? "svg-spinners:ring-resize" : "simple-icons:microsoft"}
-              className="w-5 h-5"
-            />
-          }
-        >
-          {isLoading ? t("auth.login_required.cta_loading") : t("auth.login_required.cta")}
-        </Button>
-
-        <button
-          onClick={onClose}
-          className="mt-3 text-xs font-minecraft text-white/40 hover:text-white/75 transition-colors"
-        >
-          {t("auth.login_required.later")}
-        </button>
       </div>
     </Modal>
   );

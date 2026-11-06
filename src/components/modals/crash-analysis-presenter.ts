@@ -1,50 +1,65 @@
 import type { TFunction } from "i18next";
+import {
+  CheckCircle2,
+  Download,
+  Hammer,
+  Inbox,
+  Lightbulb,
+  Package,
+  Power,
+  RefreshCw,
+  Sparkles,
+  Unlink,
+  Zap,
+  type LucideIcon,
+} from "lucide-react";
 import type { CrashAction, CrashCheckResult } from "../../types/crash-analysis";
 
 // Single source of truth for how a crash verdict + its actions are presented.
 // Keeps the modal dumb: it only renders what these helpers return.
 
 export type Look = {
+  /** a muted state colour of the palette (CSS variable) */
   color: string;
-  icon: string;
+  icon: LucideIcon;
   headlineKey: string;
   btn: "success" | "info" | "warning" | "default";
 };
 
 export function look(r: CrashCheckResult): Look {
   if (r.status === "investigating")
-    return { color: "#f59e0b", icon: "solar:sledgehammer-bold", headlineKey: "crash_analysis.headline.investigating", btn: "warning" };
+    return { color: "var(--warn)", icon: Hammer, headlineKey: "crash_analysis.headline.investigating", btn: "warning" };
   // our bug, not yet in the wiki -> a genuinely new find. Celebrate + thank the reporter.
   if (r.classification === "nrc-own" && !r.known)
-    return { color: "#fbbf24", icon: "solar:cup-star-bold", headlineKey: "crash_analysis.headline.new_bug", btn: "warning" };
+    return { color: "var(--warn)", icon: Sparkles, headlineKey: "crash_analysis.headline.new_bug", btn: "warning" };
   if (r.source === "wiki")
-    return { color: "#10b981", icon: "solar:check-circle-bold", headlineKey: "crash_analysis.headline.known", btn: "success" };
+    return { color: "var(--ok)", icon: CheckCircle2, headlineKey: "crash_analysis.headline.known", btn: "success" };
   if (r.source === "auto")
-    return { color: "#3b82f6", icon: "solar:lightbulb-bolt-bold", headlineKey: "crash_analysis.headline.suggested", btn: "info" };
-  return { color: "#9ca3af", icon: "solar:inbox-line-bold", headlineKey: "crash_analysis.headline.logged", btn: "default" };
+    return { color: "var(--info)", icon: Lightbulb, headlineKey: "crash_analysis.headline.suggested", btn: "info" };
+  return { color: "var(--fg-3)", icon: Inbox, headlineKey: "crash_analysis.headline.logged", btn: "default" };
 }
 
 // apply CTA is always green — signals "this fixes it"
 export const actionVariant = (_a: CrashAction): "success" => "success";
 
-const ACTION_ICONS: Record<string, string> = {
-  resolve_conflict: "solar:link-broken-minimalistic-bold",
-  enable_norisk_mod: "solar:bolt-circle-bold",
-  enable_mod: "solar:bolt-circle-bold",
-  disable_mod: "solar:power-bold",
-  disable_norisk_mod: "solar:power-bold",
-  install_mod: "solar:download-minimalistic-bold",
-  switch_pack: "solar:box-bold",
-  repair_profile: "solar:sledgehammer-bold",
+const ACTION_ICONS: Record<string, LucideIcon> = {
+  resolve_conflict: Unlink,
+  enable_norisk_mod: Zap,
+  enable_mod: Zap,
+  disable_mod: Power,
+  disable_norisk_mod: Power,
+  install_mod: Download,
+  switch_pack: Package,
+  repair_profile: Hammer,
 };
 
-export const actionIcon = (a: CrashAction): string => ACTION_ICONS[a.type] ?? "solar:refresh-bold";
+export const actionIcon = (a: CrashAction): LucideIcon => ACTION_ICONS[a.type] ?? RefreshCw;
 
 const conflictMods = (a: CrashAction): string => (a.targets?.length ? a.targets : [a.target]).join(" + ");
 
 // removal is destructive -> red; everything else carries the status accent
 export const actionColor = (a: CrashAction, accent: string): string =>
-  a.type === "disable_mod" ? "#ef4444" : accent;
+  a.type === "disable_mod" ? "var(--err)" : accent;
 
 // backend ships facts; the launcher composes the localized button label
 export function actionLabel(a: CrashAction, t: TFunction): string {

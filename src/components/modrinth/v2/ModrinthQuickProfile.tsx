@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { SearchStyleInput } from "../../ui/Input";
 import { IconButton } from "../../ui/buttons/IconButton";
-import { Icon } from "@iconify/react";
+import { Check, Copy, FolderX, Loader2, Search, X } from "lucide-react";
 import type { AccentColor } from "../../../store/useThemeStore";
 import { cn } from "../../../lib/utils";
 import { useProfileStore } from "../../../store/profile-store";
@@ -81,40 +81,39 @@ export const ModrinthQuickProfile: React.FC<ModrinthQuickProfileProps> = ({
   return (
     <div
       className={cn(
-        "p-1 sm:p-2 md:p-4 space-y-4",
+        "space-y-3",
         isLoading && "opacity-70 pointer-events-none",
       )}
     >
       <div>
-        <h3 className="text-xl sm:text-2xl font-semibold text-gray-100 font-minecraft normal-case">
+        <h3 className="text-[16px] leading-[1.3] font-[620] text-fg normal-case tracking-normal">
           {isActuallyCopying
             ? t('modrinth.quick_profile.copy_prefix')
             : t('modrinth.quick_profile.install_prefix')}
-          <span style={{ color: accentColor.value }}>{projectTitle}</span>
+          <span className="text-fg">{projectTitle}</span>
           {versionNumber && (
-            <span className="text-gray-400"> v{versionNumber}</span>
+            <span className="cc-num text-[13px] font-[450] text-fg-3"> v{versionNumber}</span>
           )}
           {isActuallyCopying
             ? t('modrinth.quick_profile.copy_suffix')
             : t('modrinth.quick_profile.install_suffix')}
         </h3>
+        <p className="mt-1 text-[12.5px] text-fg-3">
+          {isActuallyCopying
+            ? t('modrinth.quick_profile.copy_description', {
+                name:
+                  storeProfiles.find((p) => p.id === selectedSourceProfileId)?.name ||
+                  t('modrinth.quick_profile.selected_profile'),
+              })
+            : t('modrinth.quick_profile.description')}
+        </p>
       </div>
-
-      <p className="text-xs font-minecraft sm:text-sm text-gray-400">
-        {isActuallyCopying
-          ? t('modrinth.quick_profile.copy_description', {
-              name:
-                storeProfiles.find((p) => p.id === selectedSourceProfileId)?.name ||
-                t('modrinth.quick_profile.selected_profile'),
-            })
-          : t('modrinth.quick_profile.description')}
-      </p>
 
       <div className="flex items-start gap-2">
         <div className="flex-grow">
           <label
             htmlFor="quickProfileNameInput"
-            className="block text-sm font-medium text-gray-300 mb-1 sr-only"
+            className="sr-only"
           >
             {t('modrinth.quick_profile.name_label')}
           </label>
@@ -131,12 +130,9 @@ export const ModrinthQuickProfile: React.FC<ModrinthQuickProfileProps> = ({
         <IconButton
           icon={
             isActuallyCopying ? (
-              <Icon
-                icon="solar:close-circle-bold-duotone"
-                className="w-5 h-5"
-              />
+              <X size={15} strokeWidth={1.75} />
             ) : (
-              <Icon icon="solar:copy-bold-duotone" className="w-5 h-5" />
+              <Copy size={15} strokeWidth={1.75} />
             )
           }
           onClick={handleToggleCopySection}
@@ -148,118 +144,117 @@ export const ModrinthQuickProfile: React.FC<ModrinthQuickProfileProps> = ({
               ? t('modrinth.quick_profile.clear_source')
               : t('modrinth.quick_profile.copy_from_existing')
           }
-          className="flex-shrink-0 mt-0.5"
+          className="flex-shrink-0"
         />
       </div>
 
 
       {(showSourceSelectInput || isActuallyCopying) && (
-        <div className="pt-2 animated-fade-in space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-medium font-minecraft text-gray-400">
-              Source Profile to Copy
-            </label>
-            <span className="text-xs text-white/50 font-minecraft">
-              {filteredProfiles.length} profile{filteredProfiles.length !== 1 ? 's' : ''}
+        <div className="pt-1 space-y-2">
+          <div className="flex items-baseline justify-between">
+            <span className="cc-eyebrow">
+              {t('mods.quick_profile.source_label')}
+            </span>
+            <span className="cc-num text-[11px] text-fg-4">
+              {t('mods.quick_profile.count', { count: filteredProfiles.length })}
             </span>
           </div>
 
           {profilesLoading ? (
-            <div className="flex items-center justify-center gap-2 p-3 bg-black/20 rounded-lg">
-              <Icon icon="svg-spinners:ring-resize" className="w-4 h-4 text-white/50" />
-              <span className="text-sm text-white/50 font-minecraft">{t('profiles.loadingProfiles')}</span>
+            <div className="flex items-center gap-2 py-2 text-[12.5px] text-fg-3">
+              <Loader2 size={14} className="animate-spin" />
+              <span>{t('profiles.loadingProfiles')}</span>
             </div>
           ) : storeProfiles.length === 0 ? (
-            <div className="flex items-center justify-center gap-2 p-3 bg-black/20 rounded-lg">
-              <Icon icon="solar:folder-error-bold" className="w-4 h-4 text-amber-500" />
-              <span className="text-sm text-amber-500 font-minecraft">{t('profiles.no_profiles_available')}</span>
+            <div className="flex items-center gap-2 py-2 text-[12.5px] text-warn">
+              <FolderX size={14} strokeWidth={1.75} />
+              <span>{t('profiles.no_profiles_available')}</span>
             </div>
           ) : (
             <>
               {/* Search Bar */}
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
-                  <Icon icon="solar:magnifer-bold" className="w-3 h-3 text-white/50" />
-                </div>
+              <label
+                className="h-8 flex items-center gap-2 px-2.5 bg-s2 border border-line focus-within:border-line-3 transition-colors duration-fast"
+                style={{ borderRadius: "var(--r-md)" }}
+              >
+                <Search size={13} strokeWidth={1.75} className="text-fg-3 flex-shrink-0" />
                 <input
                   type="text"
                   value={profileSearchValue}
                   onChange={(e) => setProfileSearchValue(e.target.value)}
                   placeholder={t('placeholders.search_profiles')}
-                  className="w-full pl-7 pr-3 py-1.5 bg-black/20 border border-white/10 rounded-md text-xs font-minecraft text-white placeholder-white/50 focus:border-accent focus:outline-none transition-colors"
+                  className="flex-1 min-w-0 bg-transparent text-[12.5px] text-fg placeholder:text-fg-4 outline-none"
                   disabled={isLoading}
                 />
                 {profileSearchValue && (
                   <button
+                    type="button"
                     onClick={() => setProfileSearchValue('')}
-                    className="absolute inset-y-0 right-0 pr-2 flex items-center hover:bg-white/10 rounded-r-md"
+                    className="text-fg-4 hover:text-fg transition-colors duration-fast"
                   >
-                    <Icon icon="solar:close-circle-bold" className="w-3 h-3 text-white/50 hover:text-white" />
+                    <X size={13} strokeWidth={2} />
                   </button>
                 )}
-              </div>
+              </label>
 
-              {/* Profile Grid */}
-              <div className="grid grid-cols-3 gap-1.5 max-h-32 overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
-                {displayedProfiles.map((profile) => (
-                  <button
-                    key={profile.id}
-                    onClick={() => {
-                      onSourceProfileChange(profile.id);
-                      setShowSourceSelectInput(true);
-                    }}
-                    disabled={isLoading}
-                    className={cn(
-                      "flex flex-col items-center gap-1 p-2 rounded-md bg-black/20 border transition-all duration-200 hover:bg-black/30 text-center",
-                      selectedSourceProfileId === profile.id
-                        ? "border-accent bg-accent/10"
-                        : "border-white/10 hover:border-white/20",
-                      isLoading && "opacity-50 cursor-not-allowed"
-                    )}
-                  >
-                    <div className="w-5 h-5 rounded flex items-center justify-center overflow-hidden bg-black/40">
-                      <Icon icon="solar:user-bold" className="w-3 h-3 text-white/70" />
-                    </div>
-                    <div className="flex-1 min-w-0 w-full">
-                      <div className="text-xs font-minecraft text-white truncate" title={profile.name}>
+              {/* Profile list */}
+              <div
+                className="max-h-40 overflow-y-auto scrollbar-hover border border-line"
+                style={{ borderRadius: "var(--r-md)" }}
+              >
+                {displayedProfiles.map((profile) => {
+                  const selected = selectedSourceProfileId === profile.id;
+                  return (
+                    <button
+                      key={profile.id}
+                      type="button"
+                      onClick={() => {
+                        onSourceProfileChange(profile.id);
+                        setShowSourceSelectInput(true);
+                      }}
+                      disabled={isLoading}
+                      className={cn(
+                        "w-full h-8 flex items-center gap-2 px-2.5 text-left border-b border-line last:border-b-0 transition-colors duration-fast",
+                        selected ? "bg-s3 text-fg" : "text-fg-2 hover:bg-s2 hover:text-fg",
+                        isLoading && "opacity-50 cursor-not-allowed"
+                      )}
+                    >
+                      <span className="flex-1 min-w-0 truncate text-[12.5px]" title={profile.name}>
                         {profile.name}
-                      </div>
-                      <div className="text-xs text-white/40 font-minecraft truncate">
-                        {profile.game_version}
-                      </div>
-                    </div>
-                    {selectedSourceProfileId === profile.id && (
-                      <Icon icon="solar:check-circle-bold" className="w-3 h-3 text-accent flex-shrink-0" />
-                    )}
-                  </button>
-                ))}
+                      </span>
+                      <span className="cc-num text-[11px] text-fg-4 flex-shrink-0">
+                        {[profile.loader, profile.game_version].filter(Boolean).join(" ")}
+                      </span>
+                      <span className="w-3.5 flex-shrink-0">
+                        {selected && <Check size={13} strokeWidth={2.25} className="text-fg" />}
+                      </span>
+                    </button>
+                  );
+                })}
 
                 {filteredProfiles.length > maxProfilesToShow && (
                   <button
+                    type="button"
                     onClick={handleLoadMoreProfiles}
                     disabled={isLoading}
-                    className="flex flex-col items-center justify-center gap-1 p-2 rounded-md bg-black/20 border border-white/10 hover:border-white/20 hover:bg-black/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full h-8 px-2.5 text-left text-[12px] text-fg-3 hover:text-fg hover:bg-s2 transition-colors duration-fast disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Icon icon="solar:add-circle-bold" className="w-4 h-4 text-white/50" />
-                    <span className="text-xs font-minecraft text-white/50">
-                      +{Math.min(9, filteredProfiles.length - maxProfilesToShow)} more
-                    </span>
+                    {t('mods.quick_profile.more', { count: Math.min(9, filteredProfiles.length - maxProfilesToShow) })}
                   </button>
                 )}
-              </div>
 
-              {filteredProfiles.length === 0 && profileSearchValue && (
-                <div className="text-center py-2">
-                  <Icon icon="solar:magnifer-bold" className="w-4 h-4 text-white/30 mx-auto mb-1" />
-                  <span className="text-xs text-white/50 font-minecraft">{t('profiles.noProfilesFound')}</span>
-                </div>
-              )}
+                {filteredProfiles.length === 0 && profileSearchValue && (
+                  <div className="px-2.5 py-2 text-[12px] text-fg-3">
+                    {t('profiles.noProfilesFound')}
+                  </div>
+                )}
+              </div>
             </>
           )}
 
           {storeProfiles.length === 0 && !profilesLoading && (
-            <p className="text-xs text-amber-500 mt-2 text-center">
-              You don't have any profiles to copy from. A new empty profile will be created if you proceed without selecting a source.
+            <p className="text-[12px] text-fg-3">
+              {t('mods.quick_profile.no_source_hint')}
             </p>
           )}
         </div>

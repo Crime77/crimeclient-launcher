@@ -4,8 +4,6 @@ import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
 import { cn } from "../../lib/utils";
-import { useThemeStore } from "../../store/useThemeStore";
-import { gsap } from "gsap";
 
 interface EmptyStateProps {
   icon?: string;
@@ -26,6 +24,7 @@ interface EmptyStateProps {
   onIconClick?: () => void;
 }
 
+/** "Werkzeug" empty state: a small quiet icon, one line of fg-2, one of fg-3, optionally an action. */
 export function EmptyState({
   icon = "solar:info-circle-bold",
   message,
@@ -39,121 +38,59 @@ export function EmptyState({
 }: EmptyStateProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const iconRef = useRef<HTMLDivElement>(null);
-  const accentColor = useThemeStore((state) => state.accentColor);
-  const isBackgroundAnimationEnabled = useThemeStore((state) => state.isBackgroundAnimationEnabled);
   const [isDelayedContentVisible, setIsDelayedContentVisible] = useState(false);
 
   useEffect(() => {
     const contentTimer = setTimeout(() => {
       setIsDelayedContentVisible(true);
     }, 150);
-
-    if (isBackgroundAnimationEnabled) {
-      if (containerRef.current) {
-        gsap.fromTo(
-          containerRef.current,
-          { opacity: 0, y: 20, scale: 0.95 },
-          {
-            opacity: 1,
-            y: 0,
-            scale: 1,
-            duration: 0.5,
-            ease: "power2.out",
-          },
-        );
-      }      if (iconRef.current) {
-        gsap.fromTo(
-          iconRef.current,
-          { scale: 0.8, opacity: 0 },
-          {
-            scale: 1,
-            opacity: 1,
-            duration: 0.6,
-            delay: 0.2,
-            ease: "elastic.out(1.2, 0.5)",
-          },
-        );
-      }
-    } else {
-      if (containerRef.current) {
-        gsap.set(containerRef.current, { opacity: 1, y: 0, scale: 1 });
-      }
-      if (iconRef.current) {
-        gsap.set(iconRef.current, { opacity: 1, scale: 1 });
-      }
-    }
-    
     return () => {
       clearTimeout(contentTimer);
     };
-  }, [isBackgroundAnimationEnabled]);
+  }, []);
 
   return (
     <div
       ref={containerRef}
       className={cn(
-        "flex flex-col items-center justify-center",
+        "cc-enter flex flex-col items-center justify-center text-center",
         compact ? "p-4" : "p-8",
         fullHeight ? "h-full w-full" : "auto",
         className,
       )}
     >
       <div
-        style={{
-          opacity: isDelayedContentVisible ? 1 : 0,
-          transition: "opacity 0.5s ease-in-out",
-          width: "100%",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
+        ref={iconRef}
+        className={cn(
+          "flex items-center justify-center text-fg-3",
+          compact ? "mb-2.5" : "mb-3",
+          onIconClick ? "cursor-pointer hover:text-fg-2 transition-colors duration-fast" : ""
+        )}
+        onClick={onIconClick}
       >
-        <div
-          ref={iconRef}
-          className={cn(
-            "flex items-center justify-center text-white mb-4",
-            compact ? "w-20 h-12" : "w-28 h-20",
-            onIconClick ? "cursor-pointer hover:opacity-80 transition-opacity" : ""
-          )}
-          style={{ color: accentColor.value }}
-          onClick={onIconClick}
-        >
-          <Icon icon={icon} className={compact ? "w-12 h-12" : "w-20 h-20"} />
-        </div>        <p
-          className={cn(
-            "text-white lowercase text-center mb-2",
-            compact ? "text-xl" : "text-2xl",
-          )}
-        >
-          {message}
-        </p>
-
-        {description && (
-          <p
-            className={cn(
-              "text-white/70 lowercase text-center max-w-md",
-              smallDescription
-                ? (compact ? "text-base mb-4" : "text-lg mb-6")
-                : (compact ? "text-2xl mb-4" : "text-2xl mb-6"),
-            )}
-          >
-            {description}
-          </p>
-        )}
-
-        {action && isDelayedContentVisible && (
-          <div
-            className="mt-2"
-            style={{
-              opacity: isDelayedContentVisible ? 1 : 0,
-              transition: "opacity 0.5s ease-in-out 0.1s"
-            }}
-          >
-            {action}
-          </div>
-        )}
+        <Icon icon={icon} className={compact ? "w-5 h-5" : "w-6 h-6"} />
       </div>
+
+      <p className="text-[13px] font-[520] text-fg-2 max-w-md">
+        {message}
+      </p>
+
+      {description && (
+        <p
+          className={cn(
+            "text-fg-3 max-w-md mt-1",
+            smallDescription ? "text-xs" : "text-[13px]",
+          )}
+        >
+          {description}
+        </p>
+      )}
+
+      {action && isDelayedContentVisible && (
+        <div className={cn("animate-in fade-in-0 duration-200", compact ? "mt-3" : "mt-4")}>
+          {action}
+        </div>
+      )}
     </div>
   );
 }

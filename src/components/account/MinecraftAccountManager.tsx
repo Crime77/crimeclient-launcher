@@ -1,15 +1,13 @@
 "use client";
 
-import { Icon } from "@iconify/react";
+import { Check, Loader2, Plus, Trash2, UserX, X } from "lucide-react";
 import { Modal } from "../ui/Modal";
 import { Button } from "../ui/buttons/Button";
-import { IconButton } from "../ui/buttons/IconButton";
 import { useMinecraftAuthStore } from "../../store/minecraft-auth-store";
 import type { MinecraftAccount } from "../../types/minecraft";
-import { DropdownHeader } from "../ui/dropdown/DropdownHeader";
-import { DropdownFooter } from "../ui/dropdown/DropdownFooter";
-import { DropdownDivider } from "../ui/dropdown/DropdownDivider";
 import { StatusMessage } from "../ui/StatusMessage";
+import { menuItemClasses } from "../ui/design-system";
+import { cn } from "../../lib/utils";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { gsap } from "gsap";
@@ -51,121 +49,114 @@ export function MinecraftAccountManager({
     }
   };
 
+  const loadingState = (
+    <div className="flex items-center gap-2 px-2.5 h-10 text-[13px] text-fg-3">
+      <Loader2 size={14} strokeWidth={1.75} className="animate-spin" />
+      {t('auth.loadingAccounts')}
+    </div>
+  );
+
+  const emptyState = (
+    <div className="flex items-start gap-2.5 px-2.5 py-3">
+      <UserX size={16} strokeWidth={1.75} className="text-fg-3 mt-px flex-shrink-0" />
+      <div>
+        <p className="text-[13px] text-fg-2">{t('auth.noAccountsFound')}</p>
+        <p className="text-xs text-fg-3 mt-0.5">{t('auth.addAccountToGetStarted')}</p>
+      </div>
+    </div>
+  );
+
   if (isInDropdown) {
+    // the account switcher above the sidebar's account row: a plain menu
     return (
       <div className="flex flex-col max-h-[400px]">
-        <DropdownHeader title={t('auth.minecraftAccounts')}>
+        <div className="h-9 flex-shrink-0 flex items-center justify-between pl-3 pr-1 border-b border-line">
+          <span className="cc-eyebrow">{t('auth.minecraftAccounts')}</span>
           <button
+            type="button"
             onClick={onClose}
-            className="text-white/70 hover:text-white transition-colors"
+            className="cc-icon-btn w-7 h-7"
+            aria-label={t('common.close')}
           >
-            <Icon icon="solar:close-circle-bold" className="w-5 h-5" />
+            <X size={14} strokeWidth={1.75} />
           </button>
-        </DropdownHeader>
-
-        <div className="overflow-y-auto custom-scrollbar max-h-[300px]">
-          {isLoading && accounts.length === 0 ? (
-            <div className="py-3 px-3 text-center">
-              <Icon
-                icon="svg-spinners:ring-resize"
-                className="w-5 h-5 mx-auto text-white/70"
-              />
-              <p className="mt-1 text-white/70 text-sm font-minecraft">{t('auth.loadingAccounts')}</p>
-            </div>
-          ) : accounts.length === 0 ? (
-            <div className="py-4 px-3 text-center">
-              <Icon
-                icon="solar:user-cross-bold"
-                className="w-6 h-6 mx-auto text-white/50 mb-1"
-              />
-              <p className="text-white/70 text-sm font-minecraft">{t('auth.noAccountsFound')}</p>
-              <p className="mt-1 text-white/50 text-[0.6em] font-minecraft">
-                {t('auth.addAccountToGetStarted')}
-              </p>
-            </div>
-          ) : (
-            <div className="p-2 space-y-2">
-              {accounts.map((account) => (
-                <AccountItem
-                  key={account.id}
-                  account={account}
-                  onSetActive={handleSetActive}
-                  onRemoveAccount={handleRemoveAccount}
-                  isLoading={isLoading}
-                  isDropdownItem
-                />
-              ))}
-            </div>
-          )}
         </div>
 
-        <DropdownDivider />
+        <div className="overflow-y-auto custom-scrollbar max-h-[300px] p-1 flex flex-col gap-px">
+          {isLoading && accounts.length === 0
+            ? loadingState
+            : accounts.length === 0
+              ? emptyState
+              : accounts.map((account) => (
+                  <AccountItem
+                    key={account.id}
+                    account={account}
+                    onSetActive={handleSetActive}
+                    onRemoveAccount={handleRemoveAccount}
+                    isLoading={isLoading}
+                    isDropdownItem
+                  />
+                ))}
+        </div>
 
-        <DropdownFooter>
-          <Button
-            variant="default"
+        <div className="border-t border-line p-1">
+          <button
+            type="button"
             onClick={handleAddAccount}
             disabled={isLoading}
-            icon={
-              <Icon
-                icon={isLoading ? "svg-spinners:ring-resize" : "solar:add-circle-bold"}
-                className="w-3 h-3"
-              />
-            }
-            size="sm"
-            className="w-full"
+            className={cn(menuItemClasses(false), "disabled:opacity-45 disabled:pointer-events-none")}
           >
+            {isLoading ? (
+              <Loader2 size={14} strokeWidth={1.75} className="animate-spin text-fg-3" />
+            ) : (
+              <Plus size={14} strokeWidth={1.75} className="text-fg-3" />
+            )}
             {isLoading ? t('auth.processing') : t('auth.addAccount')}
-          </Button>
-        </DropdownFooter>
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <Modal title={t('auth.accountManager')} onClose={onClose} width="lg">
-      <div className="p-6">
-        {error && <StatusMessage type="error" message={error} />}
-
-        <div className="space-y-6">
-          <div>
-            <h3 className="text-base font-smallcaps text-white mb-5 select-none">
-              {t('auth.manageAccounts')}
-            </h3>
-            <p className="text-sm text-white/70 mb-6 font-smallcaps tracking-wide select-none">
-              {t('auth.manageAccountsDescription')}
-            </p>
-          </div>
-
-          <div className="bg-black/30 backdrop-blur-md border-2 border-white/20 p-5 rounded-md">
-            <h3 className="text-base text-white font-medium mb-3 select-none">
-              {t('auth.yourAccounts')}
-            </h3>
-
-            <div className="space-y-3 max-h-[40vh] overflow-y-auto custom-scrollbar">
-              {isLoading && accounts.length === 0 ? (
-                <div className="py-4 text-center">
-                  <Icon
-                    icon="svg-spinners:ring-resize"
-                    className="w-8 h-8 mx-auto text-white/70"
-                  />
-                  <p className="mt-2 text-white/70 text-sm">
-                    {t('auth.loadingAccounts')}
-                  </p>
-                </div>
-              ) : accounts.length === 0 ? (
-                <div className="py-6 text-center">
-                  <Icon
-                    icon="solar:user-cross-bold"
-                    className="w-12 h-12 mx-auto text-white/50 mb-3"
-                  />
-              <p className="text-white/70 text-sm">{t('auth.noAccountsFound')}</p>
-                  <p className="mt-1 text-white/50 text-lg">
-                    {t('auth.addAccountToGetStarted')}
-                  </p>
-                </div>
+    <Modal
+      title={t('auth.accountManager')}
+      titleSubtitle={t('auth.manageAccountsDescription')}
+      onClose={onClose}
+      width="md"
+      footer={
+        <div className="flex justify-end">
+          <Button
+            variant="default"
+            onClick={handleAddAccount}
+            disabled={isLoading}
+            icon={
+              isLoading ? (
+                <Loader2 size={14} strokeWidth={1.75} className="animate-spin" />
               ) : (
-                accounts.map((account) => (
+                <Plus size={14} strokeWidth={1.75} />
+              )
+            }
+            size="md"
+          >
+            {isLoading ? t('auth.processing') : t('auth.addMinecraftAccount')}
+          </Button>
+        </div>
+      }
+    >
+      <div className="p-5">
+        {error && <StatusMessage type="error" message={error} className="mb-4" />}
+
+        <div className="cc-eyebrow mb-2">{t('auth.yourAccounts')}</div>
+        <div
+          className="border border-line divide-y divide-line max-h-[40vh] overflow-y-auto custom-scrollbar"
+          style={{ borderRadius: "var(--r-md)" }}
+        >
+          {isLoading && accounts.length === 0
+            ? loadingState
+            : accounts.length === 0
+              ? emptyState
+              : accounts.map((account) => (
                   <AccountItem
                     key={account.id}
                     account={account}
@@ -173,27 +164,7 @@ export function MinecraftAccountManager({
                     onRemoveAccount={handleRemoveAccount}
                     isLoading={isLoading}
                   />
-                ))
-              )}
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3">
-            <Button
-              variant="success"
-              onClick={handleAddAccount}
-              disabled={isLoading}
-              icon={
-                <Icon
-                  icon={isLoading ? "svg-spinners:ring-resize" : "solar:add-circle-bold"}
-                  className="w-5 h-5"
-                />
-              }
-              size="lg"
-            >
-              {isLoading ? t('auth.processing') : t('auth.addMinecraftAccount')}
-            </Button>
-          </div>
+                ))}
         </div>
       </div>
     </Modal>
@@ -220,7 +191,7 @@ function AccountItem({
   const [isRemoving, setIsRemoving] = useState(false);
   const { t } = useTranslation();
   // Avatar sizes in pixels
-  const avatarSizePx = isDropdownItem ? 32 : 40;
+  const avatarSizePx = isDropdownItem ? 24 : 28;
 
   const handleAccountClick = () => {
     if (
@@ -234,8 +205,8 @@ function AccountItem({
 
     setIsActivating(true);
     gsap.to(itemRef.current, {
-      scale: 0.97,
-      duration: 0.1,
+      scale: 0.98,
+      duration: 0.08,
       yoyo: true,
       repeat: 1,
       ease: "power1.inOut",
@@ -268,94 +239,84 @@ function AccountItem({
   };
 
   const effectiveIsLoading = isLoading || isActivating || isRemoving;
+  const name = account.minecraft_username || account.username;
 
   return (
     <div
       ref={itemRef}
-      className={`flex items-center justify-between rounded-md ${
-        account.active ? "bg-white/10" : "bg-black/40 hover:bg-white/5"
-      } border border-white/10 hover:border-white/20 transition-colors overflow-hidden ${
-        !account.active && !effectiveIsLoading
-          ? "cursor-pointer"
-          : "cursor-default"
-      } ${isActivating ? "opacity-75" : ""}`}
+      className={cn(
+        "group flex items-center gap-2.5 transition-colors duration-fast",
+        isDropdownItem ? "h-10 pl-2 pr-1" : "h-12 pl-3 pr-2",
+        account.active ? (isDropdownItem ? "bg-s3" : "bg-s2") : "hover:bg-s2",
+        !account.active && !effectiveIsLoading ? "cursor-pointer" : "cursor-default",
+        isActivating && "opacity-75",
+      )}
+      style={isDropdownItem ? { borderRadius: "var(--r-sm)" } : undefined}
       onClick={!account.active ? handleAccountClick : undefined}
     >
-      <div className="flex items-center gap-2 min-w-0 flex-grow p-2">
-        <div
-          className="relative overflow-hidden border border-white/20 flex items-center justify-center bg-black/50 flex-shrink-0 rounded-sm"
-          style={{
-            width: isDropdownItem ? '32px' : '40px',
-            height: isDropdownItem ? '32px' : '40px',
-          }}
+      <span
+        className="flex-shrink-0 overflow-hidden bg-s3"
+        style={{ width: avatarSizePx, height: avatarSizePx, borderRadius: "var(--r-sm)" }}
+      >
+        <PlayerHead uuid={account.id} username={name} size={avatarSizePx} />
+      </span>
+      <span className="min-w-0 flex-1 flex items-center gap-2">
+        <span
+          className={cn("text-[13px] truncate", account.active ? "font-[560] text-fg" : "text-fg-2 group-hover:text-fg")}
+          title={name}
         >
-          <PlayerHead
-            uuid={account.id}
-            username={account.minecraft_username || account.username}
-            size={avatarSizePx}
-            className={isDropdownItem ? "text-xs" : ""}
-          />
-        </div>
-        <div className="min-w-0 flex items-center">
-          <h4
-            className={`${isDropdownItem ? "text-lg" : "text-base"} text-white font-smallcaps truncate`}
-            title={account.minecraft_username || account.username}
-          >
-            {account.minecraft_username || account.username}
-          </h4>
-          {isActivating && (
-            <Icon
-              icon="svg-spinners:ring-resize"
-              className={`${isDropdownItem ? "w-4 h-4" : "w-5 h-5"} text-white/80 ml-2`}
-            />
+          {name}
+        </span>
+        {isActivating && <Loader2 size={13} strokeWidth={1.75} className="animate-spin text-fg-3 flex-shrink-0" />}
+      </span>
+      {account.active && (
+        <span className="flex items-center gap-1 text-[11px] text-fg-3 flex-shrink-0">
+          <Check size={13} strokeWidth={2} className="text-fg-2" />
+          {t('auth.active')}
+        </span>
+      )}
+      {isDropdownItem ? (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleRemoveClick();
+          }}
+          disabled={effectiveIsLoading}
+          className={cn(
+            "cc-icon-btn w-7 h-7 flex-shrink-0 hover:!text-err",
+            isRemoving ? "opacity-100" : "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
           )}
-        </div>
-      </div>
-      <div className="flex items-center gap-1 flex-shrink-0 p-1">
-        {isDropdownItem ? (
-          <IconButton
-            variant="ghost"
-            onClick={handleRemoveClick}
-            disabled={effectiveIsLoading}
-            shadowDepth="short"
-            icon={
-              isRemoving ? (
-                <Icon
-                  icon="svg-spinners:ring-resize"
-                  className="w-3 h-3"
-                />
-              ) : (
-                <Icon icon="solar:trash-bin-trash-bold" className="w-3 h-3" />
-              )
-            }
-            size="xs"
-            aria-label={t('auth.removeAccount')}
-          />
-        ) : (
-          <Button
-            variant="destructive"
-            onClick={handleRemoveClick}
-            disabled={effectiveIsLoading}
-            size="md"
-            aria-label={t('auth.removeAccount')}
-          >
-            {isRemoving ? (
-              <>
-                <Icon
-                  icon="svg-spinners:ring-resize"
-                  className="w-5 h-5"
-                />
-                <span className="ml-2">{t('auth.removing')}</span>
-              </>
+          aria-label={t('auth.removeAccount')}
+          title={t('auth.removeAccount')}
+        >
+          {isRemoving ? (
+            <Loader2 size={14} strokeWidth={1.75} className="animate-spin" />
+          ) : (
+            <Trash2 size={14} strokeWidth={1.75} />
+          )}
+        </button>
+      ) : (
+        <Button
+          variant="destructive"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleRemoveClick();
+          }}
+          disabled={effectiveIsLoading}
+          size="xs"
+          aria-label={t('auth.removeAccount')}
+          icon={
+            isRemoving ? (
+              <Loader2 size={13} strokeWidth={1.75} className="animate-spin" />
             ) : (
-              <>
-                <Icon icon="solar:trash-bin-trash-bold" className="w-5 h-5" />
-                <span className="ml-1">{t('auth.remove')}</span>
-              </>
-            )}
-          </Button>
-        )}
-      </div>
+              <Trash2 size={13} strokeWidth={1.75} />
+            )
+          }
+        >
+          {isRemoving ? t('auth.removing') : t('auth.remove')}
+        </Button>
+      )}
     </div>
   );
 }

@@ -18,11 +18,11 @@ export const MAIN_MIN = "30%";
 
 export const HIT_AREA = { fine: 12, coarse: 28 };
 
-export const CARD =
-  "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[var(--border-radius)] border border-white/10 bg-black/30";
+// flat panels; the 1 px resize bars between them are the only dividers
+export const CARD = "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-s1";
 
 export const PANEL_HEAD =
-  "relative flex h-11 shrink-0 items-center gap-3 border-b border-white/10 bg-black/20 px-3";
+  "relative flex h-10 shrink-0 items-center gap-2 border-b border-line px-3";
 
 export const layoutStorage: LayoutStorage = {
   getItem(key) {
@@ -72,21 +72,13 @@ export function ResizeBar({
       aria-label={label}
       disabled={disabled}
       className={cn(
-        "group relative z-20 shrink-0 outline-none",
-        across ? (disabled ? "w-0" : "w-1.5") : "h-1.5",
+        "group relative z-20 shrink-0 bg-line outline-none transition-colors duration-fast",
+        "data-[separator=hover]:bg-line-3 data-[separator=active]:bg-fg-3 data-[separator=focus]:bg-line-3",
+        across ? (disabled ? "w-0" : "w-px") : "h-px",
         disabled && "invisible",
       )}
     >
-      <span
-        className={cn(
-          "pointer-events-none absolute opacity-0 transition-opacity duration-150",
-          "group-data-[separator=hover]:opacity-100 group-data-[separator=active]:opacity-100 group-data-[separator=focus]:opacity-100",
-          across
-            ? "inset-y-1 left-1/2 w-0.5 -translate-x-1/2 rounded-full"
-            : "inset-x-1 top-1/2 h-0.5 -translate-y-1/2 rounded-full",
-        )}
-        style={{ backgroundColor: color }}
-      />
+      {/* the grab area is wider than the line (resizeTargetMinimumSize on the group) */}
     </Separator>
   );
 }
@@ -134,10 +126,9 @@ export function EdgeGrip({
     >
       <span
         className={cn(
-          "pointer-events-none absolute inset-x-0 top-1/2 h-[3px] -translate-y-1/2 opacity-0 transition-opacity duration-150 group-hover:opacity-100",
-          dragging && "opacity-100",
+          "pointer-events-none absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-line-3 opacity-0 transition-opacity duration-fast group-hover:opacity-100",
+          dragging && "bg-fg-3 opacity-100",
         )}
-        style={{ backgroundColor: color }}
       />
     </div>
   );

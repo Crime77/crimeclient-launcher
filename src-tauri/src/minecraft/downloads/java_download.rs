@@ -528,11 +528,12 @@ impl JavaDownloadService {
                     use std::os::unix::fs::PermissionsExt;
 
                     let metadata = fs::metadata(&java_binary).await?;
+                    let mode = metadata.permissions().mode();
 
-                    if !metadata.permissions().mode() & 0o111 != 0 {
-                        // try to change permissions
+                    if mode & 0o111 != 0o111 {
+                        // make it executable, keeping read and write (0o111 alone took those away)
                         let mut permissions = metadata.permissions();
-                        permissions.set_mode(0o111);
+                        permissions.set_mode(mode | 0o755);
                         fs::set_permissions(&java_binary, permissions).await?;
                     }
                 }

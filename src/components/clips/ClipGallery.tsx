@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Icon } from "@iconify/react";
+import { Loader2, MoreHorizontal, Play, Scissors, Smartphone, Star, Video } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-hot-toast";
 import { convertFileSrc } from "@tauri-apps/api/core";
@@ -259,7 +259,8 @@ export function ClipGallery({
 
   if (clips === null || shown === null || months === null) {
     return (
-      <p className="text-white/70 font-smallcaps text-sm text-center py-4">
+      <p className="flex items-center justify-center gap-2 py-8 text-xs text-fg-3">
+        <Loader2 size={14} strokeWidth={1.75} className="animate-spin" />
         {t("clips.gallery.loading")}
       </p>
     );
@@ -277,7 +278,7 @@ export function ClipGallery({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       {usage && (
         <StorageBar
           usage={usage}
@@ -306,17 +307,17 @@ export function ClipGallery({
       {months.map((month) => (
         <div key={month.key} className="flex flex-col gap-3">
           {month.label && (
-            <div className="flex items-baseline gap-2 border-b border-white/10 pb-1.5">
-              <h3 className="font-minecraft text-base text-white/80 normal-case">
+            <div className="flex items-baseline gap-2 border-b border-line pb-2">
+              <h3 className="text-[13px] font-[600] text-fg">
                 {month.label}
               </h3>
-              <span className="font-minecraft text-xs text-white/40">
+              <span className="font-mono text-[11px] text-fg-3">
                 {month.clips.length}
               </span>
             </div>
           )}
 
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(216px,1fr))] gap-x-4 gap-y-5">
             {month.clips.map((clip, index) => (
               <ClipCard
                 key={clip.path}
@@ -409,9 +410,7 @@ function ClipCard({
   onGif: () => void;
   t: Translate;
 }) {
-  const accentColor = useThemeStore((state) => state.accentColor);
   const animated = useThemeStore((state) => state.isBackgroundAnimationEnabled);
-  const [hovered, setHovered] = useState(false);
   const [menuAt, setMenuAt] = useState<{ x: number; y: number } | null>(null);
   const moreRef = useRef<HTMLDivElement>(null);
 
@@ -446,17 +445,13 @@ function ClipCard({
   return (
     <div
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-lg bg-black/20 border border-white/10 hover:border-white/20 transition-all duration-200",
+        "group relative flex min-w-0 flex-col",
         animated && "animate-in fade-in duration-500 fill-mode-both",
         busy && "pointer-events-none",
       )}
       style={{
         animationDelay: animated ? `${Math.min(index, 24) * 0.04}s` : undefined,
-        backgroundColor: hovered ? `${accentColor.value}20` : undefined,
-        borderColor: hovered ? `${accentColor.value}60` : undefined,
       }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
       onContextMenu={(event) => {
         event.preventDefault();
         openMenu(event.clientX, event.clientY);
@@ -465,38 +460,35 @@ function ClipCard({
       <button
         type="button"
         onClick={onPlay}
-        className="relative block w-full focus:outline-none"
+        className="relative block w-full overflow-hidden rounded-md border border-line bg-s2 transition-colors duration-fast group-hover:border-line-3 focus:outline-none focus-visible:border-line-3"
         aria-label={t("clips.gallery.play")}
       >
         <ClipThumbnail clip={clip} onStored={onThumbnail} />
-        <span className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-          <Icon icon="solar:play-bold" className="w-12 h-12 text-white" />
+        <span className="pointer-events-none absolute left-1/2 top-1/2 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-md bg-black/70 text-fg opacity-0 transition-opacity duration-fast group-hover:opacity-100">
+          <Play size={16} strokeWidth={1.75} fill="currentColor" />
         </span>
         {clip.durationSeconds !== null && (
-          <span className="pointer-events-none absolute bottom-2 right-2 rounded bg-black/60 border border-white/10 px-1.5 py-0.5 font-minecraft text-xs text-white/80">
+          <span className="pointer-events-none absolute bottom-1.5 right-1.5 rounded-sm bg-black/75 px-1.5 font-mono text-[10.5px] leading-[18px] text-fg">
             {formatLength(clip.durationSeconds)}
           </span>
         )}
         {busy && (
-          <span className="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-            <Icon
-              icon="svg-spinners:ring-resize"
-              className="w-8 h-8"
-              style={{ color: accentColor.value }}
-            />
+          <span className="absolute inset-0 flex items-center justify-center bg-black/70 text-fg-2">
+            <Loader2 size={20} strokeWidth={1.75} className="animate-spin" />
           </span>
         )}
       </button>
 
-      <div className="absolute top-2 left-2 z-20">
+      <div className="absolute left-1.5 top-1.5 z-20">
         <ClipIconButton
-          icon={clip.favourite ? "solar:star-bold" : "solar:star-linear"}
+          icon={<Star size={14} strokeWidth={1.75} fill={clip.favourite ? "currentColor" : "none"} />}
           label={favouriteLabel}
           aria-pressed={clip.favourite}
+          surface="overlay"
           onClick={() => onFavourite(!clip.favourite)}
           className={
             clip.favourite
-              ? "text-yellow-400 hover:text-yellow-300"
+              ? "text-fg"
               : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
           }
         />
@@ -505,14 +497,15 @@ function ClipCard({
       <div
         ref={moreRef}
         className={cn(
-          "absolute top-2 right-2 z-20 transition-opacity duration-200",
+          "absolute right-1.5 top-1.5 z-20 transition-opacity duration-fast",
           menuAt ? "opacity-100" : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100",
         )}
       >
         <ClipIconButton
-          icon="solar:menu-dots-bold"
+          icon={<MoreHorizontal size={15} strokeWidth={1.75} />}
           label={t("content.actions.more")}
           withTooltip={false}
+          surface="overlay"
           onClick={() => {
             if (menuAt) {
               setMenuAt(null);
@@ -538,20 +531,20 @@ function ClipCard({
           document.body,
         )}
 
-      <div className="flex flex-col gap-1 px-3 py-2.5 min-w-0">
-        <span className="font-minecraft text-base text-white whitespace-nowrap overflow-hidden text-ellipsis normal-case">
+      <div className="flex min-w-0 flex-col gap-0.5 pt-2">
+        <span className="truncate text-[13px] font-[560] leading-[18px] text-fg" title={clip.name}>
           {clip.name}
         </span>
-        <div className="flex items-center gap-2 text-xs font-minecraft text-white/60 min-w-0">
+        <div className="flex min-w-0 items-center gap-1.5 text-[11.5px] leading-4 text-fg-3">
+          <span className="truncate">{formatWhen(clip.createdAt, t)}</span>
+          <span className="shrink-0 text-fg-4">·</span>
+          <span className="shrink-0 font-mono text-[11px]">{formatBytes(clip.sizeBytes)}</span>
           {clip.game && (
             <>
+              <span className="shrink-0 text-fg-4">·</span>
               <span className="truncate">{clip.game}</span>
-              <span className="w-px h-3 bg-white/30 shrink-0" />
             </>
           )}
-          <span className="truncate">{formatWhen(clip.createdAt, t)}</span>
-          <span className="w-px h-3 bg-white/30 shrink-0" />
-          <span className="shrink-0 text-white/50">{formatBytes(clip.sizeBytes)}</span>
         </div>
       </div>
     </div>
@@ -595,7 +588,7 @@ function ClipPlayer({
       <Button
         variant="secondary"
         size="sm"
-        icon={<Icon icon="solar:smartphone-bold" className="w-4 h-4" />}
+        icon={<Smartphone size={15} strokeWidth={1.75} />}
         onClick={onVertical}
       >
         {t("clips.vertical.open")}
@@ -603,7 +596,7 @@ function ClipPlayer({
       <Button
         variant="default"
         size="sm"
-        icon={<Icon icon="solar:scissors-bold" className="w-4 h-4" />}
+        icon={<Scissors size={15} strokeWidth={1.75} />}
         onClick={edit}
         disabled={duration <= 0}
       >
@@ -615,10 +608,11 @@ function ClipPlayer({
   return (
     <Modal
       title={clip.name}
-      titleIcon={<Icon icon="solar:videocamera-record-bold" className="w-5 h-5" />}
+      titleIcon={<Video size={16} strokeWidth={1.75} />}
       titleSubtitle={
-        <span className="font-minecraft text-xs text-white/60">
-          {formatWhen(clip.createdAt, t)} · {formatBytes(clip.sizeBytes)}
+        <span className="text-xs text-fg-3">
+          {formatWhen(clip.createdAt, t)} <span className="text-fg-4">·</span>{" "}
+          <span className="font-mono text-[11px]">{formatBytes(clip.sizeBytes)}</span>
         </span>
       }
       onClose={onClose}
@@ -627,7 +621,7 @@ function ClipPlayer({
     >
       <div className="p-4">
         <div
-          className="mx-auto w-full max-h-[calc(90vh-14rem)] overflow-hidden rounded-lg border border-white/10 bg-black"
+          className="mx-auto w-full max-h-[calc(90vh-14rem)] overflow-hidden rounded-md border border-line bg-black"
           style={{
             aspectRatio: `${ratio}`,
             maxWidth: `calc((90vh - 14rem) * ${ratio})`,
@@ -666,40 +660,36 @@ function StorageBar({
   filtered: boolean;
   t: Translate;
 }) {
-  const accentColor = useThemeStore((state) => state.accentColor);
   const unlimited = usage.limitBytes === 0;
   const ratio = unlimited ? 0 : Math.min(1, usage.usedBytes / usage.limitBytes);
   const crowded = ratio > 0.9;
 
   return (
-    <div className="flex items-center gap-4 px-1">
-      <span className="font-smallcaps text-base text-white/70 whitespace-nowrap">
+    <div className="flex items-center gap-3">
+      <span className="whitespace-nowrap text-xs text-fg-2">
         {filtered
           ? t("clips.gallery.count_filtered", { shown, count })
           : t("clips.gallery.count", { count })}
       </span>
-      {!unlimited && (
-        <div className="flex-1 h-1.5 rounded-full bg-black/40 border border-white/10 overflow-hidden">
-          <div
-            className={cn("h-full rounded-full transition-all duration-300", crowded && "bg-yellow-400")}
-            style={{
-              width: `${Math.max(2, ratio * 100)}%`,
-              backgroundColor: crowded ? undefined : accentColor.value,
-            }}
-          />
-        </div>
-      )}
+      <span className="flex-1" />
       <span
         className={cn(
-          "font-minecraft text-xs whitespace-nowrap",
-          crowded ? "text-yellow-400" : "text-white/60",
-          unlimited && "ml-auto",
+          "whitespace-nowrap font-mono text-[11px]",
+          crowded ? "text-warn" : "text-fg-3",
         )}
       >
         {unlimited
           ? formatBytes(usage.usedBytes)
           : `${formatBytes(usage.usedBytes)} / ${formatBytes(usage.limitBytes)}`}
       </span>
+      {!unlimited && (
+        <div className="h-[3px] w-32 flex-shrink-0 overflow-hidden rounded-full bg-s3">
+          <div
+            className={cn("h-full transition-[width] duration-slow", crowded ? "bg-warn" : "bg-fg-3")}
+            style={{ width: `${Math.max(2, ratio * 100)}%` }}
+          />
+        </div>
+      )}
     </div>
   );
 }

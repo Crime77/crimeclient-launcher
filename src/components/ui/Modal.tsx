@@ -3,10 +3,8 @@
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Icon } from "@iconify/react";
+import { X } from "lucide-react";
 import { cn } from "../../lib/utils";
-import { useThemeStore } from "../../store/useThemeStore";
-import { IconButton } from "./buttons/IconButton";
 
 interface ModalProps {
   title: string;
@@ -45,10 +43,6 @@ export function Modal({
   const headerRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const mouseDownTargetRef = useRef<EventTarget | null>(null);
-  const accentColor = useThemeStore((state) => state.accentColor);
-  const isBackgroundAnimationEnabled = useThemeStore(
-    (state) => state.isBackgroundAnimationEnabled,
-  );
   const [isClosing, setIsClosing] = useState(false);
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -105,76 +99,57 @@ export function Modal({
     full: "max-w-[95vw] w-full",
   };
 
-  const getBorderClasses = () => {
-    if (variant === "3d") {
-      return "border";
-    }
-    return "border";
-  };
-
-  const getBoxShadow = () => {
-    if (variant === "3d") {
-      return `0 40px 90px -30px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.04), 0 0 60px -30px ${accentColor.shadowValue}`;
-    }
-    return "0 40px 90px -30px rgba(0,0,0,0.9)";
-  };
   return (
     <div
       ref={modalRef}
-      className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md-anyos"
+      className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/65 animate-in fade-in duration-150"
       onClick={handleBackdropClick}
     >
       <div
         className={cn(
-          "relative flex flex-col w-full overflow-hidden max-h-[90vh] backdrop-blur-2xl",
-          getBorderClasses(),
-          variant === "3d" ? "shadow-2xl" : "",
+          "cc-pop relative flex flex-col w-full overflow-hidden max-h-[88vh] border",
           widthClasses[width],
           className,
         )}
         style={{
-          borderRadius: 24,
-          background: "linear-gradient(180deg, rgba(28,28,36,0.94), rgba(16,16,22,0.96))",
-          borderColor: "rgba(255,255,255,0.08)",
-          boxShadow: getBoxShadow(),
+          borderRadius: "var(--r-lg)",
+          background: "var(--s1)",
+          borderColor: "var(--line-2)",
+          boxShadow: "var(--shadow-pop)",
         }}
       >
-        <span
-          className="absolute inset-x-10 top-0 h-px pointer-events-none"
-          style={{ background: `linear-gradient(90deg, transparent, ${accentColor.value}, transparent)` }}
-        />
-
         <div
           ref={headerRef}
-          className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06] flex-shrink-0"
+          className="flex items-center justify-between gap-4 pl-5 pr-3 h-14 border-b border-line flex-shrink-0"
         >
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center gap-3 min-w-0">
             {titleIcon && (
-              <span className="text-white flex-shrink-0 flex items-center">
+              <span className="text-fg-2 flex-shrink-0 flex items-center">
                 {titleIcon}
               </span>
             )}
-            <div className="flex flex-col">
-              <h2 className="font-display text-lg font-semibold text-white">
+            <div className="flex flex-col min-w-0">
+              <h2 className="font-display text-[15px] font-semibold text-fg truncate">
                 {title}
               </h2>
-              {titleSubtitle && <div className="mt-0.5">{titleSubtitle}</div>}
+              {titleSubtitle && <div className="text-xs text-fg-3 truncate">{titleSubtitle}</div>}
             </div>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center gap-1.5">
             {headerActions}
             {!hideCloseButton && (
-              <IconButton
+              <button
                 ref={closeButtonRef}
-                icon={<Icon icon="solar:close-circle-bold" />}
+                type="button"
+                className="cc-icon-btn w-8 h-8"
                 onClick={(e) => {
                   e.stopPropagation();
                   onClose();
                 }}
-                variant="ghost"
-                size="sm"
                 aria-label={t('common.close_modal')}
-              />
+              >
+                <X size={16} />
+              </button>
             )}
           </div>
         </div>
@@ -187,11 +162,8 @@ export function Modal({
         </div>
 
         {footer && (
-          <div className="flex-shrink-0">
-            <div className="border-t border-white/10 mx-6 mt-4 mb-4"></div>
-            <div className="px-6 pb-4">
-              {footer}
-            </div>
+          <div className="flex-shrink-0 border-t border-line px-5 py-3 bg-[rgb(14_14_15/0.4)]">
+            {footer}
           </div>
         )}
       </div>

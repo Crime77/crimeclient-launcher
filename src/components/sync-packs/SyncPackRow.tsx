@@ -6,7 +6,7 @@ import { Icon } from "@iconify/react";
 import { Tooltip } from "../ui/Tooltip";
 import { useIsTruncated } from "../../hooks/useIsTruncated";
 import { CheckboxV2 } from "../ui/CheckboxV2";
-import { useThemeStore } from "../../store/useThemeStore";
+import { cn } from "../../lib/utils";
 
 import type { SyncTargetKind } from "../../types/syncPacks";
 
@@ -89,22 +89,27 @@ export function RowAction({
 
   const button = icon ? (
     <button
+      type="button"
       onClick={handleClick}
       disabled={disabled}
       aria-label={label}
-      className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md border border-white/10 bg-black/40 text-white/45 opacity-0 transition-all duration-200 hover:border-white/20 hover:bg-black/60 disabled:opacity-30 group-hover/row:opacity-100 ${
-        danger ? "hover:!text-red-400" : "hover:!text-white"
-      }`}
+      className={cn(
+        "cc-icon-btn flex-shrink-0 opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 disabled:opacity-30",
+        danger && "hover:!text-err",
+      )}
     >
-      <Icon icon={icon} className="h-4 w-4" />
+      <Icon icon={icon} className="h-3.5 w-3.5" />
     </button>
   ) : (
     <button
+      type="button"
       onClick={handleClick}
       disabled={disabled}
-      className={`flex-shrink-0 px-2 py-1 text-[10px] font-minecraft uppercase tracking-wider text-white/0 transition-colors group-hover/row:text-white/30 disabled:opacity-30 ${
-        danger ? "hover:!text-red-400" : "hover:!text-white"
-      }`}
+      className={cn(
+        "flex-shrink-0 h-7 px-2 text-[11.5px] text-transparent transition-colors duration-fast group-hover/row:text-fg-4 disabled:opacity-30",
+        danger ? "hover:!text-err" : "hover:!text-fg",
+      )}
+      style={{ borderRadius: "var(--r-sm)" }}
     >
       {label}
     </button>
@@ -148,33 +153,26 @@ export function SyncPackRow({
   selected,
   onToggleSelect,
 }: SyncPackRowProps) {
-  const accentColor = useThemeStore((state) => state.accentColor);
   const titleFit = useIsTruncated<HTMLDivElement>();
   const subtitleFit = useIsTruncated<HTMLDivElement>();
 
   return (
     <div
       onClick={onClick}
-      style={
-        selected
-          ? {
-              backgroundColor: `${accentColor.value}1a`,
-              borderColor: `${accentColor.value}66`,
-            }
-          : undefined
-      }
-      className={`group/row flex items-center gap-4 rounded-lg border p-3 transition-colors ${
-        selected
-          ? ""
-          : "border-white/10 bg-black/20 hover:border-white/20 hover:bg-black/30"
-      } ${onClick ? "cursor-pointer" : ""} ${dimmed ? "opacity-55" : ""}`}
+      className={cn(
+        "group/row flex items-center gap-3 min-h-[48px] px-3 py-1.5 transition-colors duration-fast",
+        selected ? "bg-s3" : "hover:bg-s2",
+        onClick && "cursor-pointer",
+        dimmed && "opacity-60",
+      )}
     >
       {selectable && (
         <div
           onClick={(event) => event.stopPropagation()}
-          className={`flex-shrink-0 transition-opacity ${
-            selected ? "opacity-100" : "opacity-0 group-hover/row:opacity-100"
-          }`}
+          className={cn(
+            "flex-shrink-0 transition-opacity duration-fast",
+            selected ? "opacity-100" : "opacity-0 group-hover/row:opacity-100",
+          )}
         >
           <CheckboxV2
             size="sm"
@@ -183,7 +181,10 @@ export function SyncPackRow({
           />
         </div>
       )}
-      <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white/5 ring-1 ring-white/10">
+      <div
+        className="flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden border border-line bg-s3"
+        style={{ borderRadius: "var(--r-sm)" }}
+      >
         {iconUrl ? (
           <img
             src={iconUrl}
@@ -194,9 +195,9 @@ export function SyncPackRow({
             }}
           />
         ) : icon ? (
-          <Icon icon={icon} className="h-6 w-6 text-white/50" />
+          <Icon icon={icon} className="h-4 w-4 text-fg-3" />
         ) : (
-          <span className="font-minecraft text-lg uppercase text-white/30">
+          <span className="text-[13px] font-semibold uppercase text-fg-3">
             {fallbackLetter ?? "?"}
           </span>
         )}
@@ -206,12 +207,10 @@ export function SyncPackRow({
         <MaybeTooltip content={title} truncated={titleFit.truncated}>
           <div
             ref={titleFit.ref}
-            className={`w-full truncate text-sm font-minecraft normal-case text-white ${dimmed ? "line-through" : ""}`}
-            style={
-              dimmed
-                ? { textDecorationColor: accentColor.value, textDecorationThickness: "2px" }
-                : undefined
-            }
+            className={cn(
+              "w-full truncate text-[13px] font-medium text-fg",
+              dimmed && "line-through decoration-fg-4",
+            )}
           >
             {title}
           </div>
@@ -223,7 +222,7 @@ export function SyncPackRow({
           >
             <div
               ref={subtitleFit.ref}
-              className="mt-1 w-full truncate font-minecraft text-xs text-white/60"
+              className="mt-0.5 w-full truncate text-[11.5px] text-fg-3"
             >
               {subtitle}
             </div>

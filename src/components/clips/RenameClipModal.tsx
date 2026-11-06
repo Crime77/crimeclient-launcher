@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Icon } from "@iconify/react";
+import { Loader2, Pencil } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Modal } from "../ui/Modal";
@@ -33,26 +33,26 @@ export function RenameClipModal({ currentName, onClose, onConfirm }: Props) {
   return (
     <Modal
       title={t("clips.gallery.rename")}
-      titleIcon={<Icon icon="solar:pen-bold" className="w-5 h-5" />}
+      titleIcon={<Pencil size={16} strokeWidth={1.75} />}
       onClose={onClose}
       width="md"
       closeOnClickOutside={!saving}
       footer={
         <div className="flex justify-between">
-          <Button variant="secondary" size="md" className="text-base" onClick={onClose} disabled={saving}>
+          <Button variant="secondary" size="sm" onClick={onClose} disabled={saving}>
             {t("common.cancel")}
           </Button>
           <Button
             variant="default"
-            size="md"
-            className="text-base"
+            size="sm"
             onClick={() => void submit()}
             disabled={saving || unchanged}
             icon={
-              <Icon
-                icon={saving ? "svg-spinners:ring-resize" : "solar:pen-bold"}
-                className="w-5 h-5 text-white"
-              />
+              saving ? (
+                <Loader2 size={15} strokeWidth={1.75} className="animate-spin" />
+              ) : (
+                <Pencil size={15} strokeWidth={1.75} />
+              )
             }
           >
             {t("clips.gallery.rename")}
@@ -60,13 +60,13 @@ export function RenameClipModal({ currentName, onClose, onConfirm }: Props) {
         </div>
       }
     >
-      <div className="space-y-6 p-6">
-        <p className="text-center font-minecraft text-xs tracking-wide text-white/60 normal-case">
+      <div className="space-y-4 p-5">
+        <p className="truncate font-mono text-xs text-fg-3">
           {currentName}
         </p>
 
         <div>
-          <label className="mb-2 block font-smallcaps text-base text-white">
+          <label className="mb-1.5 block text-xs font-[520] text-fg-2">
             {t("clips.gallery.rename_label")}
           </label>
           <SearchStyleInput

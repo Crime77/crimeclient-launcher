@@ -104,12 +104,11 @@ export function useConfirmDialog() {
   }, [isOpen]);
 
   const renderFooter = () => (
-    <div className="flex justify-end gap-3">
+    <div className="flex justify-end gap-2">
       <Button
         variant="secondary"
         onClick={handleClose}
         size="md"
-        className="text-base"
       >
         {options.cancelText || t('common.cancel')}
       </Button>
@@ -119,7 +118,6 @@ export function useConfirmDialog() {
         onClick={handleConfirm}
         disabled={options.type === "input" && !isValid}
         size="md"
-        className="text-base"
       >
         {options.confirmText || t('common.confirm')}
       </Button>
@@ -139,26 +137,31 @@ export function useConfirmDialog() {
 
   const renderContent = () => (
     <div
-      className={options.type === "input" ? "p-6 space-y-6" : "px-6 pt-6"}
+      className="px-5 py-4 space-y-4"
       onClick={(e) => e.stopPropagation()}
     >
-      {options.message && (
-        <StatusMessage
-          type={getStatusMessageType()}
-          message={options.message}
-        />
-      )}
+      {options.message &&
+        (options.type === "warning" || options.type === "danger" ? (
+          <StatusMessage
+            type={getStatusMessageType()}
+            message={options.message}
+            className="mb-0"
+          />
+        ) : (
+          <p className="text-[13px] leading-[1.55] text-fg-2 whitespace-pre-line">
+            {options.message}
+          </p>
+        ))}
 
       {options.type === "input" && (
-        <div className="space-y-4">
+        <div>
           {options.inputLabel && (
-            <p className="text-lg font-minecraft">{options.inputLabel}</p>
+            <p className="text-xs font-[520] text-fg-2 mb-1.5">{options.inputLabel}</p>
           )}
           <Input
             value={inputValue}
             onChange={handleInputChange}
             placeholder={options.inputPlaceholder}
-            className="text-base py-3"
             error={!isValid ? t('common.field_required') : undefined}
             autoFocus
             onClick={(e) => e.stopPropagation()}
@@ -172,7 +175,7 @@ export function useConfirmDialog() {
       ? createPortal(
           <Modal
             title={options.title}
-            titleIcon={options.icon ? <Icon icon={options.icon} className="w-5 h-5" /> : undefined}
+            titleIcon={options.icon ? <Icon icon={options.icon} className="w-4 h-4" /> : undefined}
             onClose={handleClose}
             width="md"
             footer={renderFooter()}

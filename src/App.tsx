@@ -35,6 +35,7 @@ import {
 } from "./services/launcher-config-service";
 import { useGlobalDragAndDrop } from './hooks/useGlobalDragAndDrop';
 import { loadIcons } from '@iconify/react';
+import { WifiOff } from "lucide-react";
 
 import { Button } from "./components/ui/buttons/Button";
 import { GuardedButton } from "./components/ui/buttons/GuardedButton";
@@ -151,7 +152,7 @@ export function App() {
               toast(t('app.offline_mode'), {
                 id: 'offline-mode',
                 duration: 8000,
-                icon: '📡',
+                icon: <WifiOff size={16} strokeWidth={1.75} className="text-warn" />,
               });
             }
             return;
@@ -217,15 +218,17 @@ export function App() {
           onClose={() => hideModal("deep-link-auth")}
           width="sm"
           footer={
-            <div className="flex justify-end gap-3">
+            <div className="flex justify-end gap-2">
               <Button
                 variant="ghost"
+                size="sm"
                 onClick={() => hideModal("deep-link-auth")}
               >
                 {t("common.cancel")}
               </Button>
               <GuardedButton
                 variant="default"
+                size="sm"
                 onClick={async () => {
                   hideModal("deep-link-auth");
                   try {
@@ -252,7 +255,7 @@ export function App() {
             </div>
           }
         >
-          <div className="p-6 text-white/80 font-minecraft">
+          <div className="p-5 text-[13px] text-fg-2 leading-relaxed">
             <p>{t("deep_link.auth.description", { username })}</p>
           </div>
         </Modal>,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Icon } from "@iconify/react";
+import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type { ImportSecurityReport } from "../../../types/importPreview";
@@ -35,19 +35,16 @@ export function ImportRemovedList({ security }: { security: ImportSecurityReport
 
   return (
     <div>
-      <h3 className="text-base text-white font-smallcaps mb-2 select-none">
+      <h3 className="cc-eyebrow mb-2 select-none">
         {t("profiles.import.removed_heading")}
       </h3>
-      <ul className="space-y-1.5 max-h-52 overflow-y-auto custom-scrollbar pr-1">
+      <ul className="space-y-1 max-h-52 overflow-y-auto custom-scrollbar pr-1">
         {removed.map((entry, index) => (
           <li
             key={`${entry}-${index}`}
-            className="flex items-start gap-2 text-base text-white/70 font-minecraft tracking-wide"
+            className="flex items-start gap-2 text-[12.5px] text-fg-2"
           >
-            <Icon
-              icon="solar:close-circle-bold"
-              className="w-4 h-4 text-red-400 shrink-0 mt-1"
-            />
+            <X size={13} strokeWidth={2} className="text-err shrink-0 mt-[3px]" />
             <span>{entry}</span>
           </li>
         ))}

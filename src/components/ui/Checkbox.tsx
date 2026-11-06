@@ -1,17 +1,12 @@
 "use client";
 
 import type React from "react";
-import { forwardRef, useState } from "react";
-import { Icon } from "@iconify/react";
+import { forwardRef } from "react";
+import { Check, Minus } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { useThemeStore } from "../../store/useThemeStore";
-import { 
-  getSizeClasses,
-  getBorderRadiusClass,
-  createRadiusStyle,
-  getVariantColors,
+import {
   getAccessibilityProps,
-  getTextSizeClass,
   type ComponentSize,
   type StateVariant
 } from "./design-system";
@@ -36,7 +31,8 @@ interface CheckboxProps {
   title?: string;
 }
 
-export const Checkbox = forwardRef<HTMLButtonElement, CheckboxProps>(  ({
+export const Checkbox = forwardRef<HTMLButtonElement, CheckboxProps>(
+  ({
     checked,
     onChange,
     disabled = false,
@@ -56,11 +52,9 @@ export const Checkbox = forwardRef<HTMLButtonElement, CheckboxProps>(  ({
     title,
     ...props
   }, ref) => {
-    const [isFocused, setIsFocused] = useState(false);
-    const [isHovered, setIsHovered] = useState(false);
-      const accentColor = useThemeStore((state) => state.accentColor);
-    const isAnimationEnabled = useThemeStore((state) => state.isBackgroundAnimationEnabled);
-    const borderRadius = useThemeStore((state) => state.borderRadius);    const handleClick = () => {
+    const borderRadius = useThemeStore((state) => state.borderRadius);
+
+    const toggle = () => {
       if (!disabled) {
         const event = {
           target: { checked: !checked },
@@ -68,51 +62,42 @@ export const Checkbox = forwardRef<HTMLButtonElement, CheckboxProps>(  ({
         };
         onChange(event as any);
       }
-    };const handleLabelClick = () => {
-      if (!disabled) {
-        const event = {
-          target: { checked: !checked },
-          currentTarget: { checked: !checked }
-        };
-        onChange(event as any);
-      }
-    };    const handleKeyDown = (e: React.KeyboardEvent) => {
+    };
+
+    const handleClick = toggle;
+    const handleLabelClick = toggle;
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
       if ((e.key === "Enter" || e.key === " ") && !disabled) {
         e.preventDefault();
-        const event = {
-          target: { checked: !checked },
-          currentTarget: { checked: !checked }
-        };
-        onChange(event as any);
+        toggle();
       }
-    };    const effectiveSize = customSize || size;
-    const colors = getVariantColors("default", accentColor);
-    const radiusClass = getBorderRadiusClass();
+    };
+
+    const effectiveSize = (customSize || size) as ComponentSize;
     const accessibilityProps = getAccessibilityProps({
       label,
       description,
       error,
       required,
       disabled
-    });    const checkboxSizes = {
-      xs: "w-5 h-5",
-      sm: "w-6 h-6",
-      md: "w-7 h-7", 
-      lg: "w-8 h-8",
-      xl: "w-9 h-9",
-    };
+    });
 
-    const iconSizes = {
-      xs: "w-3 h-3",
-      sm: "w-4 h-4",
-      md: "w-5 h-5",
-      lg: "w-6 h-6", 
-      xl: "w-7 h-7",
+    // box and check sizes (px); checked = the light --fg fill with a dark check
+    const dims: Record<ComponentSize, { box: number; icon: number; label: string; desc: string }> = {
+      xs: { box: 14, icon: 10, label: "text-xs", desc: "text-[11px]" },
+      sm: { box: 16, icon: 11, label: "text-[13px]", desc: "text-xs" },
+      md: { box: 16, icon: 11, label: "text-[13px]", desc: "text-xs" },
+      lg: { box: 18, icon: 12, label: "text-sm", desc: "text-xs" },
+      xl: { box: 20, icon: 14, label: "text-sm", desc: "text-[13px]" },
     };
+    const d = dims[effectiveSize] ?? dims.md;
+    const on = checked || indeterminate;
 
     return (
       <div className={cn("flex flex-col gap-1", className)}>
-        <div className="flex items-center gap-3">          <button
+        <div className={cn("flex gap-2.5", description ? "items-start" : "items-center")}>
+          <button
             ref={ref}
             type="button"
             role="checkbox"
@@ -121,56 +106,52 @@ export const Checkbox = forwardRef<HTMLButtonElement, CheckboxProps>(  ({
             aria-required={required}
             aria-invalid={!!error}
             aria-describedby={error ? `checkbox-error-${id || ""}` : undefined}
-            {...accessibilityProps}            disabled={disabled}
+            {...accessibilityProps}
+            disabled={disabled}
             onClick={onClick || handleClick}
             onKeyDown={handleKeyDown}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}className={cn(
-              "relative flex-shrink-0 flex items-center justify-center backdrop-blur-md",
-              "transition-all duration-200 border-2 bg-white/10",
-              "focus:outline-none focus:ring-2 focus:ring-white/30",
-              radiusClass,
-              checkboxSizes[effectiveSize],
-              disabled && "opacity-50 cursor-not-allowed",
-              !disabled && "cursor-pointer hover:bg-white/20",
-              checked || indeterminate ? "bg-opacity-80" : "bg-opacity-30",
-            )}            style={{
-              borderColor: checked || indeterminate ? colors.main : "rgba(255,255,255,0.3)",
-              backgroundColor: checked || indeterminate ? `${colors.main}80` : "rgba(255,255,255,0.1)",
-              filter: isHovered && !disabled ? "brightness(1.1)" : "brightness(1)",
-              transform: "none",              ...createRadiusStyle(borderRadius),
+            className={cn(
+              "relative flex-shrink-0 flex items-center justify-center border",
+              "transition-colors duration-fast ease-out",
+              "focus:outline-none focus-visible:ring-1 focus-visible:ring-line-3 focus-visible:ring-offset-1 focus-visible:ring-offset-bg",
+              on
+                ? "bg-fg border-fg text-bg"
+                : cn("bg-s2", error ? "border-err/60" : "border-line-3", !disabled && "hover:border-fg-3 hover:bg-s3"),
+              disabled ? "opacity-45 cursor-not-allowed" : "cursor-pointer",
+              description && "mt-px",
+            )}
+            style={{
+              width: d.box,
+              height: d.box,
+              borderRadius: borderRadius === 0 ? 0 : "var(--r-sm)",
             }}
           >
-            {(checked || indeterminate) && (
-              <Icon
-                icon={indeterminate ? "mdi:minus" : "mingcute:check-line"}
-                className={cn(
-                  "text-white transition-all duration-200",
-                  iconSizes[effectiveSize]
-                )}
-                aria-hidden="true"
-              />
-            )}
+            {on && (indeterminate ? (
+              <Minus size={d.icon} strokeWidth={3} aria-hidden="true" />
+            ) : (
+              <Check size={d.icon} strokeWidth={3} aria-hidden="true" />
+            ))}
           </button>
 
           {(label || description) && (
-            <div className="flex flex-col gap-1">
-              {label && (                <label                  className={cn(
-                    "text-white font-smallcaps cursor-pointer select-none",
-                    getTextSizeClass((effectiveSize as ComponentSize) || "md", "checkbox"),
-                    disabled && "opacity-50 cursor-not-allowed"
+            <div className="flex flex-col gap-0.5 min-w-0">
+              {label && (
+                <label
+                  className={cn(
+                    "text-fg font-[450] cursor-pointer select-none leading-snug",
+                    d.label,
+                    disabled && "opacity-45 cursor-not-allowed"
                   )}
                   onClick={!disabled ? handleLabelClick : undefined}
                 >
                   {label}
-                  {required && <span className="text-red-400 ml-1">*</span>}
+                  {required && <span className="text-err ml-1">*</span>}
                 </label>
-              )}              {description && (
+              )}
+              {description && (
                 <span className={cn(
-                  "text-white text-opacity-70",
-                  getTextSizeClass((effectiveSize === "sm" ? "xs" : "sm") as ComponentSize, "checkbox"),
+                  "text-fg-3 leading-snug",
+                  d.desc,
                   descriptionClassName
                 )}>
                   {description}
@@ -182,10 +163,9 @@ export const Checkbox = forwardRef<HTMLButtonElement, CheckboxProps>(  ({
 
         {error && (
           <div
-            id={`checkbox-error-${id || ""}`}            className={cn(
-              "text-red-400 font-smallcaps ml-8",
-              getTextSizeClass("sm", "checkbox")
-            )}
+            id={`checkbox-error-${id || ""}`}
+            className="text-err text-xs"
+            style={{ marginLeft: d.box + 10 }}
             role="alert"
             aria-live="assertive"
           >

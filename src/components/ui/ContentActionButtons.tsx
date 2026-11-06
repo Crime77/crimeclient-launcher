@@ -49,7 +49,7 @@ export function ContentActionButtons({
   };
 
   return (
-    <div className={`flex items-center gap-2 ${className}`}>
+    <div className={`flex items-center gap-1.5 ${className}`}>
       {actions.map((action, index) => {
         const buttonElement = (
           <ActionButton
@@ -62,7 +62,7 @@ export function ContentActionButtons({
             disabled={action.disabled || action.loading}
             size={size}
             onClick={(e) => handleButtonClick(action, e)}
-            className={action.loading ? "animate-spin" : ""}
+            iconClassName={action.loading ? "animate-spin" : ""}
           />
         );
 

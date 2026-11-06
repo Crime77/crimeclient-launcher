@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { Icon } from "@iconify/react";
+import { AlertTriangle, Loader2, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
@@ -16,13 +16,13 @@ import { useProfileStore } from "../../store/profile-store";
 import { useGlobalModalStore } from "../../hooks/useGlobalModal";
 import { useThemeStore } from "../../store/useThemeStore";
 import { ModrinthQuickInstallProfilesModal } from "../modrinth/v2/ModrinthQuickInstallProfilesModal";
-import { ModrinthVersionItemV2 } from "../modrinth/v2/ModrinthVersionItemV2";
+import { ModrinthVersionItemV2, ModrinthVersionTableHeader } from "../modrinth/v2/ModrinthVersionItemV2";
+import { Button } from "../ui/buttons/Button";
 import { ProgressToast } from "../ui/ProgressToast";
 import { installContentToProfile, installContentToTarget } from "../../services/content-service";
 import { ContentType, type ContentInstallTarget, type InstallContentPayload } from "../../types/content";
 import { EventType, type EventPayload } from "../../types/events";
 import { useNavigate } from "react-router-dom";
-import { TagBadge } from "../ui/TagBadge";
 import { Select, type SelectOption } from "../ui/Select";
 
 interface ModDetailVersionsProps {
@@ -392,9 +392,9 @@ export function ModDetailVersions({ project, targetProfile, installTarget }: Mod
   // Loading state
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Icon icon="svg-spinners:ring-resize" className="w-6 h-6 text-white/50" />
-        <span className="ml-2 text-white/50 font-minecraft">{t('modrinth.loading_versions')}</span>
+      <div className="flex items-center gap-2 py-10 text-[13px] text-fg-3">
+        <Loader2 size={14} className="animate-spin" />
+        <span>{t('modrinth.loading_versions')}</span>
       </div>
     );
   }
@@ -402,123 +402,94 @@ export function ModDetailVersions({ project, targetProfile, installTarget }: Mod
   // Error state
   if (error) {
     return (
-      <div className="text-center py-12">
-        <Icon icon="solar:danger-triangle-bold" className="w-8 h-8 text-red-500 mx-auto mb-2" />
-        <p className="text-red-400 font-minecraft text-sm">{error}</p>
+      <div className="flex items-center gap-2 py-10 text-[13px] text-err">
+        <AlertTriangle size={14} strokeWidth={1.75} />
+        <p>{error}</p>
       </div>
     );
   }
 
-  return (
-    <div className="p-3">
-      {/* Filter Bar */}
-      <div
-        className="mb-4 p-3 rounded-lg border backdrop-blur-sm"
-        style={{
-          backgroundColor: `${accentColor.value}10`,
-          borderColor: `${accentColor.value}30`,
-        }}
+  // One removable filter value
+  const chip = (key: string, label: string, onRemove: () => void, mono = false) => (
+    <span
+      key={key}
+      className="h-6 inline-flex items-center gap-1 pl-2 pr-1 bg-s2 border border-line text-[11.5px] text-fg-2 whitespace-nowrap flex-shrink-0"
+      style={{ borderRadius: "var(--r-sm)" }}
+    >
+      <span className={mono ? "cc-num" : "capitalize"}>{label}</span>
+      <button
+        type="button"
+        onClick={onRemove}
+        className="w-4 h-4 grid place-items-center text-fg-4 hover:text-fg transition-colors duration-fast"
+        aria-label={t('mods.filters.remove', { label })}
       >
-        <div className="flex flex-wrap gap-2 items-center">
-          {/* Version Type */}
+        <X size={11} strokeWidth={2} />
+      </button>
+    </span>
+  );
+
+  return (
+    <div>
+      {/* Filter Bar */}
+      <div className="flex flex-wrap gap-2 items-center pb-3">
+        {/* Version Type */}
+        <Select
+          value={versionTypeFilter}
+          onChange={setVersionTypeFilter}
+          options={versionTypeOptions}
+          size="sm"
+          className="w-32"
+        />
+
+        {/* Game Version */}
+        <Select
+          value={gameVersionFilter}
+          onChange={setGameVersionFilter}
+          options={gameVersionOptions}
+          size="sm"
+          className="w-44"
+        />
+
+        {/* Loader */}
+        {availableLoaders.length > 0 && (
           <Select
-            value={versionTypeFilter}
-            onChange={setVersionTypeFilter}
-            options={versionTypeOptions}
+            value={loaderFilter}
+            onChange={setLoaderFilter}
+            options={loaderOptions}
             size="sm"
-            className="w-32"
+            className="w-36"
           />
-
-          {/* Game Version */}
-          <Select
-            value={gameVersionFilter}
-            onChange={setGameVersionFilter}
-            options={gameVersionOptions}
-            size="sm"
-            className="w-44"
-          />
-
-          {/* Loader */}
-          {availableLoaders.length > 0 && (
-            <Select
-              value={loaderFilter}
-              onChange={setLoaderFilter}
-              options={loaderOptions}
-              size="sm"
-              className="w-36"
-            />
-          )}
-
-          {/* Results count */}
-          <div className="ml-auto text-xs text-white/50 font-minecraft">
-            {filteredVersions.length} version{filteredVersions.length !== 1 ? "s" : ""}
-          </div>
-        </div>
+        )}
 
         {/* Active filters */}
         {hasActiveFilters && (
-          <div className="flex items-center mt-2 gap-2">
-            <div
-              className="flex-1 border rounded-md h-[40px] overflow-x-auto overflow-y-hidden whitespace-nowrap hide-scrollbar"
-              style={{
-                backgroundColor: `${accentColor.value}08`,
-                borderColor: `${accentColor.value}30`,
-              }}
+          <div className="flex items-center gap-1.5 min-w-0 overflow-x-auto no-scrollbar">
+            {versionTypeFilter !== "all" &&
+              chip("type", `${t('mod_detail.type')}: ${versionTypeFilter}`, () => setVersionTypeFilter("all"))}
+            {gameVersionFilter !== "all" &&
+              chip("gv", gameVersionFilter, () => setGameVersionFilter("all"), true)}
+            {loaderFilter !== "all" &&
+              chip("loader", loaderFilter, () => setLoaderFilter("all"))}
+            <button
+              type="button"
+              onClick={handleClearFilters}
+              className="h-6 px-1.5 text-[11.5px] text-fg-3 hover:text-fg transition-colors duration-fast flex-shrink-0"
             >
-              <div className="flex items-center gap-1.5 p-2">
-                <TagBadge
-                  variant="destructive"
-                  className="cursor-pointer hover:brightness-110 transition-all flex-shrink-0 flex items-center"
-                  onClick={handleClearFilters}
-                >
-                  <Icon icon="solar:trash-bin-trash-bold" className="w-3 h-3 mr-1.5" />
-                  <span>{t('common.clear_all')}</span>
-                </TagBadge>
-
-                {versionTypeFilter !== "all" && (
-                  <TagBadge variant="filter" className="inline-flex whitespace-nowrap">
-                    {t('mod_detail.type')}: {versionTypeFilter}
-                    <button
-                      onClick={() => setVersionTypeFilter("all")}
-                      className="ml-1.5 text-current opacity-70 hover:opacity-100"
-                    >
-                      <Icon icon="solar:close-circle-bold" className="w-3 h-3" />
-                    </button>
-                  </TagBadge>
-                )}
-
-                {gameVersionFilter !== "all" && (
-                  <TagBadge variant="filter" className="inline-flex whitespace-nowrap">
-                    {gameVersionFilter}
-                    <button
-                      onClick={() => setGameVersionFilter("all")}
-                      className="ml-1.5 text-current opacity-70 hover:opacity-100"
-                    >
-                      <Icon icon="solar:close-circle-bold" className="w-3 h-3" />
-                    </button>
-                  </TagBadge>
-                )}
-
-                {loaderFilter !== "all" && (
-                  <TagBadge variant="filter" className="inline-flex whitespace-nowrap">
-                    {loaderFilter}
-                    <button
-                      onClick={() => setLoaderFilter("all")}
-                      className="ml-1.5 text-current opacity-70 hover:opacity-100"
-                    >
-                      <Icon icon="solar:close-circle-bold" className="w-3 h-3" />
-                    </button>
-                  </TagBadge>
-                )}
-              </div>
-            </div>
+              {t('common.clear_all')}
+            </button>
           </div>
         )}
+
+        {/* Results count */}
+        <div className="ml-auto cc-num text-[11.5px] text-fg-3">
+          {t('mods.versions.count', { count: filteredVersions.length })}
+        </div>
       </div>
 
       {/* Version List - Using shared ModrinthVersionItemV2 */}
       {filteredVersions.length > 0 ? (
-        <div className="space-y-2">
+        <div className="border-t border-line">
+          <ModrinthVersionTableHeader />
           {filteredVersions.slice(0, displayedCount).map((version) => (
             <ModrinthVersionItemV2
               key={version.id}
@@ -539,30 +510,21 @@ export function ModDetailVersions({ project, targetProfile, installTarget }: Mod
 
           {/* Load More Button */}
           {filteredVersions.length > displayedCount && (
-            <button
-              onClick={() => setDisplayedCount(prev => prev + 10)}
-              className="w-full mt-2 py-2 rounded-lg text-xs font-minecraft transition-colors"
-              style={{
-                backgroundColor: `${accentColor.value}15`,
-                borderColor: `${accentColor.value}30`,
-                color: accentColor.value,
-              }}
-            >
-              Load More ({filteredVersions.length - displayedCount} more)
-            </button>
+            <div className="flex justify-center pt-3">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setDisplayedCount(prev => prev + 10)}
+              >
+                {t('content.search.load_more', { remaining: filteredVersions.length - displayedCount })}
+              </Button>
+            </div>
           )}
         </div>
       ) : (
-        <div
-          className="relative overflow-hidden transition-colors duration-150 rounded-md p-4 text-sm text-gray-400 text-center border backdrop-blur-md"
-          style={{
-            borderColor: `${accentColor.value}60`,
-            borderBottomColor: accentColor.value,
-            backgroundColor: `${accentColor.value}15`,
-          }}
-        >
-          No versions match the selected filters.
-        </div>
+        <p className="py-6 border-t border-line text-[13px] text-fg-3">
+          {t('modrinth.no_versions_match_filters')}
+        </p>
       )}
     </div>
   );

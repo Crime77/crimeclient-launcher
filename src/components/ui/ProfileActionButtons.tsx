@@ -51,7 +51,7 @@ export function ProfileActionButtons({
   };
 
   return (
-    <div className={`flex items-center gap-3 ${className}`}>
+    <div className={`flex items-center gap-2 ${className}`}>
       {actions.map((action, index) => {
         const buttonElement = (
           <ActionButton

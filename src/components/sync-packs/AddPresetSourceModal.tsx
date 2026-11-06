@@ -11,7 +11,7 @@ import { Modal } from "../ui/Modal";
 import { ProfileIconV2 } from "../profiles/ProfileIconV2";
 import { useProfileStore } from "../../store/profile-store";
 import { useAsyncResource } from "../../hooks/useAsyncResource";
-import { useThemeStore } from "../../store/useThemeStore";
+import { cn } from "../../lib/utils";
 import { parseErrorMessage } from "../../utils/error-utils";
 import { formatRelativeTime } from "../../utils/format-relative-time";
 import * as SyncPackService from "../../services/sync-pack-service";
@@ -46,7 +46,6 @@ export function AddPresetSourceModal({
   onConfirm,
 }: AddPresetSourceModalProps) {
   const { t } = useTranslation();
-  const accentColor = useThemeStore((state) => state.accentColor);
   const profiles = useProfileStore((state) => state.profiles);
 
   const [query, setQuery] = useState("");
@@ -152,15 +151,15 @@ export function AddPresetSourceModal({
       onClose={onClose}
       width="lg"
     >
-      <div className="flex h-[560px] flex-col gap-5 px-6 pb-6 pt-2">
+      <div className="flex h-[540px] flex-col gap-4 px-5 py-4">
         <div className="flex min-h-0 flex-1 flex-col">
-          <div className="mb-3 flex flex-shrink-0 items-center gap-3">
+          <div className="mb-2 flex flex-shrink-0 items-end gap-3">
             <div className="min-w-0">
-              <div className="font-minecraft text-[11px] uppercase tracking-wider text-white/40">
+              <div className="cc-eyebrow">
                 {t("syncPacks.seed.fromProfile")}
               </div>
               {isFolder && (
-                <div className="mt-0.5 font-minecraft text-[11px] text-white/25">
+                <div className="mt-1 text-[12px] text-fg-4">
                   {t("syncPacks.seed.fromProfileHint")}
                 </div>
               )}
@@ -170,47 +169,40 @@ export function AddPresetSourceModal({
               onChange={(event) => setQuery(event.target.value)}
               placeholder={t("syncPacks.seed.searchPlaceholder")}
               disabled={isLoading}
-              className="ml-auto w-[260px] rounded border border-white/10 bg-black/30 px-3 py-2 font-minecraft text-sm text-white/80 outline-none transition-colors placeholder:text-white/25 focus:border-white/25 disabled:opacity-40"
+              className="ml-auto h-8 w-[240px] rounded-md border border-line bg-s2 px-3 text-[12.5px] text-fg outline-none transition-colors duration-fast placeholder:text-fg-4 hover:border-line-2 focus:border-line-3 disabled:opacity-40"
             />
           </div>
 
           {isLoading ? (
-            <div className="min-h-0 flex-1 space-y-2 overflow-hidden pr-2">
+            <div
+              className="min-h-0 flex-1 overflow-hidden border border-line divide-y divide-line bg-s2"
+              style={{ borderRadius: "var(--r-md)" }}
+            >
               {[0, 1, 2].map((index) => (
-                <div
-                  key={index}
-                  className="flex w-full items-center gap-4 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3.5 text-left"
-                >
-                  <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded border border-white/10 bg-white/[0.06]" />
-
-                  <div className="min-w-0 flex-1">
-                    <div className="w-1/3 truncate rounded bg-white/[0.07] font-minecraft text-base text-transparent">
-                      &nbsp;
-                    </div>
-                    <div className="mt-0.5 w-2/3 truncate rounded bg-white/[0.04] font-minecraft text-xs text-transparent">
-                      &nbsp;
-                    </div>
+                <div key={index} className="flex w-full items-center gap-3 h-14 px-3">
+                  <div className="h-8 w-8 flex-shrink-0 rounded-sm bg-s3" />
+                  <div className="min-w-0 flex-1 space-y-1.5">
+                    <div className="h-3 w-1/3 rounded-sm bg-s3" />
+                    <div className="h-2.5 w-2/3 rounded-sm bg-s3/60" />
                   </div>
-
-                  <div className="flex flex-shrink-0 flex-col items-end">
-                    <span className="w-16 rounded bg-white/[0.06] font-minecraft text-xs text-transparent">
-                      &nbsp;
-                    </span>
-                    <span className="w-20 rounded bg-white/[0.04] font-minecraft text-[11px] text-transparent">
-                      &nbsp;
-                    </span>
-                  </div>
+                  <div className="h-2.5 w-16 flex-shrink-0 rounded-sm bg-s3" />
                 </div>
               ))}
             </div>
           ) : visible.length === 0 ? (
-            <div className="rounded-lg border border-white/10 bg-white/[0.02] px-4 py-4 font-minecraft text-sm text-white/30">
+            <div
+              className="border border-line bg-s2 px-4 py-4 text-[12.5px] text-fg-3"
+              style={{ borderRadius: "var(--r-md)" }}
+            >
               {candidates.length === 0
                 ? t("syncPacks.seed.noProfiles")
                 : t("syncPacks.seed.noMatch")}
             </div>
           ) : (
-            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto custom-scrollbar pr-2">
+            <div
+              className="min-h-0 flex-1 overflow-y-auto custom-scrollbar border border-line divide-y divide-line bg-s2"
+              style={{ borderRadius: "var(--r-md)" }}
+            >
               {visible.map((candidate) => {
                 const profile = profiles.find(
                   (entry) => entry.id === candidate.profile_id,
@@ -218,6 +210,7 @@ export function AddPresetSourceModal({
                 return (
                   <button
                     key={candidate.profile_id}
+                    type="button"
                     onClick={() =>
                       run(
                         isFolder
@@ -226,31 +219,23 @@ export function AddPresetSourceModal({
                       )
                     }
                     disabled={isBusy}
-                    className="flex w-full items-center gap-4 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3.5 text-left transition-colors hover:border-white/25 hover:bg-white/[0.06] disabled:opacity-30"
+                    className="flex w-full items-center gap-3 h-14 px-3 text-left transition-colors duration-fast hover:bg-s3 disabled:opacity-30"
                   >
-                    <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded border border-white/10 bg-black/30">
-                      {profile ? (
-                        <ProfileIconV2
-                          profile={profile}
-                          size="sm"
-                          className="h-full w-full"
-                        />
-                      ) : null}
-                    </div>
+                    {profile ? (
+                      <ProfileIconV2 profile={profile} size="xs" />
+                    ) : (
+                      <div className="h-8 w-8 flex-shrink-0 rounded-sm border border-line bg-s3" />
+                    )}
 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="truncate font-minecraft text-base text-white/90">
+                        <span className="truncate text-[13px] font-medium text-fg">
                           {candidate.profile_name}
                         </span>
                         {candidate.profile_id === currentProfileId && (
                           <span
-                            style={{
-                              color: accentColor.value,
-                              borderColor: `${accentColor.value}59`,
-                              backgroundColor: `${accentColor.value}1a`,
-                            }}
-                            className="flex-shrink-0 rounded border px-1.5 py-0.5 font-minecraft text-[10px] uppercase tracking-wider"
+                            className="flex-shrink-0 inline-flex items-center h-[18px] px-1.5 border border-line-2 text-[11px] text-fg-2"
+                            style={{ borderRadius: "var(--r-sm)" }}
                           >
                             {t("syncPacks.seed.currentProfile")}
                           </span>
@@ -261,21 +246,21 @@ export function AddPresetSourceModal({
                         position="top"
                         wrapperClassName="mt-0.5 min-w-0 max-w-full"
                       >
-                        <div className="w-full truncate font-minecraft text-xs text-white/25">
+                        <div className="w-full truncate cc-num text-[11.5px] text-fg-4">
                           {shortPath(candidate.path)}
                         </div>
                       </Tooltip>
                     </div>
 
-                    <div className="flex flex-shrink-0 flex-col items-end">
+                    <div className="flex flex-shrink-0 flex-col items-end gap-0.5">
                       {isFolder && (
-                        <span className="font-minecraft text-xs text-white/40">
+                        <span className="cc-num text-[11.5px] text-fg-3">
                           {t("syncPacks.seed.entryCount", {
                             count: candidate.entries,
                           })}
                         </span>
                       )}
-                      <span className="font-minecraft text-[11px] text-white/25">
+                      <span className="cc-num text-[11px] text-fg-4">
                         {formatRelativeTime(candidate.last_played)}
                       </span>
                     </div>
@@ -287,22 +272,19 @@ export function AddPresetSourceModal({
         </div>
 
         <button
+          type="button"
           onClick={handlePick}
           disabled={isBusy}
-          className="flex flex-shrink-0 flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed px-4 py-6 text-center transition-colors disabled:opacity-30"
-          style={{
-            borderColor: isDragOver
-              ? accentColor.value
-              : "rgba(255,255,255,0.12)",
-            backgroundColor: isDragOver
-              ? `${accentColor.value}12`
-              : "transparent",
-          }}
+          className={cn(
+            "flex flex-shrink-0 flex-col items-center justify-center gap-1 border px-4 py-5 text-center transition-colors duration-fast disabled:opacity-30",
+            isDragOver ? "border-line-3 bg-s3" : "border-line bg-bg/30 hover:border-line-2 hover:bg-s2",
+          )}
+          style={{ borderRadius: "var(--r-md)" }}
         >
-          <span className="font-minecraft text-base text-white/75">
+          <span className="text-[13px] font-medium text-fg-2">
             {isFolder ? t("syncPacks.add.folder") : t("syncPacks.add.file")}
           </span>
-          <span className="font-minecraft text-xs text-white/30">
+          <span className="text-[12px] text-fg-4">
             {isDragOver
               ? t("syncPacks.drop.overlay")
               : isFolder
@@ -313,14 +295,16 @@ export function AddPresetSourceModal({
 
         {!isFolder && (
         <button
+          type="button"
           onClick={() => run({})}
           disabled={isBusy}
-          className="flex-shrink-0 rounded-lg border border-white/10 bg-white/[0.02] px-4 py-4 text-left transition-colors hover:border-white/25 hover:bg-white/[0.05] disabled:opacity-30"
+          className="flex-shrink-0 border border-line bg-s2 px-4 py-3 text-left transition-colors duration-fast hover:border-line-2 hover:bg-s3 disabled:opacity-30"
+          style={{ borderRadius: "var(--r-md)" }}
         >
-          <div className="font-minecraft text-base text-white/75">
+          <div className="text-[13px] font-medium text-fg-2">
             {t("syncPacks.seed.empty")}
           </div>
-          <div className="mt-0.5 font-minecraft text-xs text-white/30">
+          <div className="mt-0.5 text-[12px] text-fg-4">
             {t("syncPacks.seed.emptyHint")}
           </div>
         </button>

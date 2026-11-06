@@ -1,21 +1,17 @@
 "use client";
 
 /**
- * LoaderBadgeV3 — the loader icon sitting on the bottom-right corner of the
- * profile picture, a clickable trigger for LoaderPickerV3. Frameless: the
- * icon itself is the affordance, with a strong drop-shadow for legibility
- * on any profile background. Hover scales it up, open state adds an accent
- * halo via `filter: drop-shadow`.
+ * LoaderBadgeV3 — the loader icon on the bottom-right corner of the profile picture, a trigger
+ * for LoaderPickerV3. A small flat square (s1, line-2) so it reads on any profile picture
+ * without shadows or glows.
  *
- * Locked mode (for `is_standard_version`): small lock glyph overlayed at
- * the icon corner + no hover effects, click is suppressed.
+ * Locked mode (for `is_standard_version`): a lock glyph instead of the hover state, no click.
  */
 
 import { useRef, useState } from "react";
-import { Icon } from "@iconify/react";
+import { Lock } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { loaderIconSrc } from "../../../../lib/loader-icons";
-import { useThemeStore } from "../../../../store/useThemeStore";
 import { ThemedDropdown } from "../shared/ThemedDropdown";
 import { LoaderPickerV3 } from "./LoaderPickerV3";
 import type { LoaderKey } from "./useHeroChipEditors";
@@ -31,7 +27,6 @@ export function LoaderBadgeV3({ loader, onChange, disabled, disabledReason }: Lo
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const accent = useThemeStore((s) => s.accentColor);
 
   const icon = loaderIconSrc(loader);
   const label = loader ?? "vanilla";
@@ -44,30 +39,27 @@ export function LoaderBadgeV3({ loader, onChange, disabled, disabledReason }: Lo
         disabled={disabled}
         onClick={() => !disabled && setOpen((v) => !v)}
         title={disabled ? disabledReason : t("profiles.v3.chips.loader.changeTitle")}
-        className={`absolute -bottom-1 -right-1 p-0.5 flex items-center justify-center transition-transform
-          ${disabled
-            ? "cursor-not-allowed"
+        className={`absolute -bottom-1.5 -right-1.5 w-6 h-6 flex items-center justify-center bg-s1 border transition-colors duration-fast ${
+          disabled
+            ? "border-line-2 cursor-default"
             : open
-              ? "scale-110"
-              : "hover:scale-110 cursor-pointer"}`}
+              ? "border-line-3 bg-s3"
+              : "border-line-2 hover:border-line-3 hover:bg-s2"
+        }`}
+        style={{ borderRadius: "var(--r-sm)" }}
       >
         <img
           src={icon}
           alt={label}
-          className={`w-6 h-6 ${disabled ? "opacity-50" : ""}`}
-          style={{
-            imageRendering: !loader ? "pixelated" : undefined,
-            // Legibility on any profile background: a tight dark shadow for
-            // edge contrast + a soft diffuse fallback. On open we add a
-            // themed accent glow on top.
-            filter: !disabled && open
-              ? `drop-shadow(0 1px 2px rgba(0,0,0,0.9)) drop-shadow(0 0 6px rgba(0,0,0,0.5)) drop-shadow(0 0 8px ${accent.shadowValue})`
-              : "drop-shadow(0 1px 2px rgba(0,0,0,0.9)) drop-shadow(0 0 6px rgba(0,0,0,0.5))",
-          }}
+          className="w-3.5 h-3.5"
+          style={{ imageRendering: !loader ? "pixelated" : undefined }}
         />
         {disabled && (
-          <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-black/90 flex items-center justify-center">
-            <Icon icon="solar:lock-keyhole-minimalistic-bold" className="w-2 h-2 text-white/60" />
+          <span
+            className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 flex items-center justify-center bg-s3 border border-line-2"
+            style={{ borderRadius: "999px" }}
+          >
+            <Lock size={8} strokeWidth={2} className="text-fg-3" />
           </span>
         )}
       </button>
@@ -75,7 +67,7 @@ export function LoaderBadgeV3({ loader, onChange, disabled, disabledReason }: Lo
       <ThemedDropdown
         open={open && !disabled}
         onClose={() => setOpen(false)}
-        width="w-56"
+        width="w-48"
         align="left"
         triggerRef={triggerRef}
       >

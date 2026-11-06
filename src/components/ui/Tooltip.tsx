@@ -2,7 +2,6 @@
 
 import React, { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
-import { useThemeStore } from "../../store/useThemeStore";
 
 interface TooltipProps {
   content: string | React.ReactNode;
@@ -30,9 +29,6 @@ export function Tooltip({
   const tooltipRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout>();
   const isHoveringRef = useRef(false);
-
-  // Theme values
-  const accentColor = useThemeStore((state) => state.accentColor);
 
   const updateTooltipPosition = (clientX: number, clientY: number) => {
     let x = clientX + 8;
@@ -126,7 +122,8 @@ export function Tooltip({
 
   const getTooltipClasses = () => {
     // z above modals/overlays (Modal + global modal portal use z-[1000]) so tooltips render on top
-    const baseClasses = "fixed z-[1100] px-3 py-2 text-xs font-minecraft text-white border-2 pointer-events-none transition-opacity duration-200 rounded-lg backdrop-blur-md";
+    // "Werkzeug": a small raised label, s3 with a hairline, 12 px, short fade
+    const baseClasses = "fixed z-[1100] px-2 py-1 text-xs font-[450] leading-[1.35] text-fg bg-s3 border border-line-2 rounded-sm shadow-pop pointer-events-none animate-in fade-in-0 duration-100";
 
     return `${baseClasses} ${className}`;
   };
@@ -159,9 +156,7 @@ export function Tooltip({
             // static mode: center horizontally on the anchor point and sit above/below it
             transform: isStatic ? (isBottom ? 'translate(-50%, 0)' : 'translate(-50%, -100%)') : undefined,
             textAlign: isStatic ? 'center' : undefined,
-            backgroundColor: `${accentColor.value}20`, // Wie ProfileIconV2
-            borderColor: `${accentColor.value}60`, // Wie ProfileIconV2
-            maxWidth: '300px', // Kompakt für kürzere Texte
+            maxWidth: '280px', // Kompakt für kürzere Texte
             wordWrap: 'break-word', // Automatischer Wortumbruch
           }}
         >

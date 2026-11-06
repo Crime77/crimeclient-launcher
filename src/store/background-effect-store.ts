@@ -1,19 +1,10 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+/** Backgrounds of the "Werkzeug" design: plain surfaces, or a faint 1 px grid. Own images and videos come on top. */
 export enum BACKGROUND_EFFECTS {
   NONE = "none",
-  GLUT = "glut",
-  MATRIX_RAIN = "matrix-rain",
-  ENCHANTMENT_PARTICLES = "enchantment-particles",
-  NEBULA_WAVES = "nebula-waves",
-  NEBULA_PARTICLES = "nebula-particles",
-  NEBULA_GRID = "nebula-grid",
-  NEBULA_VOXELS = "nebula-voxels",
-  NEBULA_LIGHTNING = "nebula-lightning",
-  NEBULA_LIQUID_CHROME = "nebula-liquid-chrome",
-  RETRO_GRID = "retro-grid",
-  PLAIN_BACKGROUND = "plain-background",
+  GRID = "grid",
 }
 
 interface BackgroundEffectState {
@@ -37,7 +28,7 @@ interface BackgroundEffectState {
 export const useBackgroundEffectStore = create<BackgroundEffectState>()(
   persist(
     (set) => ({
-      currentEffect: BACKGROUND_EFFECTS.GLUT,
+      currentEffect: BACKGROUND_EFFECTS.NONE,
       customMediaUrl: null,
       customMediaType: null,
       customMediaOpacity: 0.25,
@@ -56,10 +47,13 @@ export const useBackgroundEffectStore = create<BackgroundEffectState>()(
     {
       name: "norisk-background-effect-storage",
       // v1: CrimeClient design, switch existing installs once to the Glut background
-      version: 1,
+      // v2: "Werkzeug" design, the animated effects are gone; everyone starts calm
+      version: 2,
       migrate: (persisted, version) => {
         const state = persisted as BackgroundEffectState;
-        if (version < 1) state.currentEffect = BACKGROUND_EFFECTS.GLUT;
+        if (version < 2 || !Object.values(BACKGROUND_EFFECTS).includes(state.currentEffect as BACKGROUND_EFFECTS)) {
+          state.currentEffect = BACKGROUND_EFFECTS.NONE;
+        }
         return state;
       },
     },

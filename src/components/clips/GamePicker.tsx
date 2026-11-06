@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Icon } from "@iconify/react";
+import { AlertTriangle, Loader2, RefreshCw, Star } from "lucide-react";
 
 import { Button } from "../ui/buttons/Button";
 import { GroupTabs } from "../ui/GroupTabs";
-import { useThemeStore } from "../../store/useThemeStore";
 import { listOpenApps, listScreens, type OpenApp, type ScreenInfo } from "../../services/clip-service";
 import type { OtherGame, OtherScreen } from "../../types/launcherConfig";
 import { cn } from "../../lib/utils";
@@ -35,7 +35,6 @@ export function GamePicker({
   const [apps, setApps] = useState<OpenApp[] | null>(null);
   const [screens, setScreens] = useState<ScreenInfo[]>([]);
   const [loading, setLoading] = useState(false);
-  const accentColor = useThemeStore((state) => state.accentColor);
   const offerScreens = Boolean(onScreen) && !isMacOS();
   const [view, setView] = useState<"apps" | "screens">(screen ? "screens" : "apps");
   const showing = offerScreens ? view : "apps";
@@ -69,7 +68,7 @@ export function GamePicker({
   }
 
   return (
-    <div className={cn("flex flex-col gap-2 rounded-lg bg-black/20 border border-white/10 p-3", disabled && "opacity-50")}>
+    <div className={cn("flex flex-col gap-2 rounded-md border border-line bg-s1 p-2", disabled && "opacity-50")}>
       <div className="flex items-center gap-2">
         {offerScreens ? (
           <GroupTabs
@@ -77,13 +76,13 @@ export function GamePicker({
               {
                 id: "apps",
                 icon: "solar:widget-bold",
-                name: `${t("settings.clips.games.apps")} (${apps?.length ?? 0})`,
+                name: t("settings.clips.games.apps"),
                 count: apps?.length ?? 0,
               },
               {
                 id: "screens",
                 icon: "solar:monitor-bold",
-                name: `${t("settings.clips.games.screens")} (${screens.length})`,
+                name: t("settings.clips.games.screens"),
                 count: screens.length,
               },
             ]}
@@ -93,7 +92,7 @@ export function GamePicker({
             className="!mb-0 flex-1"
           />
         ) : (
-          <p className="flex-1 font-minecraft text-xs text-white/50">{t("settings.clips.games.open")}</p>
+          <p className="flex-1 px-1 text-xs text-fg-3">{t("settings.clips.games.open")}</p>
         )}
         <Button
           variant="ghost"
@@ -101,17 +100,18 @@ export function GamePicker({
           onClick={() => void refresh()}
           disabled={disabled || loading}
           icon={
-            <Icon
-              icon={loading ? "svg-spinners:ring-resize" : "solar:refresh-bold"}
-              className="w-4 h-4"
-            />
+            loading ? (
+              <Loader2 size={14} strokeWidth={1.75} className="animate-spin" />
+            ) : (
+              <RefreshCw size={14} strokeWidth={1.75} />
+            )
           }
         >
           {t("settings.clips.games.refresh")}
         </Button>
       </div>
 
-      <div className="flex max-h-64 flex-col gap-1 overflow-y-auto custom-scrollbar pr-1">
+      <div className="flex max-h-64 flex-col gap-px overflow-y-auto custom-scrollbar">
         <Row
           icon="solar:close-circle-bold"
           name={t("settings.clips.games.none")}
@@ -140,7 +140,7 @@ export function GamePicker({
         ))}
 
         {showing === "apps" && apps !== null && apps.length === 0 && (
-          <p className="px-2 py-3 text-center font-minecraft text-xs text-white/40">
+          <p className="px-2 py-3 text-center text-xs text-fg-4">
             {t("settings.clips.games.empty")}
           </p>
         )}
@@ -158,36 +158,34 @@ export function GamePicker({
                   disabled={disabled}
                   aria-pressed={selected}
                   className={cn(
-                    "flex flex-col items-center gap-1.5 rounded-lg border px-3 pb-2.5 pt-3 transition-all duration-200",
+                    "flex flex-col items-center gap-1.5 rounded-md border px-3 pb-2.5 pt-3 transition-colors duration-fast",
                     selected
-                      ? "text-white"
-                      : "border-white/10 bg-black/20 hover:border-white/25 hover:bg-black/30",
+                      ? "border-line-3 bg-s3"
+                      : "border-line bg-s2 hover:border-line-2 hover:bg-s3",
                     disabled && "cursor-not-allowed",
                   )}
-                  style={
-                    selected
-                      ? { backgroundColor: `${accentColor.value}20`, borderColor: accentColor.value }
-                      : undefined
-                  }
                 >
                   <span
-                    className="relative flex w-full max-w-[9rem] items-center justify-center rounded-md border-2 bg-black/40"
+                    className={cn(
+                      "relative flex w-full max-w-[9rem] items-center justify-center rounded-sm border bg-bg",
+                      selected ? "border-fg/80" : "border-line-3",
+                    )}
                     style={{
                       aspectRatio: `${Math.max(shown.width, 1)} / ${Math.max(shown.height, 1)}`,
-                      borderColor: selected ? accentColor.value : "rgba(255,255,255,0.25)",
                     }}
                   >
-                    <span className="font-minecraft text-2xl text-white/80">{index + 1}</span>
+                    <span className="font-mono text-lg text-fg-2">{index + 1}</span>
                     {shown.primary && (
-                      <Icon
-                        icon="solar:star-bold"
-                        className="absolute right-1 top-1 h-3 w-3 text-yellow-400"
+                      <Star
+                        size={11}
+                        strokeWidth={1.75}
+                        className="absolute right-1 top-1 fill-current text-fg-3"
                       />
                     )}
                   </span>
-                  <span className="h-1 w-8 rounded-b bg-white/20" />
-                  <span className="font-minecraft text-sm text-white/90">{name}</span>
-                  <span className="font-minecraft text-xs text-white/40">
+                  <span className="h-1 w-8 rounded-b-sm bg-line-3" />
+                  <span className="text-[13px] text-fg">{name}</span>
+                  <span className="font-mono text-[11px] text-fg-3">
                     {shown.width} × {shown.height}
                     {shown.primary ? ` · ${t("settings.clips.games.screen.primary")}` : ""}
                   </span>
@@ -199,8 +197,8 @@ export function GamePicker({
       </div>
 
       {offerScreens && screen && (
-        <p className="flex items-start gap-2 rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-2 font-minecraft text-xs leading-relaxed text-amber-200">
-          <Icon icon="solar:danger-triangle-bold" className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
+        <p className="flex items-start gap-2 rounded-md border border-warn/25 bg-warn/10 px-3 py-2 text-xs leading-relaxed text-fg-2">
+          <AlertTriangle size={14} strokeWidth={1.75} className="mt-px shrink-0 text-warn" />
           {t("settings.clips.games.screen.hint")}
         </p>
       )}
@@ -223,8 +221,6 @@ function Row({
   disabled: boolean;
   onSelect: () => void;
 }) {
-  const accentColor = useThemeStore((state) => state.accentColor);
-
   return (
     <button
       type="button"
@@ -232,36 +228,28 @@ function Row({
       disabled={disabled}
       aria-pressed={selected}
       className={cn(
-        "flex items-center gap-3 rounded-lg border px-3 py-2 text-left transition-all duration-200",
-        selected
-          ? "text-white"
-          : "border-transparent bg-transparent hover:bg-black/30 hover:border-white/10",
+        "flex h-11 shrink-0 items-center gap-3 rounded-sm px-2.5 text-left transition-colors duration-fast",
+        selected ? "bg-s3" : "hover:bg-s2",
         disabled && "cursor-not-allowed",
       )}
-      style={
-        selected
-          ? { backgroundColor: `${accentColor.value}20`, borderColor: `${accentColor.value}60` }
-          : undefined
-      }
     >
       <span
-        className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors"
-        style={{
-          borderColor: selected ? accentColor.value : "rgba(255,255,255,0.3)",
-          backgroundColor: selected ? accentColor.value : undefined,
-        }}
+        className={cn(
+          "flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border transition-colors duration-fast",
+          selected ? "border-fg bg-fg" : "border-line-3",
+        )}
       >
-        {selected && <span className="h-1.5 w-1.5 rounded-full bg-black/70" />}
+        {selected && <span className="h-1.5 w-1.5 rounded-full bg-bg" />}
       </span>
 
       <Icon
         icon={icon}
-        className={cn("h-4 w-4 shrink-0", selected ? "text-white" : "text-white/40")}
+        className={cn("h-4 w-4 shrink-0", selected ? "text-fg-2" : "text-fg-4")}
       />
 
       <span className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate font-minecraft text-sm text-white/90">{name}</span>
-        <span className="truncate font-minecraft text-xs text-white/40">{detail}</span>
+        <span className={cn("truncate text-[13px] leading-[18px]", selected ? "text-fg" : "text-fg-2")}>{name}</span>
+        <span className="truncate font-mono text-[11px] leading-4 text-fg-4">{detail}</span>
       </span>
     </button>
   );

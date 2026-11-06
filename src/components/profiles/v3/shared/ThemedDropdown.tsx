@@ -1,17 +1,10 @@
 "use client";
 
 /**
- * ThemedDropdown — Accent-getoentes Dropdown-Primitive fuer V3.
+ * ThemedDropdown — the popover panel of the V3 views (filter, sort, pack, version, row menus).
  *
- * Konsolidiert die bis dato 4x duplizierte Dropdown-Shell (Filter, Sort,
- * NoRisk-Pack-Selector, Version-Switcher). Wiederverwendbar auch in kommenden
- * V3-Tabs (Worlds/Screenshots/Logs).
- *
- * Der Trigger-Button bleibt beim Caller, weil seine Optik pro Dropdown
- * variiert (accent-tint vs. neutral). Dieses Primitive rendert:
- *   - click-outside Overlay
- *   - den accent-getoenten Panel-Container (blur, border, bg)
- *   - optional: Header, Items, Divider
+ * The trigger stays with the caller. This primitive renders the click-outside layer and the flat
+ * "Werkzeug" popover (s2, line-2, r-md, pop shadow), plus items, divider and header.
  *
  * Usage:
  *   <div className="relative">
@@ -30,36 +23,29 @@ import type React from "react";
 import { useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@iconify/react";
-import { useThemeStore } from "../../../../store/useThemeStore";
+import { Check, type LucideIcon } from "lucide-react";
 
 interface ThemedDropdownProps {
   open: boolean;
   onClose: () => void;
   children: React.ReactNode;
   /**
-   * Tailwind **min-width** class, z.B. "w-40", "w-60", "w-72". Das Panel
-   * waechst mit dem Inhalt ueber diese Untergrenze hinaus (bis `max-w-*`
-   * cap), damit lokalisierte Texte nicht abgeschnitten werden.
-   * Default: "w-48".
+   * Tailwind **min-width** class, e.g. "w-40", "w-60", "w-72". The panel grows with its content
+   * beyond it (up to `maxWidth`) so translated labels are not cut. Default: "w-48".
    */
   width?: string;
-  /** "left" | "right" — Ausrichtung relativ zum Trigger. Default: "right". */
+  /** "left" | "right" — alignment relative to the trigger. Default: "right". */
   align?: "left" | "right";
-  /** Max-height + Scroll fuer lange Listen. Default: false. */
+  /** Max height + scroll for long lists. Default: false. */
   scrollable?: boolean;
-  /**
-   * Upper bound damit das Panel auch bei extrem langen Inhalten nicht
-   * absurd breit wird. Default: "max-w-xs" (320px).
-   */
+  /** Upper bound for the width. Default: "max-w-xs" (320px). */
   maxWidth?: string;
-  /** Extra Klassen fuer den Panel-Container. */
+  /** Extra classes for the panel. */
   className?: string;
   /**
-   * When provided, the panel is portaled into `document.body` and positioned
-   * via fixed coordinates relative to this element. Use this to escape a
-   * parent `opacity` (which cascades into children) or `overflow:hidden` that
-   * would otherwise fade or clip the dropdown. Without it the legacy absolute
-   * positioning is used — still the default everywhere else.
+   * When provided, the panel is portaled into `document.body` and positioned with fixed
+   * coordinates relative to this element, so a parent `opacity` or `overflow:hidden` can't fade
+   * or clip it. Without it the panel is positioned absolutely (needs a relative parent).
    */
   triggerRef?: React.RefObject<HTMLElement | null>;
   matchTriggerWidth?: boolean;
@@ -71,7 +57,6 @@ export function ThemedDropdown({
   maxWidth = "max-w-xs", className = "",
   triggerRef, matchTriggerWidth = false,
 }: ThemedDropdownProps) {
-  const accent = useThemeStore((s) => s.accentColor.value);
   const [pos, setPos] = useState<{ top: number; left: number; width?: number } | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const [flipped, setFlipped] = useState(false);
@@ -107,21 +92,12 @@ export function ThemedDropdown({
   if (!open) return null;
 
   const scrollClass = scrollable ? "max-h-80 overflow-y-auto custom-scrollbar" : "overflow-hidden";
-  // `w-XX` wird zur Untergrenze (statt fixer Breite). Das Panel waechst mit
-  // dem Inhalt (`w-max`), bis `max-w-*` cap erreicht. Verhindert dass lange
-  // Texte in lokalisierten Labels den Panel-Rand ueberschreiten. Der
-  // min-width wird als Inline-Style gesetzt damit Tailwind JIT mit
-  // unterschiedlichen `w-*` Werten vom Caller klarkommt.
-  const minWidthPx = WIDTH_TO_PX[width] ?? 192; // 192px = w-48 default
-  const panelStyle: React.CSSProperties = {
-    backgroundColor: `${accent}1f`,
-    borderColor: `${accent}66`,
-    backdropFilter: "blur(16px)",
-    WebkitBackdropFilter: "blur(16px)",
-    minWidth: `${minWidthPx}px`,
-  };
+  // `w-XX` is the lower bound; the panel grows with its content (`w-max`) up to `max-w-*`.
+  // min-width goes inline so callers can pass any of the mapped classes.
+  const minWidthPx = WIDTH_TO_PX[width] ?? 192;
+  const panelStyle: React.CSSProperties = { minWidth: `${minWidthPx}px` };
+  const panelClass = `cc-popover cc-pop p-1 ${scrollClass} ${className}`;
 
-  // Portal mode: escape parent `opacity` / `overflow` by rendering into body.
   if (triggerRef) {
     if (!pos) return null;
     return createPortal(
@@ -136,7 +112,7 @@ export function ThemedDropdown({
             left: pos.left,
             ...(pos.width ? { minWidth: pos.width, width: pos.width } : {}),
           }}
-          className={`${pos.width ? "" : `w-max ${maxWidth}`} rounded-md border shadow-2xl z-[1001] py-1 ${scrollClass} ${className}`}
+          className={`${pos.width ? "" : `w-max ${maxWidth}`} z-[1001] ${panelClass}`}
         >
           {children}
         </div>
@@ -145,14 +121,13 @@ export function ThemedDropdown({
     );
   }
 
-  // Legacy: absolute positioning relative to nearest positioned ancestor.
   const alignClass = align === "right" ? "right-0" : "left-0";
   return (
     <>
       <div className="fixed inset-0 z-10" onClick={onClose} />
       <div
         style={panelStyle}
-        className={`absolute top-full ${alignClass} mt-1 w-max ${maxWidth} rounded-md border shadow-2xl z-20 py-1 ${scrollClass} ${className}`}
+        className={`absolute top-full ${alignClass} mt-1 w-max ${maxWidth} z-20 ${panelClass}`}
       >
         {children}
       </div>
@@ -160,8 +135,7 @@ export function ThemedDropdown({
   );
 }
 
-// Mapping Tailwind `w-*` -> Pixel fuer inline min-width (JIT-safe, keine
-// dynamische Klassenerzeugung). Erweiterbar falls neue Dropdown-Groessen.
+// Tailwind `w-*` -> pixels for the inline min-width.
 const WIDTH_TO_PX: Record<string, number> = {
   "w-40": 160,
   "w-44": 176,
@@ -178,64 +152,47 @@ const WIDTH_TO_PX: Record<string, number> = {
 interface ThemedDropdownItemProps {
   onClick: () => void;
   children: React.ReactNode;
-  icon?: string;
-  /** Zeigt "aktiv"-Styling (gefuellter accent-BG). */
+  /** An iconify name (older callers) or a lucide icon. */
+  icon?: string | LucideIcon;
+  /** The active option: raised row with a check. */
   selected?: boolean;
   disabled?: boolean;
-  /** Danger-Variante fuer destructive Actions (z.B. Delete). */
+  /** Danger variant for destructive actions (e.g. Delete). */
   tone?: "default" | "danger";
 }
 
-/**
- * Einzelnes Item. Uebernimmt accent-getoentes Hover + optional Selected-State.
- */
 export function ThemedDropdownItem({
   onClick, children, icon, selected, disabled, tone = "default",
 }: ThemedDropdownItemProps) {
-  const accent = useThemeStore((s) => s.accentColor.value);
-
-  const toneText =
+  const toneClass =
     tone === "danger"
-      ? "text-rose-300 hover:text-rose-200"
+      ? "text-err hover:bg-err/10"
       : selected
-        ? "text-white"
-        : "text-white/80 hover:text-white";
-
-  const style: React.CSSProperties = selected
-    ? { backgroundColor: `${accent}33` }
-    : {};
+        ? "bg-s3 text-fg"
+        : "text-fg-2 hover:bg-s3 hover:text-fg";
+  const iconTone = tone === "danger" ? "" : "text-fg-3 group-hover/item:text-fg-2";
+  const LucideGlyph = typeof icon === "string" ? null : icon;
 
   return (
     <button
+      type="button"
       onClick={(e) => { e.stopPropagation(); onClick(); }}
       disabled={disabled}
-      style={style}
-      onMouseEnter={(e) => {
-        if (selected || disabled) return;
-        e.currentTarget.style.backgroundColor = tone === "danger"
-          ? "rgba(244, 63, 94, 0.10)"
-          : `${accent}40`;
-      }}
-      onMouseLeave={(e) => {
-        if (selected || disabled) return;
-        e.currentTarget.style.backgroundColor = "transparent";
-      }}
-      className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs font-minecraft text-left transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed ${toneText}`}
+      className={`group/item w-full h-8 flex items-center gap-2.5 px-2 text-[13px] text-left whitespace-nowrap transition-colors duration-fast disabled:opacity-45 disabled:cursor-not-allowed ${toneClass}`}
+      style={{ borderRadius: "var(--r-sm)" }}
     >
-      {icon && <Icon icon={icon} className="w-3.5 h-3.5 flex-shrink-0" />}
-      <span className="flex-1 min-w-0">{children}</span>
+      {typeof icon === "string" && <Icon icon={icon} className={`w-3.5 h-3.5 flex-shrink-0 ${iconTone}`} />}
+      {LucideGlyph && <LucideGlyph size={14} strokeWidth={1.75} className={`flex-shrink-0 ${iconTone}`} />}
+      <span className="flex-1 min-w-0 truncate">{children}</span>
+      {selected && <Check size={14} strokeWidth={2} className="flex-shrink-0 text-fg-2" />}
     </button>
   );
 }
 
 // ────────────────────────────────────────────────────────────────────────────
 
-export const ThemedDropdownDivider: React.FC = () => (
-  <div className="my-1 border-t border-white/10" />
-);
+export const ThemedDropdownDivider: React.FC = () => <div className="h-px bg-line my-1 -mx-1" />;
 
 export const ThemedDropdownHeader: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] text-white/40 font-minecraft border-b border-white/10">
-    {children}
-  </div>
+  <div className="cc-eyebrow px-2 pt-1.5 pb-1">{children}</div>
 );

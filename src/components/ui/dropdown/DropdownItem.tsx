@@ -3,7 +3,6 @@
 import type React from "react";
 
 import { cn } from "../../../lib/utils";
-import { useThemeStore } from "../../../store/useThemeStore";
 
 interface DropdownItemProps {
   className?: string;
@@ -16,6 +15,7 @@ interface DropdownItemProps {
   role?: string;
 }
 
+/** A menu row: inset, r-sm, hover s3; the active row is s3 with full-strength text. */
 export function DropdownItem({
   className,
   children,
@@ -26,27 +26,26 @@ export function DropdownItem({
   shortcut,
   role,
 }: DropdownItemProps) {
-  const accentColor = useThemeStore((state) => state.accentColor);
-
-  return (    <button
+  return (
+    <button
       type="button"
       role={role}
       disabled={disabled}
       className={cn(
-        "w-full px-4 py-2 text-left font-smallcaps text-xs transition-all duration-200",
-        "flex items-center gap-3",
-        disabled ? "cursor-not-allowed opacity-40" : "hover:bg-white/10 active:bg-white/5",
-        isActive && "bg-white/15",
+        "mx-1 w-[calc(100%-0.5rem)] min-h-8 px-2.5 py-1.5 text-left text-[13px] font-[450] rounded-sm",
+        "flex items-center gap-2.5 transition-colors duration-fast ease-out",
+        disabled
+          ? "cursor-not-allowed opacity-40 text-fg-3"
+          : isActive
+            ? "bg-s3 text-fg"
+            : "text-fg-2 hover:text-fg hover:bg-s3 active:bg-s4",
         className,
       )}
       onClick={onClick}
-      style={{
-        color: isActive ? accentColor.value : "white",
-      }}
     >
-      {icon && <span className="flex-shrink-0">{icon}</span>}
+      {icon && <span className={cn("flex-shrink-0 flex items-center", isActive ? "text-fg" : "text-fg-3")}>{icon}</span>}
       <span className="min-w-0 flex-1 truncate">{children}</span>
-      {shortcut && <span className="shrink-0 tabular-nums text-white/50">{shortcut}</span>}
+      {shortcut && <span className="shrink-0 cc-num text-[11px] text-fg-4">{shortcut}</span>}
     </button>
   );
 }

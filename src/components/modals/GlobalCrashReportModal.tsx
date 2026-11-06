@@ -5,7 +5,7 @@ import { Modal } from '../ui/Modal';
 import { StaticTooltip } from '../ui/Tooltip';
 import { useCrashModalStore } from '../../store/crash-modal-store';
 import { Button } from '../ui/buttons/Button';
-import { Icon } from '@iconify/react';
+import { AlertTriangle, Loader2, ShieldCheck, Upload } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { getProfile } from '../../services/profile-service';
 import { uploadLogToMclogs } from '../../services/log-service';
@@ -296,14 +296,31 @@ ${gameLog}`
   const primaryButtonText = analyzeWithNoRisk ? t('crash_modal.button.analyze') : t('crash_modal.button.upload_only');
 
   const modalFooter = (
-    <div className="flex gap-3 w-full">
-      <div className="relative flex-1">
+    <div className="flex items-center justify-end gap-2 w-full">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => !isProcessing && closeCrashModal()}
+        disabled={isProcessing}
+      >
+        {t('common.close')}
+      </Button>
+      <div className="relative">
         <Button
           onClick={handlePrimaryAction}
           variant="secondary"
-          icon={<Icon icon={analyzeWithNoRisk ? "solar:shield-check-bold" : "solar:cloud-upload-bold"} className="w-5 h-5" />}
+          size="sm"
+          icon={
+            isProcessing ? (
+              <Loader2 size={14} strokeWidth={1.75} className="animate-spin" />
+            ) : analyzeWithNoRisk ? (
+              <ShieldCheck size={14} strokeWidth={1.75} />
+            ) : (
+              <Upload size={14} strokeWidth={1.75} />
+            )
+          }
           disabled={isProcessing || !crashData?.process_metadata}
-          className="w-full justify-center whitespace-nowrap"
+          className="whitespace-nowrap"
         >
           {primaryButtonText}
         </Button>
@@ -311,7 +328,7 @@ ${gameLog}`
         {analyzeWithNoRisk && (
         <div className="absolute -top-2 -left-2 z-10 pointer-events-auto">
           <StaticTooltip content={t('crash_modal.tooltip.beta')} delay={0}>
-            <span className="rounded border border-amber-400/50 bg-amber-400/30 px-1.5 py-0.5 text-[10px] font-minecraft uppercase leading-none text-amber-200 cursor-help shadow-md">
+            <span className="border border-warn/40 bg-s2 px-1 py-px text-[10px] uppercase leading-none text-warn cursor-help" style={{ borderRadius: 3 }}>
               beta
             </span>
           </StaticTooltip>
@@ -321,47 +338,72 @@ ${gameLog}`
     </div>
   );
 
+  const profileLabel = crashData.process_metadata?.profile_name || profileName || t('common.loading');
+
   const titleSubtitleNode = (
-    <p className="text-xs font-minecraft text-gray-400">
-      {t('crash_modal.profile_label')}: {crashData.process_metadata?.profile_name || profileName || t('common.loading')}
-    </p>
+    <span className="text-xs text-fg-3">
+      {t('crash_modal.profile_label')}: {profileLabel}
+    </span>
   );
 
   return (
     <Modal
       title={t('crash_modal.title')}
-      titleIcon={<Icon icon="solar:danger-bold" className="w-7 h-7 text-red-400" />}
+      titleIcon={<AlertTriangle size={16} strokeWidth={1.75} className="text-err" />}
       titleSubtitle={titleSubtitleNode}
       onClose={() => !isProcessing && closeCrashModal()}
-      width="lg"
+      width="md"
       footer={modalFooter}
     >
-      <div className="p-6 space-y-4 text-white text-base text-center">
+      <div className="p-5">
         {isProcessing ? (
-          <div className="flex flex-col items-center justify-center gap-4 py-10">
-            <Icon icon="solar:shield-check-bold" className="w-12 h-12 text-amber-300 animate-pulse" />
-            <p className="text-lg font-minecraft text-gray-200">
-              {statusText ?? t('common.loading')}
-            </p>
+          <div className="flex items-center gap-2.5 h-20 text-[13px] text-fg-2">
+            <Loader2 size={16} strokeWidth={1.75} className="animate-spin text-fg-3" />
+            {statusText ?? t('common.loading')}
           </div>
         ) : (
-          <>
-            <p className="pt-3 text-gray-300 text-lg font-minecraft">
+          <div className="space-y-4">
+            <p className="text-[13px] text-fg-2 leading-relaxed">
               {t('crash_modal.description')}
             </p>
 
-            <p className="pt-4 text-base font-smallcaps text-red-400">
-              {t('crash_modal.exit_code')}: {crashData.exit_code ?? 'N/A'}
-            </p>
+            {/* the facts of the crash, in mono */}
+            <dl
+              className="border border-line divide-y divide-line text-xs"
+              style={{ borderRadius: "var(--r-md)" }}
+            >
+              <div className="flex items-center gap-4 px-3 h-8">
+                <dt className="w-24 flex-shrink-0 text-fg-3">{t('crash_modal.exit_code')}</dt>
+                <dd className="font-mono text-err">{crashData.exit_code ?? 'N/A'}</dd>
+              </div>
+              <div className="flex items-center gap-4 px-3 h-8">
+                <dt className="w-24 flex-shrink-0 text-fg-3">{t('crash_modal.profile_label')}</dt>
+                <dd className="font-mono text-fg-2 truncate">{profileLabel}</dd>
+              </div>
+              {crashData.process_id && (
+                <div className="flex items-center gap-4 px-3 h-8">
+                  <dt className="w-24 flex-shrink-0 text-fg-3">{t('crash_modal.process_label')}</dt>
+                  <dd className="font-mono text-fg-3 truncate">{crashData.process_id}</dd>
+                </div>
+              )}
+              <div className="flex items-center gap-4 px-3 h-8">
+                <dt className="w-24 flex-shrink-0 text-fg-3">{t('crash_modal.report_label')}</dt>
+                <dd className="font-mono text-fg-3 truncate">
+                  {displayedCrashReportContent
+                    ? t('crash_modal.report_found')
+                    : isListeningForCrashContent
+                      ? t('crash_modal.report_waiting')
+                      : t('crash_modal.report_none')}
+                </dd>
+              </div>
+            </dl>
 
-            <div className="pt-4 space-y-3 text-left">
-              <p className="text-sm font-minecraft text-gray-400">
-                {t('crash_modal.upload_notice')}
-              </p>
-            </div>
-          </>
+            <p className="text-xs text-fg-3 leading-relaxed">
+              {t('crash_modal.upload_notice')}
+            </p>
+          </div>
         )}
       </div>
     </Modal>
   );
-} 
+}

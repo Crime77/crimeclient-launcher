@@ -1,16 +1,15 @@
 "use client";
 
 import type React from "react";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Check, Pencil, Plus, Trash2 } from "lucide-react";
 import { setDiscordState } from "../../utils/discordRpc";
 import type { MinecraftProfile, TexturesData } from "../../types/minecraft";
 import type { MinecraftSkin, SkinVariant } from "../../types/localSkin";
 import { useMinecraftAuthStore } from "../../store/minecraft-auth-store";
 import { MinecraftSkinService } from "../../services/minecraft-skin-service";
 import { Button } from "../ui/buttons/Button";
-import { IconButton } from "../ui/buttons/IconButton";
-import { Icon } from "@iconify/react";
 import { StatusMessage } from "../ui/StatusMessage";
 import { SignedOutState } from "../account/SignedOutState";
 import { SkinViewer } from "../launcher/SkinViewer";
@@ -18,7 +17,7 @@ import { useDebounce } from "../../hooks/useDebounce";
 import { useThemeStore } from "../../store/useThemeStore";
 import { useSkinStore } from "../../store/useSkinStore";
 import { toast } from "react-hot-toast";
-import { SearchWithFilters } from "../ui/SearchWithFilters";
+import { SearchInput } from "../ui/SearchInput";
 import { useGlobalModal } from "../../hooks/useGlobalModal";
 import { AddSkinModal } from "../modals/AddSkinModal";
 import { cn } from "../../lib/utils";
@@ -42,6 +41,23 @@ function useDelayedFlag(active: boolean, delayMs: number): boolean {
 
 const PREVIEW_WIDTH = 176;
 const PREVIEW_HEIGHT = 280;
+
+/** Entrance of the n-th tile when animations are on: the page fade, a few ms later per tile. */
+function useTileEntrance(index: number): { className: string; style: React.CSSProperties } {
+  const animated = useThemeStore((state) => state.isBackgroundAnimationEnabled);
+  if (!animated) return { className: "", style: {} };
+  return { className: "cc-enter", style: { animationDelay: `${Math.min(index, 12) * 24}ms` } };
+}
+
+/** A thin spinning ring (rendering, applying). */
+function Ring({ size = 18 }: { size?: number }) {
+  return (
+    <span
+      className="block rounded-full border-[1.5px] border-line-3 border-t-fg-2 animate-spin"
+      style={{ width: size, height: size }}
+    />
+  );
+}
 
 const SkinPreview = memo(
   ({
@@ -72,12 +88,8 @@ const SkinPreview = memo(
       event: React.MouseEvent<HTMLButtonElement>,
     ) => void;
   }) => {
-    const [isHovered, setIsHovered] = useState(false);
-    const accentColor = useThemeStore((state) => state.accentColor);
-    const isBackgroundAnimationEnabled = useThemeStore(
-      (state) => state.isBackgroundAnimationEnabled,
-    );
     const { t } = useTranslation();
+    const entrance = useTileEntrance(index);
     const isSelected = selectedLocalSkin?.id === skin.id;
     const isDisabled = loading && isSelected;
 
@@ -91,139 +103,111 @@ const SkinPreview = memo(
     });
     const canShowSpinner = useDelayedFlag(isRenderLoading, 500);
 
-    const animationStyle = isBackgroundAnimationEnabled
-      ? { animationDelay: `${index * 0.075}s` }
-      : {};
-    const animationClasses = isBackgroundAnimationEnabled
-      ? "animate-in fade-in duration-500 fill-mode-both"
-      : "";
-
     return (
       <div
-        key={skin.id}
-        style={{
-          ...animationStyle,
-          backgroundColor: isHovered ? `${accentColor.value}20` : undefined,
-          borderColor: isHovered ? `${accentColor.value}60` : undefined,
-        }}
+        role="button"
+        tabIndex={isDisabled ? -1 : 0}
+        aria-label={skin.name}
+        aria-current={isApplied || undefined}
+        style={{ ...entrance.style, borderRadius: "var(--r-lg)" }}
         className={cn(
-          "relative flex flex-col gap-3 p-4 rounded-lg bg-black/20 border border-white/10 hover:border-white/20 transition-all duration-200 cursor-pointer",
-          animationClasses,
-          isDisabled ? "opacity-60 pointer-events-none" : ""
+          "group relative p-2 bg-s1 border cursor-pointer outline-none",
+          "transition-[transform,border-color] duration-fast ease-out hover:-translate-y-px",
+          "focus-visible:border-line-3",
+          isApplied ? "border-line-3" : "border-line hover:border-line-2",
+          isDisabled && "pointer-events-none",
+          entrance.className,
         )}
         onClick={() => !isDisabled && onClick(skin)}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        onKeyDown={(e) => {
+          if ((e.key === "Enter" || e.key === " ") && !isDisabled && e.target === e.currentTarget) {
+            e.preventDefault();
+            onClick(skin);
+          }
+        }}
       >
-        {/* Action buttons - top right */}
-        <div className="absolute top-3 right-3 z-20 flex flex-col gap-1">
-          {onEditSkin && (
-            <button
-              onClick={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                onEditSkin(skin, event);
-              }}
-              className="w-8 h-8 flex items-center justify-center bg-black/30 hover:bg-black/50 text-white/70 hover:text-white border border-white/10 hover:border-white/20 rounded transition-all duration-200"
-              title={t('skins.editProperties')}
-              disabled={isDisabled}
+        {/* the preview on its well */}
+        <div className="relative aspect-[4/5] bg-s2 rounded-md overflow-hidden flex items-center justify-center">
+          {isRenderLoading && canShowSpinner ? (
+            <Ring />
+          ) : !isRenderLoading ? (
+            <SkinViewer
+              skinUrl={previewUrl}
+              width={PREVIEW_WIDTH}
+              height={PREVIEW_HEIGHT}
+              fill
+              className="block h-[92%] w-auto"
+            />
+          ) : null}
+
+          {isApplied && (
+            <span
+              className="absolute top-2 left-2 w-5 h-5 grid place-items-center bg-fg text-bg rounded-sm"
+              title={t('skins.applied')}
             >
-              <Icon icon="solar:pen-bold" className="w-4 h-4" />
-            </button>
+              <Check size={13} strokeWidth={2.5} />
+            </span>
           )}
 
-          {onDeleteSkin && (
-            <button
-              onClick={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                onDeleteSkin(skin.id, skin.name, event);
-              }}
-              className="w-8 h-8 flex items-center justify-center bg-black/30 hover:bg-red-700/80 text-white/70 hover:text-white border border-white/10 hover:border-white/20 rounded transition-all duration-200"
-              title={t('skins.deleteSkin')}
-              disabled={isDisabled}
-            >
-              <Icon
-                icon="solar:trash-bin-trash-bold"
-                className="w-4 h-4"
-              />
-            </button>
-          )}
-        </div>
-
-        {/* Skin content */}
-        <div className="flex flex-col items-center gap-3 relative z-10 w-full">
-          {/* Skin Image */}
-          <div
-            className="relative flex-shrink-0 rounded-lg flex items-center justify-center overflow-hidden border border-transparent transition-all duration-300 ease-out"
-            style={{
-              width: `${PREVIEW_WIDTH}px`,
-              height: `${PREVIEW_HEIGHT}px`,
-            }}
-          >
-            {isRenderLoading && canShowSpinner ? (
-              <div className="flex flex-col items-center justify-center space-y-2">
-                <div className="w-8 h-8 border-4 border-t-transparent border-[var(--accent)] rounded-full animate-spin"></div>
-                <p className="font-smallcaps text-xs text-white/70">{t('skins.loading')}</p>
-              </div>
-            ) : !isRenderLoading ? (
-              <SkinViewer
-                skinUrl={previewUrl}
-                width={PREVIEW_WIDTH}
-                height={PREVIEW_HEIGHT}
-                fill
-                className="rounded-sm block"
-              />
-            ) : null}
-
-            {/* Applying overlay */}
-            {isDisabled && (
-              <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg">
-                <Icon
-                  icon="svg-spinners:ring-resize"
-                  className="w-8 h-8 mb-1"
-                  style={{ color: accentColor.value }}
-                />
-                <span className="font-smallcaps text-xs text-white">
-                  {t('skins.applying')}
-                </span>
-              </div>
+          {/* actions, shown on hover and keyboard focus */}
+          <div className="absolute top-1.5 right-1.5 flex flex-col gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-fast">
+            {onEditSkin && (
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onEditSkin(skin, event);
+                }}
+                className="cc-icon-btn bg-s3 border border-line-2"
+                title={t('skins.editProperties')}
+                aria-label={t('skins.editProperties')}
+                disabled={isDisabled}
+              >
+                <Pencil size={14} strokeWidth={1.75} />
+              </button>
+            )}
+            {onDeleteSkin && (
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onDeleteSkin(skin.id, skin.name, event);
+                }}
+                className="cc-icon-btn bg-s3 border border-line-2 hover:!text-err"
+                title={t('skins.deleteSkin')}
+                aria-label={t('skins.deleteSkin')}
+                disabled={isDisabled}
+              >
+                <Trash2 size={14} strokeWidth={1.75} />
+              </button>
             )}
           </div>
 
-          {/* Skin Info */}
-          <div className="flex-grow min-w-0 w-full text-center">
-            {/* Skin Name */}
-            <h3
-              className="font-minecraft text-white text-base whitespace-nowrap overflow-hidden text-ellipsis max-w-full normal-case mb-1"
-              title={skin.name}
-            >
-              {skin.name}
-            </h3>
-
-            {/* Skin Variant & Applied Status */}
-            <div className="flex items-center justify-center gap-2 text-xs font-minecraft">
-              <div className="text-white/60 flex items-center gap-1">
-                <Icon
-                  icon="solar:palette-bold"
-                  className="w-3 h-3 text-white/50"
-                />
-                <span>{skin.variant === "slim" ? t('skins.slim') : t('skins.classic')}</span>
-              </div>
-
-              {isApplied && (
-                <>
-                  <div className="w-px h-3 bg-white/30"></div>
-                  <div className="text-green-400 flex items-center gap-1">
-                    <Icon
-                      icon="solar:check-circle-bold"
-                      className="w-3 h-3"
-                    />
-                    <span>{t('skins.applied')}</span>
-                  </div>
-                </>
-              )}
+          {/* applying overlay */}
+          {isDisabled && (
+            <div className="absolute inset-0 bg-bg/75 flex flex-col items-center justify-center gap-2">
+              <Ring />
+              <span className="text-xs text-fg-2">{t('skins.applying')}</span>
             </div>
+          )}
+        </div>
+
+        <div className="px-1 pt-2.5 pb-0.5">
+          <div className="flex items-center justify-between gap-2 h-4">
+            <span className="cc-eyebrow">
+              {skin.variant === "slim" ? t('skins.slim') : t('skins.classic')}
+            </span>
+            {isApplied && (
+              <span className="text-[11px] font-[520] text-fg">{t('skins.applied')}</span>
+            )}
+          </div>
+          <div
+            className="text-[13px] leading-5 font-[520] text-fg truncate mt-1"
+            title={skin.name}
+          >
+            {skin.name}
           </div>
         </div>
       </div>
@@ -233,82 +217,32 @@ const SkinPreview = memo(
 
 const AddSkinCard = memo(
   ({ index, onClick }: { index: number; onClick: () => void }) => {
-    const [isHovered, setIsHovered] = useState(false);
     const { t } = useTranslation();
-    const isBackgroundAnimationEnabled = useThemeStore(
-      (state) => state.isBackgroundAnimationEnabled,
-    );
-    const accentColor = useThemeStore((state) => state.accentColor);
-
-    const animationStyle = isBackgroundAnimationEnabled
-      ? { animationDelay: `${index * 0.075}s` }
-      : {};
-    const animationClasses = isBackgroundAnimationEnabled
-      ? "animate-in fade-in duration-500 fill-mode-both"
-      : "";
+    const entrance = useTileEntrance(index);
 
     return (
-      <div
-        key={`add-skin-${index}`}
-        style={animationStyle}
+      <button
+        type="button"
+        style={{ ...entrance.style, borderRadius: "var(--r-lg)" }}
         className={cn(
-          "relative flex flex-col gap-3 p-4 rounded-lg bg-black/20 border border-dashed border-white/10 hover:border-white/30 transition-all duration-200 cursor-pointer",
-          animationClasses
+          "group relative p-2 text-left bg-s1 border border-line hover:border-line-2",
+          "transition-[transform,border-color] duration-fast ease-out hover:-translate-y-px",
+          entrance.className,
         )}
         onClick={onClick}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
       >
-        {/* Skin content */}
-        <div className="flex flex-col items-center gap-3 relative z-10 w-full">
-          {/* Skin Image */}
-          <div
-            className="relative flex-shrink-0 rounded-lg flex items-center justify-center overflow-hidden border border-transparent transition-all duration-300 ease-out"
-            style={{
-              width: `${PREVIEW_WIDTH}px`,
-              height: `${PREVIEW_HEIGHT}px`,
-            }}
-          >
-            <SkinViewer
-              skinUrl="/skins/default_skin_full.png"
-              width={140}
-              height={280}
-              className="rounded-sm block opacity-70 hover:opacity-100 transition-opacity"
-            />
-
-            {/* Plus icon overlay */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Icon
-                icon="solar:add-circle-bold"
-                className="w-12 h-12 text-white/70 hover:text-white transition-colors"
-                style={{ color: isHovered ? accentColor.value : undefined }}
-              />
-            </div>
-          </div>
-
-          {/* Skin Info */}
-          <div className="flex-grow min-w-0 w-full text-center">
-            {/* Skin Name */}
-            <h3
-              className="font-minecraft text-white text-base whitespace-nowrap overflow-hidden text-ellipsis max-w-full normal-case mb-1"
-              title={t('skins.addNewSkin')}
-            >
-              {t('skins.addNewSkin')}
-            </h3>
-
-            {/* Description */}
-            <div className="flex items-center justify-center gap-2 text-xs font-minecraft">
-              <div className="text-white/60 flex items-center gap-1">
-                <Icon
-                  icon="solar:upload-bold"
-                  className="w-3 h-3 text-white/50"
-                />
-                <span>{t('skins.uploadOrImport')}</span>
-              </div>
-            </div>
+        <div className="aspect-[4/5] bg-s2 rounded-md grid place-items-center">
+          <span className="w-9 h-9 grid place-items-center border border-line-2 rounded-md text-fg-3 group-hover:text-fg group-hover:border-line-3 transition-colors duration-fast">
+            <Plus size={18} strokeWidth={1.75} />
+          </span>
+        </div>
+        <div className="px-1 pt-2.5 pb-0.5">
+          <div className="h-4 text-[11px] leading-4 text-fg-3 truncate">{t('skins.uploadOrImport')}</div>
+          <div className="text-[13px] leading-5 font-[520] text-fg truncate mt-1">
+            {t('skins.addNewSkin')}
           </div>
         </div>
-      </div>
+      </button>
     );
   },
 );
@@ -337,7 +271,6 @@ export function SkinsTab() {
   const [currentSkinId, setCurrentSkinId] = useState<string | null>(null);
 
   const debouncedSearch = useDebounce(search, 250);
-  const accentColor = useThemeStore((state) => state.accentColor);
 
   const filteredSkins = useMemo(() => {
     if (!debouncedSearch.trim()) return localSkins;
@@ -576,53 +509,48 @@ export function SkinsTab() {
     return skin.id === currentSkinId;
   };
 
-  // Add skin button
-  const addSkinButton = (
-    <button
-      onClick={() => startEditSkin(null)}
-      className="flex items-center gap-2 px-4 py-2 bg-black/30 hover:bg-black/40 text-white/70 hover:text-white border border-white/10 hover:border-white/20 rounded-lg font-smallcaps text-base transition-all duration-200"
-      title={t('skins.addSkin')}
-      disabled={!activeAccount}
-    >
-      <div className="w-4 h-4 flex items-center justify-center">
-        <Icon icon="solar:add-circle-bold" className="w-4 h-4" />
-      </div>
-      <span>{t('skins.addSkin')}</span>
-    </button>
-  );
-
   return (
-    <div className="h-full flex flex-col overflow-hidden p-4 relative">
-      <div className="flex-1 overflow-y-auto no-scrollbar">
-        {/* Search & Filters. Hidden while signed out: with no skins to search
-            and the add button already gated, the bar is a row of dead controls
-            above an empty page. */}
+    <div className="h-full flex flex-col overflow-hidden">
+      {/* header: title, and while signed in the search and the add button */}
+      <div className="flex-shrink-0 flex items-start justify-between gap-6 px-6 pt-5 pb-4 border-b border-line">
+        <div className="min-w-0">
+          <h1 className="font-display text-[22px] leading-[28px] font-[650] text-fg flex items-baseline gap-2.5">
+            {t('skins.title')}
+            {activeAccount && !localSkinsLoading && (
+              <span className="cc-num text-[13px] font-[450] text-fg-4">{localSkins.length}</span>
+            )}
+          </h1>
+          <p className="text-[13px] leading-5 text-fg-3 mt-1 truncate">{t('skins.subtitle')}</p>
+        </div>
+        {/* Hidden while signed out: with no skins to search and the add button
+            already gated, the controls would be a row of dead ends. */}
         {activeAccount && (
-          <div className="mb-6 pb-4 border-b border-white/10">
-            <div className="flex items-center gap-4">
-              <div className="flex-1">
-                <SearchWithFilters
-                  placeholder={t('skins.searchPlaceholder')}
-                  searchValue={search}
-                  onSearchChange={setSearch}
-                  onSearchEnter={() => {}} // Optional: implement instant search
-                />
-              </div>
-
-              {/* Action Button */}
-              <div className="flex items-center gap-3">
-                {addSkinButton}
-              </div>
-            </div>
+          <div className="flex items-center gap-2 flex-shrink-0 pt-0.5">
+            <SearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder={t('skins.searchPlaceholder')}
+              size="sm"
+              className="w-[220px]"
+            />
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => startEditSkin(null)}
+              title={t('skins.addSkin')}
+              disabled={!activeAccount}
+              icon={<Plus size={15} strokeWidth={1.75} />}
+            >
+              {t('skins.addSkin')}
+            </Button>
           </div>
         )}
+      </div>
 
-        {/* Content */}
-        <div className={activeAccount ? "space-y-8" : "h-full"}>
+      {/* Content */}
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-6 py-5">
         {accountLoading ? (
-          <p className="text-white/70 font-smallcaps text-sm text-center py-4">
-            {t('skins.loadingAccount')}
-          </p>
+          <p className="text-[13px] text-fg-2 py-4">{t('skins.loadingAccount')}</p>
         ) : !activeAccount ? (
           // Signed out wins over the error banner, and any error rides along
           // above it. The other way round the tab was a dead end: the banner
@@ -632,13 +560,13 @@ export function SkinsTab() {
             {accountError && (
               <StatusMessage
                 type="error"
-                className="font-smallcaps text-xs"
+                className="text-xs"
                 message={t('skins.accountError', { error: accountError })}
               />
             )}
             <div className="flex-1">
               <SignedOutState
-                icon="solar:emoji-funny-circle-bold"
+                icon="lucide:shirt"
                 title={t('skins.signedOut.title')}
                 description={t('skins.signedOut.description')}
               />
@@ -647,56 +575,36 @@ export function SkinsTab() {
         ) : accountError ? (
           <StatusMessage
             type="error"
-            className="font-smallcaps text-xs"
+            className="text-xs"
             message={t('skins.accountError', { error: accountError })}
           />
+        ) : localSkinsLoading ? (
+          <p className="text-[13px] text-fg-2 py-4">{t('skins.loadingSkins')}</p>
+        ) : localSkinsError ? (
+          <StatusMessage type="error" className="text-xs" message={localSkinsError} />
+        ) : localSkins.length > 0 && filteredSkins.length === 0 ? (
+          <div className="py-10 text-center">
+            <p className="text-[13px] text-fg-2">{t('skins.noSkinsMatchSearch')}</p>
+          </div>
         ) : (
-          <>
-            <div className="space-y-5 text-center">
-              {localSkinsLoading ? (
-                <p className="text-white/70 font-smallcaps text-sm text-center py-4">
-                  {t('skins.loadingSkins')}
-                </p>
-              ) : localSkinsError ? (
-                <StatusMessage
-                  type="error"
-                  className="font-smallcaps text-xs"
-                  message={localSkinsError}
-                />
-              ) : !localSkinsLoading &&
-                localSkins.length > 0 &&
-                filteredSkins.length === 0 &&
-                !localSkinsError ? (
-                <p className="text-white/70 italic font-smallcaps text-xs">
-                  {t('skins.noSkinsMatchSearch')}
-                </p>
-              ) : (
-                <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4">
-                  <AddSkinCard
-                    index={0}
-                    onClick={() => startEditSkin(null, undefined)}
-                  />
-                  {filteredSkins.map((skin, index) => (
-                    <SkinPreview
-                      key={skin.id}
-                      skin={skin}
-                      index={index + 1}
-                      loading={loading}
-                      localSkinsLoading={localSkinsLoading}
-                      selectedLocalSkin={selectedLocalSkin}
-                      isApplied={isSkinApplied(skin)}
-                      onClick={(target) => startEditSkin(target)}
-                      onEditSkin={startEditSkin}
-                      onDeleteSkin={handleDeleteSkin}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          </>
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(164px,1fr))] gap-3">
+            <AddSkinCard index={0} onClick={() => startEditSkin(null, undefined)} />
+            {filteredSkins.map((skin, index) => (
+              <SkinPreview
+                key={skin.id}
+                skin={skin}
+                index={index + 1}
+                loading={loading}
+                localSkinsLoading={localSkinsLoading}
+                selectedLocalSkin={selectedLocalSkin}
+                isApplied={isSkinApplied(skin)}
+                onClick={(target) => startEditSkin(target)}
+                onEditSkin={startEditSkin}
+                onDeleteSkin={handleDeleteSkin}
+              />
+            ))}
+          </div>
         )}
-        </div>
-
       </div>
     </div>
   );

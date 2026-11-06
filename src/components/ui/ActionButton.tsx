@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Icon } from "@iconify/react";
-import { useThemeStore } from "../../store/useThemeStore";
+import { cn } from "../../lib/utils";
 
 export type ActionButtonVariant = "primary" | "secondary" | "icon-only" | "destructive" | "text" | "highlight";
 
@@ -29,6 +29,24 @@ export interface ActionButtonProps {
   iconClassName?: string;
 }
 
+// heights 28 / 32 / 36 px; icon-only buttons are square
+const SIZES = {
+  sm: { label: "h-7 px-2.5 gap-1.5 text-xs", square: "h-7 w-7", icon: "w-3.5 h-3.5" },
+  md: { label: "h-8 px-3 gap-2 text-[13px]", square: "h-8 w-8", icon: "w-4 h-4" },
+  lg: { label: "h-9 px-3.5 gap-2 text-[13px]", square: "h-9 w-9", icon: "w-4 h-4" },
+} as const;
+
+// "Werkzeug": primary = the accent fill (the one main action), secondary = s3 with a hairline,
+// text = quiet, highlight = a text action at full strength, destructive = state text and hairline
+const VARIANTS: Record<ActionButtonVariant, string> = {
+  primary: "cc-btn-primary border border-transparent",
+  secondary: "bg-s3 border border-line-2 text-fg hover:bg-s4 hover:border-line-3",
+  "icon-only": "bg-transparent border border-transparent text-fg-3 hover:text-fg hover:bg-s3 justify-center",
+  destructive: "bg-transparent border border-err/35 text-err hover:bg-err/10",
+  text: "bg-transparent text-fg-3 hover:text-fg hover:bg-s3",
+  highlight: "bg-transparent text-fg font-[560] hover:bg-s3",
+};
+
 export function ActionButton({
   id,
   label,
@@ -41,10 +59,10 @@ export function ActionButton({
   size = "md",
   iconClassName = "",
 }: ActionButtonProps) {
-  const accentColor = useThemeStore((state) => state.accentColor);
-
   // Auto-detect icon-only if no label is provided (but preserve special variants)
   const effectiveVariant = !label && variant !== "icon-only" && variant !== "highlight" && variant !== "text" ? "icon-only" : variant;
+  const dims = SIZES[size] ?? SIZES.md;
+  const square = !label || effectiveVariant === "icon-only";
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -53,156 +71,25 @@ export function ActionButton({
     }
   };
 
-  const getSizeClasses = () => {
-    switch (size) {
-      case "sm":
-        return effectiveVariant === "icon-only"
-          ? "py-1.5 px-1.5 text-sm"
-          : "px-2 py-0.5 text-base";
-      case "lg":
-        return effectiveVariant === "icon-only"
-          ? "py-[0.57rem] px-[0.57rem] text-lg"
-          : "px-4 py-1.5 text-lg";
-      default: // md
-        return effectiveVariant === "icon-only"
-          ? "py-[0.57rem] px-[0.57rem] text-base"
-          : "px-3 py-1 text-base";
-    }
-  };
-
-  const getIconSize = () => {
-    switch (size) {
-      case "sm":
-        return effectiveVariant === "icon-only" ? "w-4 h-4" : "w-3 h-3";
-      case "lg":
-        return effectiveVariant === "icon-only" ? "w-6 h-6" : "w-5 h-5";
-      default: // md
-        return effectiveVariant === "icon-only" ? "w-5 h-5" : "w-4 h-4";
-    }
-  };
-
-  const getButtonStyles = () => {
-    const baseClasses = (effectiveVariant === "text" || effectiveVariant === "highlight")
-      ? `transition-all duration-200 font-smallcaps flex items-center gap-2 ${getSizeClasses()}`
-      : `transition-all duration-200 hover:scale-105 border font-smallcaps rounded-lg flex items-center gap-2 ${getSizeClasses()}`;
-    
-    switch (effectiveVariant) {
-      case "primary":
-        return {
-          className: `${baseClasses} text-white`,
-          style: {
-            backgroundColor: `${accentColor.value}20`,
-            borderColor: `${accentColor.value}60`,
-            color: 'white',
-          },
-          onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => {
-            if (!disabled) {
-              e.currentTarget.style.backgroundColor = `${accentColor.value}30`;
-              e.currentTarget.style.borderColor = `${accentColor.value}80`;
-            }
-          },
-          onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => {
-            if (!disabled) {
-              e.currentTarget.style.backgroundColor = `${accentColor.value}20`;
-              e.currentTarget.style.borderColor = `${accentColor.value}60`;
-            }
-          },
-        };
-      
-      case "secondary":
-        return {
-          className: `${baseClasses} bg-black/30 hover:bg-black/40 text-white/70 hover:text-white border-white/10 hover:border-white/20`,
-          style: {},
-        };
-      
-      case "icon-only":
-        return {
-          className: `${baseClasses} bg-black/30 hover:bg-black/40 text-white/70 hover:text-white justify-center border-white/10 hover:border-white/20`,
-          style: {},
-        };
-      
-      case "destructive":
-        return {
-          className: `${baseClasses} bg-red-600/20 hover:bg-red-600/30 text-white hover:text-white border-red-500/30 hover:border-red-500/50`,
-          style: {},
-        };
-      
-      case "text":
-        return {
-          className: `${baseClasses} text-white/60 hover:text-white cursor-pointer`,
-          style: {
-            backgroundColor: 'transparent',
-            border: 'none',
-          },
-          onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => {
-            if (!disabled) {
-              e.currentTarget.style.backgroundColor = `${accentColor.value}10`;
-              e.currentTarget.style.color = 'white';
-            }
-          },
-          onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => {
-            if (!disabled) {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = 'rgba(255, 255, 255, 0.6)';
-            }
-          },
-        };
-      
-      case "highlight":
-        return {
-          className: `${baseClasses} cursor-pointer`,
-          style: {
-            backgroundColor: 'transparent',
-            border: 'none',
-            color: accentColor.value,
-          },
-          onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => {
-            if (!disabled) {
-              e.currentTarget.style.backgroundColor = `${accentColor.value}20`;
-              e.currentTarget.style.color = accentColor.value;
-              e.currentTarget.style.textShadow = `0 0 8px ${accentColor.value}40`;
-            }
-          },
-          onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => {
-            if (!disabled) {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = accentColor.value;
-              e.currentTarget.style.textShadow = 'none';
-            }
-          },
-        };
-      
-      default:
-        return {
-          className: `${baseClasses} bg-black/30 hover:bg-black/40 text-white/70 hover:text-white border-white/10 hover:border-white/20`,
-          style: {},
-        };
-    }
-  };
-
-  const buttonStyles = getButtonStyles();
-  const isDisabled = disabled;
-
   return (
     <button
       id={id}
       onClick={handleClick}
-      className={`${buttonStyles.className} ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}
-      style={!isDisabled ? buttonStyles.style : { ...buttonStyles.style, opacity: 0.5 }}
-      onMouseEnter={!isDisabled ? buttonStyles.onMouseEnter : undefined}
-      onMouseLeave={!isDisabled ? buttonStyles.onMouseLeave : undefined}
-      title={tooltip}
-      disabled={isDisabled}
-    >
-      <div className={effectiveVariant === "icon-only" ? `${getIconSize()} flex items-center justify-center` : `${getIconSize()} flex items-center justify-center`}>
-        <Icon
-          icon={icon}
-          className={`${getIconSize()} ${iconClassName}`}
-        />
-      </div>
-      {effectiveVariant !== "icon-only" && label && (
-        <span style={{ transform: 'translateY(-0.075em)' }}>{label}</span>
+      className={cn(
+        "relative flex items-center justify-center whitespace-nowrap font-[520] rounded-md",
+        "transition-[background-color,border-color,color,transform] duration-fast ease-out active:scale-[0.98]",
+        square ? dims.square : dims.label,
+        VARIANTS[effectiveVariant] ?? VARIANTS.secondary,
+        disabled && "opacity-45 cursor-not-allowed active:scale-100",
+        className,
       )}
+      title={tooltip}
+      disabled={disabled}
+    >
+      <span className={cn("flex items-center justify-center flex-shrink-0", dims.icon)}>
+        <Icon icon={icon} className={cn(dims.icon, iconClassName)} />
+      </span>
+      {effectiveVariant !== "icon-only" && label && <span className="truncate">{label}</span>}
     </button>
   );
 }

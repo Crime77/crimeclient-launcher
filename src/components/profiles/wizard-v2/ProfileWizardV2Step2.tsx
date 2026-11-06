@@ -1,30 +1,26 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Icon } from "@iconify/react";
+import { ArrowLeft, ArrowRight, Loader2, Star, TriangleAlert } from "lucide-react";
 import type { ModLoader } from "../../../types/profile";
 import { invoke } from "@tauri-apps/api/core";
 import { Modal } from "../../ui/Modal";
 import { Button } from "../../ui/buttons/Button";
 import { StatusMessage } from "../../ui/StatusMessage";
-import { useThemeStore } from "../../../store/useThemeStore";
 import { Select } from "../../ui/Select";
 import { Tooltip } from "../../ui/Tooltip";
 import type { NrcCompatibilityData } from "../../../utils/nrc-compatibility";
 import { useTranslation } from "react-i18next";
 import { parseErrorMessage } from "../../../utils/error-utils";
+import { cn } from "../../../lib/utils";
+import { WizardSteps, choiceCardClasses, FieldLabel } from "./WizardParts";
 
 function NrcLoaderCompatibleTooltipContent() {
   const { t } = useTranslation();
   return (
-    <div className="space-y-2">
-      <div className="text-sm text-white">{t('profiles.wizard.nrcLoaderCompatible')}</div>
-      <div className="flex items-start gap-2">
-        <Icon icon="solar:lightbulb-bold" className="text-yellow-400 text-base flex-shrink-0" />
-        <div className="text-gray-300 text-xs italic">
-          {t('profiles.wizard.nrcLoaderFeatures')}
-        </div>
-      </div>
+    <div className="space-y-1 max-w-[220px]">
+      <div className="text-[12.5px] font-medium text-fg">{t('profiles.wizard.nrcLoaderCompatible')}</div>
+      <div className="text-[12px] text-fg-3">{t('profiles.wizard.nrcLoaderFeatures')}</div>
     </div>
   );
 }
@@ -52,7 +48,6 @@ export function ProfileWizardV2Step2({
   nrcCompatibility
 }: ProfileWizardV2Step2Props) {
   const { t } = useTranslation();
-  const accentColor = useThemeStore((state) => state.accentColor);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedLoader, setSelectedLoader] = useState<ModLoader>("fabric");
@@ -297,9 +292,9 @@ export function ProfileWizardV2Step2({
   const renderContent = () => {
     if (loading) {
       return (
-        <div className="flex flex-col items-center justify-center h-64">
-          <Icon icon="svg-spinners:ring-resize" className="w-12 h-12 text-white mb-4" />
-          <p className="text-sm font-smallcaps text-white">{t('profiles.wizard.loading')}</p>
+        <div className="flex flex-col items-center justify-center gap-3 h-64 text-fg-3">
+          <Loader2 size={20} strokeWidth={1.75} className="animate-spin" />
+          <p className="text-[12.5px]">{t('profiles.wizard.loading')}</p>
         </div>
       );
     }
@@ -309,104 +304,91 @@ export function ProfileWizardV2Step2({
     }
 
     return (
-      <div className="h-[380px] flex flex-col space-y-6">
-        {/* Mod Loader Selection */}
-        <div className="grid grid-cols-2 gap-3 flex-shrink-0">
-          {modLoaders.map(loader => {
-            const isUnavailable = unavailableLoaders.has(loader.key);
-            const isDisabled = isUnavailable && loader.key !== "vanilla";
-            const isNrcCompatible = nrcCompatibility
-              ?.compatibleLoadersByVersion
-              .get(selectedMinecraftVersion)
-              ?.has(loader.key) ?? false;
+      <div className="flex flex-col gap-6">
+        {/* Mod loader: flat choice cards */}
+        <div>
+          <div className="flex items-baseline justify-between mb-2">
+            <span className="cc-eyebrow">{t('profiles.wizard.steps.loader')}</span>
+            <span className="cc-num text-[11.5px] text-fg-4">Minecraft {selectedMinecraftVersion}</span>
+          </div>
+          <div className="grid grid-cols-5 gap-2">
+            {modLoaders.map(loader => {
+              const isUnavailable = unavailableLoaders.has(loader.key);
+              const isDisabled = isUnavailable && loader.key !== "vanilla";
+              const isSelected = selectedLoader === loader.key && !isDisabled;
+              const isNrcCompatible = nrcCompatibility
+                ?.compatibleLoadersByVersion
+                .get(selectedMinecraftVersion)
+                ?.has(loader.key) ?? false;
 
-            return (
-              <div
-                key={loader.key}
-                className={`relative p-4 h-28 transition-all duration-200 rounded-lg overflow-hidden ${
-                  isDisabled
-                    ? "opacity-50 cursor-not-allowed pointer-events-none border-0"
-                    : selectedLoader === loader.key
-                    ? "border-2 border-current hover:bg-current/15 cursor-pointer"
-                    : "border-2 border-transparent hover:bg-black/30 cursor-pointer"
-                }`}
-                style={{
-                  backgroundImage: `url('${loader.backgroundImage}')`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  backgroundRepeat: 'no-repeat',
-                  border: isDisabled ? 'none' : undefined,
-                  ...(selectedLoader === loader.key && !isDisabled ? {
-                    borderColor: accentColor.value,
-                    color: accentColor.value
-                  } : {})
-                }}
-                onClick={() => !isDisabled && setSelectedLoader(loader.key)}
-              >
-                {/* NRC Compatibility Star */}
-                {isNrcCompatible && !isDisabled && (
-                  <div className="absolute top-2 right-2 z-20">
-                    <Tooltip content={<NrcLoaderCompatibleTooltipContent />}>
-                      <div className="flex items-center justify-center w-6 h-6 rounded-full">
-                        <Icon icon="solar:star-bold" className="w-4 h-4 text-yellow-400 drop-shadow-lg" />
-                      </div>
-                    </Tooltip>
-                  </div>
-                )}
-                {/* Dark overlay for better text readability */}
-                <div className={`absolute inset-0 transition-all duration-200 ${
-                  selectedLoader === loader.key && !isDisabled
-                    ? "bg-black/40"
-                    : isDisabled
-                    ? "bg-black/80"
-                    : "bg-black/60"
-                }`} />
-
-                {/* Content */}
-                <div className="relative z-10 flex flex-col items-center text-center justify-center h-full">
-                  <h4 className="font-smallcaps text-xl text-white drop-shadow-lg">
-                    {loader.label}
-                  </h4>
-                  {isDisabled && (
-                    <p className="font-smallcaps text-base text-white/70 mt-1">
-                      {t('profiles.wizard.notAvailable')}
-                    </p>
+              return (
+                <button
+                  key={loader.key}
+                  type="button"
+                  disabled={isDisabled}
+                  aria-pressed={isSelected}
+                  className={cn(
+                    "relative h-[92px] px-3 flex flex-col items-center justify-center gap-2",
+                    choiceCardClasses(isSelected, isDisabled),
                   )}
-                </div>
-              </div>
-            );
-          })}
+                  style={{ borderRadius: "var(--r-lg)" }}
+                  onClick={() => !isDisabled && setSelectedLoader(loader.key)}
+                >
+                  {isNrcCompatible && !isDisabled && (
+                    <span className="absolute top-2 right-2">
+                      <Tooltip content={<NrcLoaderCompatibleTooltipContent />}>
+                        <Star size={12} strokeWidth={1.75} className="text-fg-3" />
+                      </Tooltip>
+                    </span>
+                  )}
+                  <img
+                    src={loader.backgroundImage}
+                    alt=""
+                    className={cn("w-7 h-7 object-contain", isDisabled ? "grayscale" : !isSelected && "opacity-80")}
+                    draggable={false}
+                  />
+                  <span className={cn("text-[13px] font-medium", isSelected ? "text-fg" : "text-fg-2")}>
+                    {loader.label}
+                  </span>
+                  {isDisabled && (
+                    <span className="-mt-1.5 text-[11px] text-fg-4">{t('profiles.wizard.notAvailable')}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Version Selection */}
-        <div className="h-20 flex items-center flex-shrink-0">
+        {/* Loader version */}
+        <div className="min-h-[68px]">
           {selectedLoader === "vanilla" ? (
-            <div className="text-center w-full">
-              <p className="text-xs font-smallcaps text-white/50">
-                {t('profiles.wizard.noAdditionalVersion')}
-              </p>
-            </div>
+            <p className="text-[12.5px] text-fg-3">{t('profiles.wizard.noAdditionalVersion')}</p>
           ) : showLoadingIndicator ? (
-            <div className="flex items-center justify-center w-full">
-              <Icon icon="svg-spinners:ring-resize" className="w-6 h-6 text-white mr-3" />
-              <p className="text-xs font-smallcaps text-white">{t('profiles.wizard.loadingVersions')}</p>
+            <div className="flex items-center gap-2 text-fg-3">
+              <Loader2 size={15} strokeWidth={1.75} className="animate-spin" />
+              <p className="text-[12.5px]">{t('profiles.wizard.loadingVersions')}</p>
             </div>
           ) : loaderVersions.length > 0 ? (
-            <Select
-              value={selectedLoaderVersion || ""}
-              onChange={setSelectedLoaderVersion}
-              options={loaderVersions.map(version => ({
-                value: version,
-                label: version
-              }))}
-              placeholder={t('profiles.wizard.selectLoaderVersion', { loader: modLoaders.find(l => l.key === selectedLoader)?.label })}
-              size="md"
-              className="w-full"
-            />
+            <div>
+              <FieldLabel hint={<span className="cc-num">{loaderVersions.length}</span>}>
+                {t('profiles.wizard.loaderVersionLabel')}
+              </FieldLabel>
+              <Select
+                value={selectedLoaderVersion || ""}
+                onChange={setSelectedLoaderVersion}
+                options={loaderVersions.map(version => ({
+                  value: version,
+                  label: version
+                }))}
+                placeholder={t('profiles.wizard.selectLoaderVersion', { loader: modLoaders.find(l => l.key === selectedLoader)?.label })}
+                size="md"
+                className="w-full"
+              />
+            </div>
           ) : showNoVersionsFound ? (
-            <div className="text-center w-full">
-              <Icon icon="solar:danger-triangle-bold" className="w-8 h-8 text-white/50 mx-auto mb-2" />
-              <p className="text-xs font-smallcaps text-white/70">
+            <div className="flex items-center gap-2 text-fg-3">
+              <TriangleAlert size={15} strokeWidth={1.75} className="text-warn" />
+              <p className="text-[12.5px]">
                 {t('profiles.wizard.noLoaderVersions', { loader: selectedLoader, version: selectedMinecraftVersion })}
               </p>
             </div>
@@ -419,12 +401,11 @@ export function ProfileWizardV2Step2({
   const renderFooter = () => (
     <div className="flex justify-between items-center">
       <Button
-        variant="secondary"
+        variant="ghost"
         onClick={onBack}
         disabled={loading || loadingVersions}
-        size="md"
-        className="text-sm"
-        icon={<Icon icon="solar:arrow-left-bold" className="w-5 h-5" />}
+        size="sm"
+        icon={<ArrowLeft size={15} strokeWidth={1.75} />}
         iconPosition="left"
       >
         {t('profiles.wizard.back')}
@@ -434,9 +415,9 @@ export function ProfileWizardV2Step2({
         variant="default"
         onClick={handleNext}
         disabled={loading || loadingVersions || (selectedLoader !== "vanilla" && !selectedLoaderVersion)}
-        size="md"
-        className="min-w-[180px] text-sm"
-        icon={<Icon icon="solar:arrow-right-bold" className="w-5 h-5" />}
+        size="sm"
+        className="min-w-[96px]"
+        icon={<ArrowRight size={15} strokeWidth={1.75} />}
         iconPosition="right"
       >
         {t('profiles.wizard.next')}
@@ -446,12 +427,13 @@ export function ProfileWizardV2Step2({
 
   return (
     <Modal
-      title={t('profiles.wizard.step2Title')}
+      title={t('profiles.newProfile')}
       onClose={onClose}
       width="lg"
       footer={renderFooter()}
     >
-      <div className="min-h-[500px] p-6 overflow-hidden">
+      <WizardSteps current={2} />
+      <div className="min-h-[460px] px-5 py-5">
         {renderContent()}
       </div>
     </Modal>

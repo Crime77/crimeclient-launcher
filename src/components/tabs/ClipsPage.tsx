@@ -1,18 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Icon } from "@iconify/react";
+import { FolderOpen, Settings2, Star } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { DISCORD_INVITE_URL } from "../../config/links";
 import { toast } from "react-hot-toast";
 
 import { Button } from "../ui/buttons/Button";
-import { ActionButton } from "../ui/ActionButton";
 import { EmptyState } from "../ui/EmptyState";
 import { SearchWithFilters } from "../ui/SearchWithFilters";
 import { Tooltip } from "../ui/Tooltip";
 import { formatShortcut } from "../ui/HotkeyInput";
-import { useWindowFocus } from "../../hooks/useWindowFocus";
 import { ClipGallery, type ClipSort } from "../clips/ClipGallery";
 import { errorKey, getCaptureStatus, openClipFolder, runtimeDownloadPercent } from "../../services/clip-service";
 import { getLauncherConfig } from "../../services/launcher-config-service";
@@ -151,10 +149,10 @@ function warningsFor(
 }
 
 const TONE_DOT: Record<Tone, string> = {
-  live: "bg-green-400",
-  waiting: "bg-blue-400",
-  warn: "bg-yellow-400",
-  off: "bg-white/30",
+  live: "bg-ok",
+  waiting: "bg-info",
+  warn: "bg-warn",
+  off: "bg-fg-4",
 };
 
 export function ClipsPage() {
@@ -271,7 +269,7 @@ export function ClipsPage() {
             <Button
               variant="default"
               size="sm"
-              icon={<Icon icon="solar:settings-bold" className="w-4 h-4" />}
+              icon={<Settings2 size={15} strokeWidth={1.75} />}
               onClick={toClipSettings}
             >
               {t(permissionsBlocked ? "settings.clips.permissions.setup" : "clips.page.off.action")}
@@ -282,84 +280,117 @@ export function ClipsPage() {
     );
   }
 
+  const warnings = permissionsBlocked ? [] : warningsFor(status, chosenEncoder, dropping, t);
+
   return (
-    <div className="h-full flex flex-col overflow-hidden p-4 relative">
-      <div className="mb-6 pb-4 border-b border-white/10">
-        <div className="flex items-center gap-4">
-          <div className="flex-1">
-            <SearchWithFilters
-              placeholder={t("clips.page.search")}
-              searchValue={search}
-              onSearchChange={setSearch}
-              sortOptions={sortOptions}
-              sortValue={sort}
-              onSortChange={(value) => setSort(value as ClipSort)}
-              filterOptions={gameOptions}
-              filterValue={game ?? ALL_GAMES}
-              onFilterChange={(value) => setGame(value === ALL_GAMES ? null : value)}
-              dropdownSize="sm"
-            />
-          </div>
+    <div className="h-full flex flex-col overflow-hidden relative">
+      {/* header: title, capture state, folder and settings */}
+      <div className="flex-shrink-0 flex items-start justify-between gap-6 px-6 pt-5 pb-4">
+        <div className="min-w-0">
+          <h1 className="font-display text-[22px] leading-[28px] font-[650] text-fg">{t("nav.clips")}</h1>
+          <p className="text-[13px] leading-5 text-fg-3 mt-1 truncate">{t("clips.page.subtitle")}</p>
+        </div>
 
-          <div className="flex items-center gap-3">
-            <CaptureStatusPill state={state} hotkey={state.tone === "live" ? hotkey : null} t={t} />
-
-            <Tooltip content={t("clips.page.favourites_only")} position="bottom">
-              <ActionButton
-                icon={favouritesOnly ? "solar:star-bold" : "solar:star-linear"}
-                variant={favouritesOnly ? "primary" : "icon-only"}
-                onClick={() => setFavouritesOnly((current) => !current)}
-              />
-            </Tooltip>
-            <Tooltip content={t("clips.page.folder")} position="bottom">
-              <ActionButton
-                icon="solar:folder-open-bold"
-                onClick={() =>
-                  void openClipFolder().catch((e) => toast.error(parseErrorMessage(e)))
-                }
-              />
-            </Tooltip>
-            <Tooltip content={t("clips.page.settings")} position="bottom">
-              <ActionButton icon="solar:settings-bold" onClick={toClipSettings} />
-            </Tooltip>
-          </div>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <CaptureStatusPill state={state} hotkey={state.tone === "live" ? hotkey : null} t={t} />
+          <span className="mx-1.5 h-4 w-px bg-line-2" />
+          <Tooltip content={t("clips.page.folder")} position="bottom">
+            <button
+              type="button"
+              className="cc-icon-btn h-8 w-8"
+              aria-label={t("clips.page.folder")}
+              onClick={() =>
+                void openClipFolder().catch((e) => toast.error(parseErrorMessage(e)))
+              }
+            >
+              <FolderOpen size={16} strokeWidth={1.75} />
+            </button>
+          </Tooltip>
+          <Tooltip content={t("clips.page.settings")} position="bottom">
+            <button
+              type="button"
+              className="cc-icon-btn h-8 w-8"
+              aria-label={t("clips.page.settings")}
+              onClick={toClipSettings}
+            >
+              <Settings2 size={16} strokeWidth={1.75} />
+            </button>
+          </Tooltip>
         </div>
       </div>
 
-      {permissionsBlocked && (
-        <div className="mb-4 flex flex-wrap items-center gap-3">
-          <StatusMessage type="warning" message={state.detail} className="mb-0 min-w-[16rem] flex-1" />
-          <Button size="sm" variant="secondary" onClick={toClipSettings}>
-            {t("settings.clips.permissions.setup")}
-          </Button>
+      {/* toolbar: search, sort, game filter, favourites */}
+      <div className="flex-shrink-0 flex items-center gap-2 px-6 pb-3 border-b border-line">
+        <div className="flex-1 min-w-0">
+          <SearchWithFilters
+            placeholder={t("clips.page.search")}
+            searchValue={search}
+            onSearchChange={setSearch}
+            sortOptions={sortOptions}
+            sortValue={sort}
+            onSortChange={(value) => setSort(value as ClipSort)}
+            filterOptions={gameOptions}
+            filterValue={game ?? ALL_GAMES}
+            onFilterChange={(value) => setGame(value === ALL_GAMES ? null : value)}
+            dropdownSize="sm"
+          />
+        </div>
+
+        <button
+          type="button"
+          aria-pressed={favouritesOnly}
+          onClick={() => setFavouritesOnly((current) => !current)}
+          className={cn(
+            "flex h-9 flex-shrink-0 items-center gap-1.5 rounded-md border px-3 text-[13px] transition-colors duration-fast",
+            favouritesOnly
+              ? "border-line-3 bg-s3 text-fg"
+              : "border-line bg-transparent text-fg-2 hover:bg-s2 hover:text-fg",
+          )}
+        >
+          <Star size={14} strokeWidth={1.75} fill={favouritesOnly ? "currentColor" : "none"} />
+          {t("clips.page.favourites_only")}
+        </button>
+      </div>
+
+      {(permissionsBlocked || warnings.length > 0) && (
+        <div className="flex-shrink-0 flex flex-col gap-2 px-6 pt-3">
+          {permissionsBlocked && (
+            <div className="flex flex-wrap items-center gap-3">
+              <StatusMessage type="warning" message={state.detail} className="mb-0 min-w-[16rem] flex-1" />
+              <Button size="sm" variant="secondary" onClick={toClipSettings}>
+                {t("settings.clips.permissions.setup")}
+              </Button>
+            </div>
+          )}
+
+          {warnings.map((warning) => (
+            <div key={warning} className="flex flex-wrap items-center gap-3">
+              <StatusMessage type="warning" message={warning} className="mb-0 min-w-[16rem] flex-1" />
+              <Button size="sm" variant="secondary" onClick={toClipSettings}>
+                {t("clips.page.settings")}
+              </Button>
+            </div>
+          ))}
         </div>
       )}
 
-      {!permissionsBlocked &&
-        warningsFor(status, chosenEncoder, dropping, t).map((warning) => (
-          <div key={warning} className="mb-4 flex flex-wrap items-center gap-3">
-            <StatusMessage type="warning" message={warning} className="mb-0 min-w-[16rem] flex-1" />
-            <Button size="sm" variant="secondary" onClick={toClipSettings}>
-              {t("clips.page.settings")}
-            </Button>
-          </div>
-        ))}
-
-      <BetaNotice
-        className="mb-4"
-        tag={t("clips.page.beta_tag")}
-        hint={t("clips.page.beta_hint")}
-        feedbackLabel={t("clips.page.feedback")}
-        feedbackUrl={FEEDBACK_URL}
-      />
-
-      <div className="flex-1 overflow-y-auto no-scrollbar">
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-6 pt-4 pb-6">
         <ClipGallery
           search={search}
           sort={sort}
           favouritesOnly={favouritesOnly}
           game={game}
           onGamesChange={setGames}
+        />
+      </div>
+
+      <div className="flex-shrink-0 flex h-9 items-center border-t border-line px-6">
+        <BetaNotice
+          className="w-full min-w-0"
+          tag={t("clips.page.beta_tag")}
+          hint={t("clips.page.beta_hint")}
+          feedbackLabel={t("clips.page.feedback")}
+          feedbackUrl={FEEDBACK_URL}
         />
       </div>
     </div>
@@ -375,23 +406,17 @@ function CaptureStatusPill({
   hotkey: string | null;
   t: (key: string, options?: Record<string, unknown>) => string;
 }) {
-  const focused = useWindowFocus();
-
   const pill = (
-    <div className="flex items-center gap-2.5 h-10 px-3 bg-black/30 border border-white/10 rounded-lg">
-      <span className="relative flex h-2.5 w-2.5 shrink-0">
-        {state.tone === "live" && focused && (
-          <span className="absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-60 animate-ping" />
-        )}
-        <span className={cn("relative inline-flex h-2.5 w-2.5 rounded-full", TONE_DOT[state.tone])} />
-      </span>
-      <span className="font-smallcaps text-base text-white/70 whitespace-nowrap">{state.label}</span>
+    <div className="flex h-8 items-center gap-2 rounded-md border border-line bg-s1 px-2.5">
+      <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", TONE_DOT[state.tone])} />
+      <span className="whitespace-nowrap text-xs text-fg-2">{state.label}</span>
       {hotkey && (
         <>
-          <span className="w-px h-3 bg-white/30" />
-          <span className="font-minecraft text-xs text-white/60 whitespace-nowrap">
-            {t("clips.page.status.hotkey_hint")} {formatShortcut(hotkey)}
-          </span>
+          <span className="h-3 w-px bg-line-2" />
+          <span className="whitespace-nowrap text-xs text-fg-3">{t("clips.page.status.hotkey_hint")}</span>
+          <kbd className="flex h-5 items-center rounded-sm border border-line-2 bg-s3 px-1.5 font-mono text-[11px] text-fg-2">
+            {formatShortcut(hotkey)}
+          </kbd>
         </>
       )}
     </div>

@@ -1,14 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Icon } from "@iconify/react";
+import { Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-hot-toast";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { listen, TauriEvent } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
-import { ClipTrimmer, WindowButton } from "./ClipTrimmer";
+import { ClipTrimmer } from "./ClipTrimmer";
+import { WindowTitleBar } from "../log/LogWindowTitlebar";
 import {
   closeClipEditor,
   getClipDetails,
@@ -29,7 +30,6 @@ const PROBE_TIMEOUT_MS = 15_000;
 
 export function ClipEditorWindow() {
   const { t } = useTranslation();
-  const accent = useThemeStore((state) => state.accentColor.value);
   const [clip, setClip] = useState<EditorClip | null>(null);
   const [duration, setDuration] = useState(0);
   const [details, setDetails] = useState<ClipDetails | null>(null);
@@ -191,32 +191,14 @@ export function ClipEditorWindow() {
     return (
       <>
         <WindowFrame className="select-none [&_button_svg]:pointer-events-none">
-          <header
-            data-tauri-drag-region
-            className="flex h-11 shrink-0 items-center gap-3 border-b border-white/5 bg-black/40 pl-4 pr-2"
-          >
-            <Icon
-              icon="solar:videocamera-record-bold"
-              className="pointer-events-none h-4 w-4 shrink-0"
-              style={{ color: accent }}
-            />
-            <span
-              data-tauri-drag-region
-              className="min-w-0 flex-1 truncate font-minecraft text-xs normal-case tracking-wider"
-              style={{ color: accent }}
-            >
-              {clip?.name}
-            </span>
-            <WindowButton icon="mdi:close" label={t("window.close")} danger onClick={closeNow} />
-          </header>
+          <WindowTitleBar title={clip?.name ?? ""} onClose={closeNow} />
           <div
             data-tauri-drag-region
             className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-6 text-center"
           >
             {broken ? (
               <>
-                <Icon icon="solar:videocamera-record-bold" className="pointer-events-none h-8 w-8 text-white/30" />
-                <span className="pointer-events-none max-w-sm font-minecraft text-sm leading-relaxed text-white/70">
+                <span className="pointer-events-none max-w-sm text-[13px] leading-relaxed text-fg-2">
                   {t("clips.editor.load_failed")}
                 </span>
                 <Button variant="secondary" size="sm" onClick={closeNow}>
@@ -225,12 +207,8 @@ export function ClipEditorWindow() {
               </>
             ) : (
               <>
-                <Icon
-                  icon="svg-spinners:ring-resize"
-                  className="pointer-events-none h-7 w-7"
-                  style={{ color: accent }}
-                />
-                <span className="pointer-events-none font-minecraft text-xs tracking-wider text-white/50">
+                <Loader2 size={18} strokeWidth={1.75} className="pointer-events-none animate-spin text-fg-3" />
+                <span className="pointer-events-none text-xs text-fg-3">
                   {t("common.loading")}
                 </span>
               </>

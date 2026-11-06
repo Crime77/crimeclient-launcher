@@ -46,88 +46,63 @@ export const designTokens = {
 };
 
 export const getVariantColors = (variant: ComponentVariant, accentColor: AccentColor): ColorTokens => {
+  // muted state colours of the "Werkzeug" palette (globals.css --warn/--err/--info/--ok);
+  // hex so callers can still append alpha digits
   switch (variant) {
     case "warning":
-      return {
-        main: "#f59e0b",
-        light: "#fbbf24", 
-        dark: "#d97706",
-        text: "#fef3c7"
-      };
+      return { main: "#d9a441", light: "#e4b964", dark: "#a97d2c", text: "#f3e3c2" };
     case "destructive":
-      return {
-        main: "#ef4444",
-        light: "#f87171",
-        dark: "#dc2626", 
-        text: "#fee2e2"
-      };
+      return { main: "#e5484d", light: "#ec6a6e", dark: "#b8343a", text: "#f6d3d4" };
     case "info":
-      return {
-        main: "#3b82f6",
-        light: "#60a5fa",
-        dark: "#2563eb",
-        text: "#dbeafe"
-      };
+      return { main: "#8aa4c8", light: "#a6bbd8", dark: "#62799b", text: "#dde5f0" };
     case "success":
-      return {
-        main: "#10b981",
-        light: "#34d399",
-        dark: "#059669",
-        text: "#d1fae5"
-      };
+      return { main: "#5fb98e", light: "#7fcaa5", dark: "#43906c", text: "#d5ece0" };
     case "secondary":
-      return {
-        main: "#6b7280",
-        light: "#9ca3af",
-        dark: "#4b5563",
-        text: "#f3f4f6"
-      };
+    case "flat-secondary":
+      return { main: "#6d6a66", light: "#a3a09b", dark: "#3b3a3d", text: "#edebe8" };
     case "ghost":
-      return {
-        main: "transparent",
-        light: "transparent", 
-        dark: "transparent",
-        text: "#ffffff"
-      };
+      return { main: "transparent", light: "transparent", dark: "transparent", text: "#edebe8" };
     default:
       return {
         main: accentColor.value,
-        light: accentColor.hoverValue || accentColor.value,
-        dark: accentColor.value,
-        text: "#ffffff"
+        light: accentColor.light || accentColor.value,
+        dark: accentColor.dark || accentColor.value,
+        text: "#ffffff",
       };
   }
 };
 
-export const getSizeClasses = (size: ComponentSize, element: "button" | "input" | "badge" = "button"): string => {  if (element === "badge") {
+// heights 28 / 32 / 36 / 44 / 48 px
+export const getSizeClasses = (size: ComponentSize, element: "button" | "input" | "badge" = "button"): string => {
+  if (element === "badge") {
     switch (size) {
-      case "xs": return "px-1.5 py-0.5 text-xs min-h-[18px]";
-      case "sm": return "px-1.5 py-0.5 text-xs min-h-[20px]";
-      case "md": return "px-2 py-1 text-sm min-h-[24px]";
-      case "lg": return "px-2.5 py-1 text-base min-h-[28px]";
-      case "xl": return "px-3 py-1.5 text-lg min-h-[32px]";
-      default: return "px-2 py-1 text-sm min-h-[24px]";
+      case "xs": return "px-1.5 py-0.5 text-[10.5px] min-h-[18px]";
+      case "sm": return "px-1.5 py-0.5 text-[11px] min-h-[20px]";
+      case "md": return "px-2 py-0.5 text-xs min-h-[22px]";
+      case "lg": return "px-2.5 py-1 text-[13px] min-h-[26px]";
+      case "xl": return "px-3 py-1 text-sm min-h-[30px]";
+      default: return "px-2 py-0.5 text-xs min-h-[22px]";
     }
   }
-  
+
   if (element === "input") {
     switch (size) {
-      case "xs": return "h-[36px] px-5 text-xs";
-      case "sm": return "h-[42px] px-6 text-sm";
-      case "md": return "h-[50px] px-8 text-sm";
-      case "lg": return "h-[58px] px-10 text-base";
-      case "xl": return "h-[66px] px-12 text-base";
-      default: return "h-[50px] px-8 text-sm";
+      case "xs": return "h-7 px-2.5 text-xs";
+      case "sm": return "h-8 px-3 text-[13px]";
+      case "md": return "h-9 px-3 text-[13px]";
+      case "lg": return "h-11 px-3.5 text-sm";
+      case "xl": return "h-12 px-4 text-sm";
+      default: return "h-9 px-3 text-[13px]";
     }
   }
-  
+
   switch (size) {
-    case "xs": return "h-[36px] px-5 py-2 text-xs";
-    case "sm": return "h-[42px] px-6 py-2 text-sm";
-    case "md": return "h-[50px] px-8 py-2.5 text-sm";
-    case "lg": return "h-[58px] px-10 py-3 text-base";
-    case "xl": return "h-[66px] px-12 py-4 text-base";
-    default: return "h-[50px] px-8 py-2.5 text-sm";
+    case "xs": return "h-7 px-2.5 text-xs";
+    case "sm": return "h-8 px-3 text-[13px]";
+    case "md": return "h-9 px-3.5 text-[13px]";
+    case "lg": return "h-11 px-5 text-sm";
+    case "xl": return "h-12 px-6 text-[15px]";
+    default: return "h-9 px-3.5 text-[13px]";
   }
 };
 
@@ -164,28 +139,22 @@ export const getAccessibilityProps = (props: {
   return accessibilityProps;
 };
 
+// Radii come from the theme's steps (globals.css --r-sm/--r-md/--r-lg); the number arguments are
+// kept for the old call sites and only decide between "none" and a step.
 export const getBorderRadiusStyle = (borderRadius?: number): React.CSSProperties => {
-  if (borderRadius === undefined) {
-    return { borderRadius: "var(--border-radius)" };
-  }
-  return { borderRadius: `${borderRadius}px` };
+  if (borderRadius === 0) return { borderRadius: "0px" };
+  return { borderRadius: "var(--r-md)" };
 };
 
 export const getBorderRadiusClass = (borderRadius?: number): string => {
-  return "rounded-[var(--border-radius)]";
+  return "rounded-md";
 };
 
 export const createRadiusStyle = (borderRadius?: number, multiplier?: number): React.CSSProperties => {
-  if (borderRadius === undefined) {
-    return { borderRadius: "var(--border-radius)" };
-  }
-  
-  if (borderRadius === 0) {
-    return { borderRadius: "0px" };
-  }
-  
-  const adjustedRadius = multiplier ? Math.round(borderRadius * multiplier) : borderRadius;
-  return { borderRadius: `${adjustedRadius}px` };
+  if (borderRadius === 0) return { borderRadius: "0px" };
+  if (multiplier !== undefined && multiplier < 0.9) return { borderRadius: "var(--r-sm)" };
+  if (multiplier !== undefined && multiplier > 1.1) return { borderRadius: "var(--r-lg)" };
+  return { borderRadius: "var(--r-md)" };
 };
 
 export const getRadiusClasses = (borderRadius?: number, element?: string): string => {
@@ -253,61 +222,47 @@ export interface ToastStyleConfig {
   borderRadius?: number;
 }
 
+// Toasts: one neutral raised surface; the state shows as a 2 px stripe on the left
 export const getToastVariantStyles = (variant: ToastVariant, accentColor: string): React.CSSProperties => {
   switch (variant) {
     case "success":
-      return {
-        backgroundColor: "rgba(16, 185, 129, 0.3)",
-        borderColor: "rgba(16, 185, 129, 0.8)",
-        borderBottomColor: "#059669",
-        color: "#d1fae5",
-      };
+      return { borderLeftColor: "var(--ok)" };
     case "error":
-      return {
-        backgroundColor: "rgba(239, 68, 68, 0.3)",
-        borderColor: "rgba(239, 68, 68, 0.8)",
-        borderBottomColor: "#dc2626",
-        color: "#fee2e2",
-      };
+      return { borderLeftColor: "var(--err)" };
+    case "loading":
+      return { borderLeftColor: "var(--accent)" };
     default:
-      return {
-        backgroundColor: `${accentColor}30`,
-        borderColor: `${accentColor}80`,
-        borderBottomColor: accentColor,
-        color: "#ffffff",
-      };
+      return { borderLeftColor: "var(--line-3)" };
   }
 };
 
 export const getToastBaseStyles = (config: ToastStyleConfig): React.CSSProperties => {
-  const radiusStyle = createRadiusStyle(config.borderRadius);
-  const variantStyles = getToastVariantStyles("default", config.accentColor);
-
   return {
-    borderWidth: "1px",
-    borderBottomWidth: "2px",
-    borderStyle: "solid",
-    boxShadow: "none",
-    padding: "12px 20px",
-    backdropFilter: "blur(8px)",
-    WebkitBackdropFilter: "blur(8px)",
-    minWidth: "300px",
-    transition: "all 0.2s ease",
-    fontWeight: "500",
-    ...variantStyles,
-    ...radiusStyle,
+    background: "var(--s2)",
+    border: "1px solid var(--line-2)",
+    borderLeftWidth: "2px",
+    boxShadow: "var(--shadow-pop)",
+    padding: "10px 14px",
+    minWidth: "280px",
+    maxWidth: "420px",
+    color: "var(--fg)",
+    fontSize: "13px",
+    fontWeight: 450,
+    lineHeight: 1.4,
+    borderRadius: config.borderRadius === 0 ? 0 : "var(--r-md)",
+    ...getToastVariantStyles("default", config.accentColor),
   };
 };
 
-export const TOAST_BASE_CLASSES = "font-smallcaps tracking-wider text-shadow-sm";
+export const TOAST_BASE_CLASSES = "";
 
 export const MENU_PANEL_CLASSES =
-  "bg-black/90 backdrop-blur-sm border border-white/20 rounded-lg shadow-xl z-50 overflow-hidden";
+  "bg-s2 border border-line-2 rounded-md shadow-pop z-50 overflow-hidden p-1";
 
 export const menuItemClasses = (compact: boolean): string =>
-  `w-full flex items-center gap-2.5 text-left font-minecraft transition-colors duration-150 ${
-    compact ? "px-2.5 py-1.5 text-xs" : "px-4 py-3 text-base"
+  `w-full flex items-center gap-2.5 text-left rounded-sm text-fg-2 hover:text-fg hover:bg-s3 transition-colors duration-fast ${
+    compact ? "px-2 py-1.5 text-xs" : "px-2.5 py-2 text-[13px]"
   }`;
 
 export const menuSeparatorClasses = (compact: boolean): string =>
-  `border-t border-white/10 ${compact ? "my-1 mx-2" : "my-1.5 mx-3"}`;
+  "border-t border-line my-1 -mx-1";

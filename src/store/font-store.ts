@@ -37,6 +37,8 @@ export const useFontStore = create<FontState>()(
           const family = `"${customFamily.trim()}", sans-serif`;
           root.setProperty("--font-smallcaps", family);
           root.setProperty("--font-minecraft", family);
+          root.setProperty("--font-display", family);
+          root.setProperty("--display-stretch", "100%");
           root.removeProperty("--font-adjust");
           root.removeProperty("--font-tracking");
           return;
@@ -45,6 +47,8 @@ export const useFontStore = create<FontState>()(
         const preset = FONT_PRESETS[fontId] ?? FONT_PRESETS[DEFAULT_FONT_ID];
         root.setProperty("--font-smallcaps", preset.smallcaps);
         root.setProperty("--font-minecraft", preset.minecraft);
+        root.setProperty("--font-display", preset.display);
+        root.setProperty("--display-stretch", preset.displayStretch ?? "100%");
         if (preset.adjust) root.setProperty("--font-adjust", String(preset.adjust));
         else root.removeProperty("--font-adjust");
         if (preset.tracking) root.setProperty("--font-tracking", preset.tracking);
@@ -54,10 +58,12 @@ export const useFontStore = create<FontState>()(
     {
       name: "norisk-font-storage",
       // v1: CrimeClient design, the old Minecraft default becomes the CrimeClient font
-      version: 1,
+      // v2: "Werkzeug" design, everyone starts on Archivo once
+      version: 2,
       migrate: (persisted, version) => {
         const state = persisted as FontState;
         if (version < 1 && state.fontId === "minecraft") state.fontId = DEFAULT_FONT_ID;
+        if (version < 2 && state.fontId !== "custom") state.fontId = DEFAULT_FONT_ID;
         return state;
       },
       onRehydrateStorage: () => (state) => {

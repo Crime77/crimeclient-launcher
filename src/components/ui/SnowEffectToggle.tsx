@@ -30,8 +30,8 @@ export function SnowEffectToggle({
           <Icon
             icon="solar:snowflake-bold"
             className={cn(
-              "text-white/70 transition-colors",
-              isEnabled && "text-white",
+              "text-fg-3 transition-colors duration-fast",
+              isEnabled && "text-fg",
               size === "sm" ? "w-4 h-4" : size === "md" ? "w-5 h-5" : "w-6 h-6"
             )}
           />
@@ -49,7 +49,7 @@ export function SnowEffectToggle({
   return (
     <div className={cn("flex items-center gap-2", className)}>
       {showLabel && (
-        <span className="text-sm text-white/70 font-minecraft">
+        <span className="text-[13px] text-fg-2">
           Snow Effect
         </span>
       )}

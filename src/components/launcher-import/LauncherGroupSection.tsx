@@ -1,13 +1,13 @@
 "use client";
 
-import { Icon } from "@iconify/react";
+import { ChevronRight, Loader2, TriangleAlert, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { CheckboxV2 } from "../ui/CheckboxV2";
 import { Tooltip } from "../ui/Tooltip";
 import { LauncherLogo } from "./LauncherLogo";
 import { LauncherInstanceRow } from "./LauncherInstanceRow";
-import { useThemeStore } from "../../store/useThemeStore";
+import { cn } from "../../lib/utils";
 import { isSelectable } from "../../types/launcherImport";
 import type { DetectedLauncher, ExternalInstanceRef } from "../../types/launcherImport";
 
@@ -45,7 +45,6 @@ export function LauncherGroupSection({
   onRetry,
 }: LauncherGroupSectionProps) {
   const { t } = useTranslation();
-  const accentColor = useThemeStore((state) => state.accentColor);
 
   const selectable = visibleInstances.filter((instance) =>
     isSelectable(instance, importedThisSession),
@@ -57,18 +56,20 @@ export function LauncherGroupSection({
 
   return (
     <div
-      className="overflow-hidden rounded-lg border bg-black/20 transition-colors"
-      style={{
-        borderColor: selectedHere > 0 ? `${accentColor.value}45` : "rgba(255,255,255,0.1)",
-      }}
+      className={cn(
+        "overflow-hidden border bg-s1 transition-colors duration-fast",
+        selectedHere > 0 ? "border-line-2" : "border-line",
+      )}
+      style={{ borderRadius: "var(--r-lg)" }}
     >
       <div
         onClick={onToggleCollapsed}
-        className="group/head flex cursor-pointer items-center gap-3 px-3 py-2.5 transition-colors hover:bg-white/[0.03]"
+        className="group/head flex cursor-pointer items-center gap-3 h-12 px-3 transition-colors duration-fast hover:bg-s2"
       >
-        <Icon
-          icon="solar:alt-arrow-right-linear"
-          className="h-4 w-4 flex-shrink-0 text-white/30 transition-transform group-hover/head:text-white/60"
+        <ChevronRight
+          size={14}
+          strokeWidth={1.75}
+          className="flex-shrink-0 text-fg-4 transition-[color,transform] duration-fast group-hover/head:text-fg-2"
           style={{ transform: collapsed ? undefined : "rotate(90deg)" }}
         />
 
@@ -87,17 +88,17 @@ export function LauncherGroupSection({
         </Tooltip>
 
         <div className="min-w-0 flex-1">
-          <span className="truncate font-minecraft text-base normal-case text-white">
+          <span className="truncate text-[13.5px] font-semibold text-fg">
             {launcher.displayName}
           </span>
           {!launcher.autoDetected && (
-            <span className="ml-2 font-minecraft text-[10px] uppercase tracking-wider text-white/35">
+            <span className="ml-2 text-[11.5px] text-fg-4">
               {t("profiles.launcherImport.added_by_you")}
             </span>
           )}
         </div>
 
-        <span className="flex-shrink-0 font-minecraft text-xs text-white/40">
+        <span className="flex-shrink-0 cc-num text-[11.5px] text-fg-3">
           {t("profiles.launcherImport.instance_count", { count: launcher.instanceCount })}
         </span>
 
@@ -112,34 +113,38 @@ export function LauncherGroupSection({
                 event.stopPropagation();
                 onRemove();
               }}
-              className="flex h-6 w-6 items-center justify-center rounded text-white/40 opacity-0 transition-all hover:bg-white/10 hover:text-white group-hover/head:opacity-100"
+              type="button"
+              aria-label={t("profiles.launcherImport.manual.remove")}
+              className="cc-icon-btn opacity-0 group-hover/head:opacity-100 focus-visible:opacity-100"
             >
-              <Icon icon="solar:close-circle-linear" className="h-4 w-4" />
+              <X size={14} strokeWidth={1.75} />
             </button>
           </Tooltip>
         )}
       </div>
 
       {!collapsed && (
-        <div className="border-t border-white/[0.07]">
+        <div className="border-t border-line">
           {phase === "loading" && (
-            <div className="flex items-center gap-2 px-4 py-3 font-minecraft text-xs text-white/45">
-              <Icon icon="svg-spinners:ring-resize" className="h-3.5 w-3.5" />
+            <div className="flex items-center gap-2 px-4 h-11 text-[12.5px] text-fg-3">
+              <Loader2 size={14} strokeWidth={1.75} className="animate-spin" />
               {t("profiles.launcherImport.loading_instances")}
             </div>
           )}
 
           {phase === "error" && (
-            <div className="flex items-center gap-3 px-4 py-3">
-              <span className="min-w-0 flex-1 truncate font-minecraft text-xs text-amber-300/80">
+            <div className="flex items-center gap-2 px-4 h-11">
+              <TriangleAlert size={14} strokeWidth={1.75} className="flex-shrink-0 text-warn" />
+              <span className="min-w-0 flex-1 truncate text-[12px] text-fg-2">
                 {t("profiles.launcherImport.instances_failed", {
                   launcher: launcher.displayName,
                   error: error ?? "",
                 })}
               </span>
               <button
+                type="button"
                 onClick={onRetry}
-                className="flex-shrink-0 px-2 py-1 font-minecraft text-[10px] uppercase tracking-wider text-white/45 transition-colors hover:text-white"
+                className="flex-shrink-0 h-7 px-2 rounded-sm text-[12px] text-fg-3 transition-colors duration-fast hover:bg-s3 hover:text-fg"
               >
                 {t("profiles.launcherImport.retry")}
               </button>
@@ -147,7 +152,7 @@ export function LauncherGroupSection({
           )}
 
           {phase === "ready" && visibleInstances.length === 0 && (
-            <div className="px-4 py-3 font-minecraft text-xs text-white/35">
+            <div className="px-4 py-3 text-[12px] text-fg-4">
               {instances.length === 0
                 ? t("profiles.launcherImport.launcher_empty")
                 : t("profiles.launcherImport.no_match_in_launcher")}
@@ -155,7 +160,7 @@ export function LauncherGroupSection({
           )}
 
           {visibleInstances.length > 0 && (
-            <div className="space-y-1.5 p-2">
+            <div className="divide-y divide-line">
               {visibleInstances.map((instance) => (
                 <LauncherInstanceRow
                   key={instance.instanceDir}

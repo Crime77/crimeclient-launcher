@@ -6,8 +6,7 @@ import type { Profile } from "../../types/profile";
 import { ExportSettingsTab } from "./settings/ExportSettingsTab";
 import { Modal } from "../ui/Modal";
 import { Button } from "../ui/buttons/Button";
-import { useThemeStore } from "../../store/useThemeStore";
-import { Icon } from "@iconify/react";
+import { Upload } from "lucide-react";
 import { Checkbox } from "../ui/Checkbox";
 
 interface ExportProfileModalProps {
@@ -22,7 +21,6 @@ export function ExportProfileModal({
   onClose,
 }: ExportProfileModalProps) {
   const { t } = useTranslation();
-  const accentColor = useThemeStore((state) => state.accentColor);
 
   const [exportAction, setExportAction] = useState<{
     handleExport: () => Promise<void>;
@@ -43,7 +41,6 @@ export function ExportProfileModal({
           checked={exportAction.exportOpenFolder}
           onChange={(e) => exportAction.setExportOpenFolder(e.target.checked)}
           label={t('export.open_folder_after')}
-          className="text-base"
           customSize="md"
           disabled={exportAction.isDisabled()}
         />
@@ -53,9 +50,8 @@ export function ExportProfileModal({
           variant="default"
           onClick={exportAction.handleExport}
           disabled={exportAction.isDisabled()}
-          icon={<Icon icon="solar:export-bold" className="w-5 h-5" />}
-          size="md"
-          className="text-sm"
+          icon={<Upload size={15} strokeWidth={1.75} />}
+          size="sm"
         >
           {exportAction.isExporting ? t('export.exporting') : t('export.export_profile')}
         </Button>
@@ -65,12 +61,12 @@ export function ExportProfileModal({
 
   return (
     <Modal
-      title={`Export Profile: ${profile.name}`}
+      title={t('export.modal_title', { name: profile.name })}
       onClose={onClose}
       width="lg"
       footer={footerContent}
     >
-      <div className="p-6">
+      <div className="px-5 py-5">
         <ExportSettingsTab
           profile={profile}
           onClose={onClose}

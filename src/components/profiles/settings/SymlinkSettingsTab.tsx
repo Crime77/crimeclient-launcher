@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Icon } from "@iconify/react";
+import { ArrowRight, File, Folder, FolderOpen, Lock, Trash2 } from "lucide-react";
 import type { Profile, SymlinkInfo } from "../../../types/profile";
 import { Button } from "../../ui/buttons/Button";
 import { IconButton } from "../../ui/buttons/IconButton";
@@ -11,6 +11,7 @@ import { openPath } from "@tauri-apps/plugin-opener";
 import { useGlobalModal } from "../../../hooks/useGlobalModal";
 import { useConfirmDialog } from "../../../hooks/useConfirmDialog";
 import { SymlinkConfigModal } from "./SymlinkConfigModal";
+import { SettingsRow, SettingsSection } from "./SettingsRow";
 import { logError, logWarn, logInfo } from "../../../utils/logging-utils";
 import {
   getProfileInstancePath,
@@ -212,14 +213,12 @@ export function SymlinkSettingsTab({
 
   if (isProfileRunning) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
-        <Icon icon="solar:lock-bold" className="w-16 h-16 text-white/40" />
-        <div>
-          <h3 className="text-lg font-smallcaps text-white mb-2">{t('symlinks.profile_running')}</h3>
-          <p className="text-xs text-white/70 font-minecraft tracking-wide select-none">
-            {t('symlinks.stop_profile_to_manage')}
-          </p>
-        </div>
+      <div className="flex flex-col items-center justify-center h-full text-center py-16">
+        <Lock size={18} strokeWidth={1.75} className="text-fg-3 mb-3" />
+        <p className="text-[13px] text-fg-2">{t('symlinks.profile_running')}</p>
+        <p className="text-[12px] text-fg-3 mt-1 select-none">
+          {t('symlinks.stop_profile_to_manage')}
+        </p>
       </div>
     );
   }
@@ -227,147 +226,98 @@ export function SymlinkSettingsTab({
   return (
     <>
       {confirmDialog}
-      <div className="space-y-6 overflow-x-hidden" style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
-      <div style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
-        <h3 className="text-lg font-smallcaps text-white mb-2">{t('symlinks.title')}</h3>
-        <p className="text-xs text-white/70 font-minecraft tracking-wide select-none">
-          {t('symlinks.description')}
-        </p>
-      </div>
+      <div className="space-y-8 overflow-x-hidden min-w-0 select-none">
+        <SettingsSection title={t('symlinks.title')} description={t('symlinks.description')}>
+          <SettingsRow
+            label={t('symlink.add_new')}
+            description={
+              <>
+                <ol className="list-decimal list-inside space-y-0.5 mt-1">
+                  <li>{t('symlinks.step_1')}</li>
+                  <li>{t('symlinks.step_2')}</li>
+                  <li>{t('symlinks.step_3')}</li>
+                </ol>
+                <span className="block mt-1.5 text-fg-4">{t('symlinks.perfect_for')}</span>
+              </>
+            }
+          >
+            <Button
+              onClick={openFolderPickerAndConfigure}
+              variant="secondary"
+              size="sm"
+              icon={<Folder size={14} strokeWidth={1.75} />}
+            >
+              {t('symlinks.link_folder')}
+            </Button>
+            <Button
+              onClick={openFilePickerAndConfigure}
+              variant="secondary"
+              size="sm"
+              icon={<File size={14} strokeWidth={1.75} />}
+            >
+              {t('symlinks.link_file')}
+            </Button>
+          </SettingsRow>
+        </SettingsSection>
 
-      {/* Existing Symlinks */}
-      <div className="overflow-x-hidden" style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
-        <h4 className="text-lg font-smallcaps text-white mb-3">{t('symlinks.active_symlinks')}</h4>
-        <div className="space-y-2 overflow-x-hidden" style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+        {/* Existing Symlinks */}
+        <SettingsSection
+          title={t('symlinks.active_symlinks')}
+          aside={!loading && symlinks.length > 0 ? <span className="cc-num text-[11px] text-fg-3">{symlinks.length}</span> : undefined}
+        >
           {loading ? (
-            <p className="text-white/50 text-sm font-minecraft">{t('symlinks.loading')}</p>
+            <div className="py-3.5 text-[12px] text-fg-3">{t('symlinks.loading')}</div>
           ) : symlinks.length === 0 ? (
-            <p className="text-white/50 text-sm font-minecraft">{t('symlinks.no_symlinks')}</p>
+            <div className="py-3.5 text-[12px] text-fg-3">{t('symlinks.no_symlinks')}</div>
           ) : (
             symlinks.map((symlink) => (
               <div
                 key={symlink.link_path}
-                className="flex items-start justify-between gap-3 p-4 bg-white/5 rounded border border-white/10 hover:bg-white/[0.07] transition-colors overflow-hidden"
-                style={{ 
-                  width: '100%',
-                  maxWidth: '100%',
-                  boxSizing: 'border-box',
-                  minWidth: 0
-                }}
+                className="group flex items-center gap-3 py-2.5 min-w-0"
               >
-                <div className="flex-1 min-w-0 overflow-hidden" style={{ boxSizing: 'border-box' }}>
-                  <div className="flex items-center gap-2 mb-2 min-w-0 overflow-hidden">
-                    <Icon 
-                      icon={symlink.is_directory ? "solar:folder-bold" : "solar:file-bold"} 
-                      className="w-5 h-5 text-accent flex-shrink-0" 
-                    />
-                    <span 
-                      className="text-white text-base font-medium truncate font-minecraft min-w-0 flex-1"
-                      style={{ 
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        maxWidth: '100%'
-                      }}
-                      title={symlink.link_path}
-                    >
+                <span
+                  className="w-7 h-7 flex-shrink-0 grid place-items-center bg-s2 border border-line text-fg-3"
+                  style={{ borderRadius: "var(--r-sm)" }}
+                >
+                  {symlink.is_directory ? <Folder size={14} strokeWidth={1.75} /> : <File size={14} strokeWidth={1.75} />}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="cc-num text-[12px] text-fg truncate min-w-0" title={symlink.link_path}>
                       {symlink.link_path}
                     </span>
-                    <span className="text-xs text-white/40 font-minecraft flex-shrink-0 whitespace-nowrap">
-                      ({symlink.link_type})
+                    <span className="cc-num text-[11px] text-fg-4 flex-shrink-0 whitespace-nowrap">
+                      {symlink.link_type}
                     </span>
                   </div>
-                  <div className="flex items-start gap-2 ml-7 min-w-0 overflow-hidden">
-                    <Icon icon="solar:arrow-right-bold" className="w-3 h-3 text-white/40 mt-0.5 flex-shrink-0" />
-                    <div className="min-w-0 flex-1 overflow-hidden" style={{ maxWidth: '100%' }}>
-                      <span 
-                        className="text-white/60 text-xs font-mono block"
-                        style={{ 
-                          display: 'block',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          maxWidth: '100%'
-                        }}
-                        title={symlink.target_path}
-                      >
-                        {symlink.target_path}
-                      </span>
-                    </div>
+                  <div className="flex items-center gap-1.5 min-w-0 mt-0.5">
+                    <ArrowRight size={11} strokeWidth={1.75} className="text-fg-4 flex-shrink-0" />
+                    <span className="cc-num text-[11px] text-fg-3 truncate min-w-0" title={symlink.target_path}>
+                      {symlink.target_path}
+                    </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex items-center gap-1 flex-shrink-0">
                   <IconButton
-                    variant="secondary"
+                    variant="ghost"
                     size="sm"
                     onClick={() => openInternalPath(symlink.link_path)}
-                    icon={<Icon icon="solar:folder-bold" className="w-3.5 h-3.5" />}
+                    icon={<FolderOpen size={14} strokeWidth={1.75} />}
                     label={t('symlink.open_in_profile')}
                   />
                   <IconButton
                     variant="destructive"
                     size="sm"
                     onClick={() => removeSymlink(symlink.link_path)}
-                    icon={<Icon icon="solar:trash-bin-minimalistic-bold" className="w-3.5 h-3.5" />}
+                    icon={<Trash2 size={14} strokeWidth={1.75} />}
                     label={t('symlink.remove_symlink')}
                   />
                 </div>
               </div>
             ))
           )}
-        </div>
+        </SettingsSection>
       </div>
-
-      {/* Add New Symlink */}
-      <div>
-        <h4 className="text-lg font-smallcaps text-white mb-3">{t('symlink.add_new')}</h4>
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <Button
-              onClick={openFolderPickerAndConfigure}
-              variant="default"
-              size="lg"
-              className="w-full lowercase"
-            >
-              <span className="flex items-center gap-2">
-                <Icon icon="solar:folder-bold" className="w-5 h-5" />
-                <span>{t('symlinks.link_folder')}</span>
-              </span>
-            </Button>
-
-            <Button
-              onClick={openFilePickerAndConfigure}
-              variant="default"
-              size="lg"
-              className="w-full lowercase"
-            >
-              <span className="flex items-center gap-2">
-                <Icon icon="solar:file-bold" className="w-5 h-5" />
-                <span>{t('symlinks.link_file')}</span>
-              </span>
-            </Button>
-          </div>
-
-          <div className="p-4 bg-white/5 rounded border border-white/10">
-            <div className="flex items-start gap-3">
-              <Icon icon="solar:info-circle-bold" className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
-              <div className="text-xs text-white/70 font-minecraft tracking-wide select-none space-y-2">
-                <p className="text-white">{t('symlinks.how_it_works')}</p>
-                <ol className="list-decimal list-inside space-y-1 text-white/60">
-                  <li>{t('symlinks.step_1')}</li>
-                  <li>{t('symlinks.step_2')}</li>
-                  <li>{t('symlinks.step_3')}</li>
-                </ol>
-                <p className="text-white/50 text-xs mt-2">
-                  {t('symlinks.perfect_for')}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
     </>
   );
 }
-

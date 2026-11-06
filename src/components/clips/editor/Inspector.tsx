@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { Icon } from "@iconify/react";
+import { AlertTriangle, Clock, Trash2 } from "lucide-react";
 
 import { SearchStyleInput } from "../../ui/Input";
 import { RangeSlider } from "../../ui/RangeSlider";
@@ -37,9 +38,8 @@ const VERTICAL: ClipTextVertical[] = ["top", "center", "bottom"];
 export function PanelTitle({ children, color }: { children: ReactNode; color: string }) {
   return (
     <div className={PANEL_HEAD}>
-      <h3 className="flex min-w-0 items-center gap-2 font-minecraft text-xs uppercase leading-none tracking-wider text-white/60">
-        <span className="h-3 w-1 shrink-0 rounded-full" style={{ backgroundColor: color }} />
-        <span className="truncate">{children}</span>
+      <h3 className="cc-eyebrow min-w-0 truncate leading-none">
+        {children}
       </h3>
     </div>
   );
@@ -49,11 +49,11 @@ function Field({ label, value, children }: { label: string; value?: number; chil
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="min-w-0 truncate font-minecraft text-xs uppercase tracking-wider text-white/50">
+        <span className="min-w-0 truncate text-xs text-fg-3">
           {label}
         </span>
         {value !== undefined && (
-          <span className="shrink-0 font-minecraft text-xs tabular-nums text-white">{value}</span>
+          <span className="shrink-0 font-mono text-[11px] tabular-nums text-fg-2">{value}</span>
         )}
       </div>
       {children}
@@ -82,11 +82,11 @@ function GridButton({
       aria-pressed={active}
       onClick={onClick}
       className={cn(
-        "flex h-7 w-7 items-center justify-center rounded border",
-        active ? "border-white/20 bg-white/10 text-white" : "border-white/10 bg-black/30 text-white/60",
+        "flex h-7 w-7 items-center justify-center rounded-sm border transition-colors duration-fast",
+        active ? "border-line-3 bg-s3 text-fg" : "border-line bg-s2 text-fg-3",
         disabled
           ? "cursor-not-allowed opacity-40"
-          : !active && "hover:border-white/20 hover:bg-white/5 hover:text-white",
+          : !active && "hover:border-line-2 hover:bg-s3 hover:text-fg",
       )}
     >
       {children}
@@ -173,8 +173,8 @@ function ShadeChoice({
               )
             }
             className={cn(
-              "h-full aspect-square shrink-0 rounded-lg border border-white/20 transition-colors",
-              disabled ? "cursor-not-allowed opacity-40" : "cursor-pointer hover:border-white/60",
+              "h-full aspect-square shrink-0 rounded-md border border-line-2 transition-colors duration-fast",
+              disabled ? "cursor-not-allowed opacity-40" : "cursor-pointer hover:border-line-3",
             )}
             style={{ backgroundColor: toHex(value) }}
           />
@@ -203,10 +203,10 @@ function ShadeChoice({
               aria-label={toHex(preset)}
               onClick={() => onChange(preset)}
               className={cn(
-                "h-6 w-6 shrink-0 rounded border transition-colors",
+                "h-6 w-6 shrink-0 rounded-sm border transition-colors duration-fast",
                 value === preset
-                  ? "border-white ring-1 ring-white/60 ring-offset-1 ring-offset-black"
-                  : "border-white/20 hover:border-white/60",
+                  ? "border-fg ring-1 ring-fg/60 ring-offset-1 ring-offset-s1"
+                  : "border-line-2 hover:border-line-3",
                 disabled && "cursor-not-allowed opacity-40",
               )}
               style={{ backgroundColor: toHex(preset) }}
@@ -252,7 +252,6 @@ function CornerChoice({
                 className="h-3.5 w-3.5"
                 style={{
                   transform: `rotate(${direction.turn}deg)`,
-                  color: value === direction.value ? color : undefined,
                 }}
               />
             </GridButton>
@@ -294,10 +293,7 @@ function PlacementChoice({
                 disabled={disabled}
                 onClick={() => onChange({ align: column, vertical: row })}
               >
-                <span
-                  className={cn("rounded-full", active ? "h-2 w-2" : "h-1 w-1 bg-white/40")}
-                  style={active ? { backgroundColor: color } : undefined}
-                />
+                <span className={cn("rounded-full", active ? "h-2 w-2 bg-fg" : "h-1 w-1 bg-fg-4")} />
               </GridButton>
             );
           }),
@@ -329,22 +325,22 @@ export function OverlayInspector({
       <PanelTitle color={accent}>{t("clips.editor.inspector")}</PanelTitle>
       <div className="custom-scrollbar flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto overflow-x-hidden p-4">
         {picked === null || chosen === null ? (
-          <p className="font-minecraft text-xs leading-relaxed text-white/50">
+          <p className="text-xs leading-relaxed text-fg-3">
             {t("clips.editor.inspector.empty")}
           </p>
         ) : (
           <>
-            <div className="flex items-center gap-2 rounded border border-white/20 bg-white/10 px-3 py-2">
+            <div className="flex h-10 items-center gap-2 rounded-md border border-line bg-s2 pl-3 pr-1.5">
               <Icon
                 icon={OVERLAY_ICON[picked.kind]}
                 className="h-4 w-4 shrink-0"
                 style={{ color: overlayTint(picked, accent) }}
               />
-              <span className="min-w-0 flex-1 truncate font-minecraft text-sm text-white">
+              <span className="min-w-0 flex-1 truncate text-[13px] text-fg">
                 {t(OVERLAY_NAME[picked.kind], { index: chosen + 1 })}
               </span>
               <ClipIconButton
-                icon="solar:trash-bin-trash-bold"
+                icon={<Trash2 size={14} strokeWidth={1.75} />}
                 label={t("clips.editor.overlay.remove")}
                 tone="danger"
                 tooltipPosition="bottom"
@@ -353,8 +349,8 @@ export function OverlayInspector({
               />
             </div>
 
-            <p className="-mt-2 flex items-center gap-2 font-minecraft text-xs text-white/50">
-              <Icon icon="solar:clock-circle-bold" className="h-3.5 w-3.5 shrink-0" />
+            <p className="-mt-2 flex items-center gap-2 font-mono text-[11px] text-fg-3">
+              <Clock size={13} strokeWidth={1.75} className="shrink-0" />
               {t("clips.editor.overlay.window", {
                 from: formatTime(picked.startSeconds),
                 to: formatTime(picked.endSeconds),
@@ -423,8 +419,8 @@ export function OverlayInspector({
                     onChange={(event) => editOverlay(chosen, { content: event.target.value })}
                   />
                   {picked.content.trim() === "" && (
-                    <p className="flex items-start gap-1.5 font-minecraft text-xs leading-snug text-amber-300">
-                      <Icon icon="solar:danger-triangle-bold" className="mt-px h-3.5 w-3.5 shrink-0" />
+                    <p className="flex items-start gap-1.5 text-xs leading-snug text-warn">
+                      <AlertTriangle size={13} strokeWidth={1.75} className="mt-px shrink-0" />
                       {t("clips.editor.overlay.text_empty")}
                     </p>
                   )}

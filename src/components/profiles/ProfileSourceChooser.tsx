@@ -1,9 +1,10 @@
 "use client";
 
-import { Icon } from "@iconify/react";
+import type { ReactNode } from "react";
+import { ArrowRight, FilePlus, FileUp, Layers, Package } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { useThemeStore } from "../../store/useThemeStore";
+import { cn } from "../../lib/utils";
 
 export type ProfileSource = "blank" | "modpack" | "file" | "launcher";
 
@@ -12,90 +13,82 @@ interface ProfileSourceChooserProps {
   isBusy?: boolean;
 }
 
-const IMPORT_SOURCES: { id: Exclude<ProfileSource, "blank">; icon: string }[] = [
-  { id: "modpack", icon: "solar:box-bold" },
-  { id: "file", icon: "solar:file-bold" },
-  { id: "launcher", icon: "solar:layers-bold" },
+const ICON = { size: 16, strokeWidth: 1.75 } as const;
+
+const IMPORT_SOURCES: { id: Exclude<ProfileSource, "blank">; icon: ReactNode }[] = [
+  { id: "modpack", icon: <Package {...ICON} /> },
+  { id: "file", icon: <FileUp {...ICON} /> },
+  { id: "launcher", icon: <Layers {...ICON} /> },
 ];
 
 export function ProfileSourceChooser({ onChoose, isBusy = false }: ProfileSourceChooserProps) {
   const { t } = useTranslation();
-  const accentColor = useThemeStore((state) => state.accentColor);
 
   return (
-    <div className="space-y-4 px-8 pb-6 pt-5">
+    <div className="space-y-4 px-5 py-5">
       <button
+        type="button"
         onClick={() => onChoose("blank")}
         disabled={isBusy}
-        className="flex w-full items-center gap-5 rounded-lg border-2 px-6 py-5 text-left transition-colors disabled:opacity-50"
-        style={{
-          borderColor: `${accentColor.value}80`,
-          backgroundColor: `${accentColor.value}12`,
-        }}
-        onMouseEnter={(event) => {
-          event.currentTarget.style.backgroundColor = `${accentColor.value}1f`;
-        }}
-        onMouseLeave={(event) => {
-          event.currentTarget.style.backgroundColor = `${accentColor.value}12`;
-        }}
+        className="group flex w-full items-center gap-4 px-4 py-4 text-left bg-s2 border border-line-2 hover:bg-s3 hover:border-line-3 transition-colors duration-fast disabled:opacity-50"
+        style={{ borderRadius: "var(--r-lg)" }}
       >
-        <div
-          className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-lg"
-          style={{ backgroundColor: `${accentColor.value}26` }}
+        <span
+          className="grid place-items-center w-10 h-10 flex-shrink-0 bg-s3 border border-line-2 text-fg-2 group-hover:text-fg"
+          style={{ borderRadius: "var(--r-md)" }}
         >
-          <Icon icon="solar:widget-add-bold" className="h-7 w-7" style={{ color: accentColor.value }} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="font-minecraft text-xl normal-case text-white">
+          <FilePlus size={18} strokeWidth={1.75} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[14px] font-semibold text-fg">
             {t("profiles.import.source_blank_title")}
-          </div>
-          <div className="mt-1 font-minecraft text-sm leading-relaxed text-white/55">
+          </span>
+          <span className="mt-0.5 block text-[12.5px] leading-relaxed text-fg-3">
             {t("profiles.import.source_blank_description")}
-          </div>
-        </div>
-        <Icon icon="solar:arrow-right-bold" className="h-5 w-5 flex-shrink-0" style={{ color: accentColor.value }} />
+          </span>
+        </span>
+        <ArrowRight
+          size={16}
+          strokeWidth={1.75}
+          className="flex-shrink-0 text-fg-4 transition-colors group-hover:text-fg-2"
+        />
       </button>
 
       <div className="flex items-center gap-3">
-        <div className="h-px flex-1 bg-white/10" />
-        <span className="font-minecraft text-[10px] uppercase tracking-wider text-white/35">
-          {t("profiles.import.source_divider")}
-        </span>
-        <div className="h-px flex-1 bg-white/10" />
+        <div className="h-px flex-1 bg-line" />
+        <span className="cc-eyebrow">{t("profiles.import.source_divider")}</span>
+        <div className="h-px flex-1 bg-line" />
       </div>
 
-      <div className="space-y-2">
+      <div
+        className="overflow-hidden border border-line divide-y divide-line"
+        style={{ borderRadius: "var(--r-lg)" }}
+      >
         {IMPORT_SOURCES.map((source) => (
           <button
             key={source.id}
+            type="button"
             onClick={() => onChoose(source.id)}
             disabled={isBusy}
-            className="group flex w-full items-center gap-4 rounded-lg border px-4 py-3 text-left transition-colors disabled:opacity-50"
-            style={{
-              borderColor: "rgba(255,255,255,0.1)",
-              backgroundColor: "rgba(255,255,255,0.02)",
-            }}
-            onMouseEnter={(event) => {
-              event.currentTarget.style.borderColor = `${accentColor.value}66`;
-              event.currentTarget.style.backgroundColor = `${accentColor.value}12`;
-            }}
-            onMouseLeave={(event) => {
-              event.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
-              event.currentTarget.style.backgroundColor = "rgba(255,255,255,0.02)";
-            }}
+            className={cn(
+              "group flex w-full items-center gap-3 px-4 h-14 text-left bg-s2 transition-colors duration-fast",
+              "hover:bg-s3 disabled:opacity-50",
+            )}
           >
-            <Icon
-              icon={source.icon}
-              className="h-5 w-5 flex-shrink-0 text-white/35 transition-colors group-hover:text-white"
-            />
-            <div className="min-w-0 flex-1">
-              <div className="font-minecraft text-sm text-white/85">
+            <span className="flex-shrink-0 text-fg-3 transition-colors group-hover:text-fg">{source.icon}</span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[13px] font-medium text-fg-2 group-hover:text-fg">
                 {t(`profiles.import.source_${source.id}_title`)}
-              </div>
-              <div className="truncate font-minecraft text-xs text-white/40">
+              </span>
+              <span className="block truncate text-[12px] text-fg-4">
                 {t(`profiles.import.source_${source.id}_description`)}
-              </div>
-            </div>
+              </span>
+            </span>
+            <ArrowRight
+              size={14}
+              strokeWidth={1.75}
+              className="flex-shrink-0 text-fg-4 opacity-0 transition-opacity group-hover:opacity-100"
+            />
           </button>
         ))}
       </div>

@@ -86,7 +86,7 @@ export default function CustomMediaBackground({ activeTab }: Props) {
       className="absolute inset-0 z-0 pointer-events-none"
       style={{
         opacity: customMediaOpacity,
-        transition: "opacity 0.3s ease",
+        transition: "opacity var(--t-slow) var(--ease)",
         display: hiddenByTab ? "none" : undefined,
         filter: customMediaBlur > 0 ? `blur(${customMediaBlur}px)` : undefined,
         transform: customMediaBlur > 0 ? `scale(${1 + customMediaBlur * 0.006})` : undefined,

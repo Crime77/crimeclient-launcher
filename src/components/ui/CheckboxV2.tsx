@@ -1,8 +1,8 @@
 "use client";
 
 import React from "react";
-import { Icon } from "@iconify/react";
-import { useThemeStore } from "../../store/useThemeStore";
+import { Check, Minus } from "lucide-react";
+import { cn } from "../../lib/utils";
 
 export interface CheckboxV2Props {
   /** Whether the checkbox is checked */
@@ -25,6 +25,13 @@ export interface CheckboxV2Props {
   onClick?: (e: React.MouseEvent) => void;
 }
 
+// box / check (px); checked = the light --fg fill with a dark check
+const SIZES = {
+  sm: { box: 14, icon: 10, label: "text-xs" },
+  md: { box: 16, icon: 11, label: "text-[13px]" },
+  lg: { box: 18, icon: 12, label: "text-sm" },
+} as const;
+
 export function CheckboxV2({
   checked,
   onChange,
@@ -36,8 +43,6 @@ export function CheckboxV2({
   className = "",
   onClick,
 }: CheckboxV2Props) {
-  const accentColor = useThemeStore((state) => state.accentColor);
-
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!disabled) {
@@ -48,82 +53,21 @@ export function CheckboxV2({
     }
   };
 
-  const getSizeClasses = () => {
-    switch (size) {
-      case "sm":
-        return "w-4 h-4";
-      case "lg":
-        return "w-6 h-6";
-      default: // md
-        return "w-5 h-5";
-    }
-  };
-
-  const getIconSize = () => {
-    switch (size) {
-      case "sm":
-        return "w-3 h-3";
-      case "lg":
-        return "w-4 h-4";
-      default: // md
-        return "w-3.5 h-3.5";
-    }
-  };
-
-  const getLabelSize = () => {
-    switch (size) {
-      case "sm":
-        return "text-xs";
-      case "lg":
-        return "text-base";
-      default: // md
-        return "text-sm";
-    }
-  };
-
-  const getCheckboxStyles = () => {
-    const baseClasses = `transition-all duration-200 border font-smallcaps rounded flex items-center justify-center cursor-pointer ${getSizeClasses()}`;
-    
-    if (checked || indeterminate) {
-      return {
-        className: `${baseClasses} text-white`,
-        style: {
-          backgroundColor: `${accentColor.value}50`,
-          borderColor: `${accentColor.value}90`,
-          color: 'white',
-        },
-        onMouseEnter: (e: React.MouseEvent<HTMLDivElement>) => {
-          if (!disabled) {
-            e.currentTarget.style.backgroundColor = `${accentColor.value}60`;
-            e.currentTarget.style.borderColor = `${accentColor.value}`;
-          }
-        },
-        onMouseLeave: (e: React.MouseEvent<HTMLDivElement>) => {
-          if (!disabled) {
-            e.currentTarget.style.backgroundColor = `${accentColor.value}50`;
-            e.currentTarget.style.borderColor = `${accentColor.value}90`;
-          }
-        },
-      };
-    } else {
-      return {
-        className: `${baseClasses} bg-black/50 hover:bg-black/60 text-white/70 hover:text-white border-white/30 hover:border-white/50`,
-        style: {},
-      };
-    }
-  };
-
-  const checkboxStyles = getCheckboxStyles();
-  const isDisabled = disabled;
+  const d = SIZES[size] ?? SIZES.md;
+  const on = checked || indeterminate;
 
   return (
-    <div className={`flex items-center gap-2 ${className}`}>
+    <div className={cn("flex items-center gap-2", className)}>
       <div
         onClick={handleClick}
-        className={`${checkboxStyles.className} ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-        style={!isDisabled ? checkboxStyles.style : { ...checkboxStyles.style, opacity: 0.5 }}
-        onMouseEnter={!isDisabled ? checkboxStyles.onMouseEnter : undefined}
-        onMouseLeave={!isDisabled ? checkboxStyles.onMouseLeave : undefined}
+        className={cn(
+          "flex items-center justify-center flex-shrink-0 border transition-colors duration-fast ease-out",
+          "focus:outline-none focus-visible:ring-1 focus-visible:ring-line-3 focus-visible:ring-offset-1 focus-visible:ring-offset-bg",
+          on ? "bg-fg border-fg text-bg" : "bg-s2 border-line-3",
+          !on && !disabled && "hover:border-fg-3 hover:bg-s3",
+          disabled ? "opacity-45 cursor-not-allowed" : "cursor-pointer",
+        )}
+        style={{ width: d.box, height: d.box, borderRadius: "var(--r-sm)" }}
         title={tooltip}
         role="checkbox"
         aria-checked={indeterminate ? "mixed" : checked}
@@ -136,20 +80,21 @@ export function CheckboxV2({
           }
         }}
       >
-        {(checked || indeterminate) && (
-          <Icon
-            icon={indeterminate ? "mdi:minus" : "mingcute:check-line"}
-            className={`${getIconSize()} transition-all duration-200`}
-          />
-        )}
+        {on && (indeterminate ? (
+          <Minus size={d.icon} strokeWidth={3} />
+        ) : (
+          <Check size={d.icon} strokeWidth={3} />
+        ))}
       </div>
 
       {label && (
         <label
           onClick={!disabled ? handleClick : undefined}
-          className={`font-smallcaps text-white cursor-pointer select-none ${getLabelSize()} ${
-            disabled ? 'opacity-50 cursor-not-allowed' : 'hover:text-white/80'
-          }`}
+          className={cn(
+            "text-fg-2 font-[450] cursor-pointer select-none transition-colors duration-fast",
+            d.label,
+            disabled ? "opacity-45 cursor-not-allowed" : "hover:text-fg",
+          )}
         >
           {label}
         </label>

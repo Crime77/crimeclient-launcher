@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Icon } from "@iconify/react";
+import { ImagePlus } from "lucide-react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import type {
   ProfileBanner,
@@ -54,10 +55,9 @@ export function ProfileIcon({
   iconClassName = "w-6 h-6",
   isEditable = true,
   variant = "default",
-  borderWidthClassName = "border-2",
+  borderWidthClassName = "border",
   roundedClassName = "rounded",
-  bgColorOpacity = "30",
-  borderColorOpacity = "50",
+  // bgColorOpacity / borderColorOpacity stay in the props for old callers; the tile is neutral now
 }: ProfileIconProps) {
   const { t } = useTranslation();
   const { showModal, hideModal } = useGlobalModal();
@@ -214,14 +214,13 @@ export function ProfileIcon({
   
   const baseContainerClasses = "flex items-center justify-center flex-shrink-0 transition-all duration-200 ease-in-out relative group overflow-hidden";
 
-  const variantClasses = variant === "default" ? cn(borderWidthClassName, roundedClassName) : "";
-  const variantStyles = variant === "default" ? {
-    backgroundColor: `${accentColor}${bgColorOpacity}`,
-    borderColor: `${accentColor}${borderColorOpacity}`,
-  } : {};
+  // "default" is a neutral tile (s3 + hairline); "bare" draws only the image and leaves the frame to the caller
+  const variantClasses = variant === "default" ? cn(borderWidthClassName, roundedClassName, "bg-s3 border-line-2") : "";
+  const variantStyles = {};
 
   const placeholderIconStyle = variant === "bare" && !hasImage ? { color: accentColor } : {};
-  const placeholderFinalIconClassName = variant === "bare" && !hasImage ? cn(iconClassName, "text-transparent") : iconClassName;
+  const placeholderFinalIconClassName =
+    variant === "bare" && !hasImage ? cn(iconClassName, "text-transparent") : cn("text-fg-3", iconClassName);
 
   return (
     <div
@@ -229,7 +228,7 @@ export function ProfileIcon({
         baseContainerClasses,
         variantClasses,
         className,
-        canBeClicked && "cursor-pointer hover:scale-110 active:scale-100",
+        canBeClicked && "cursor-pointer hover:border-line-3",
       )}
       style={variantStyles}
       onClick={canBeClicked ? handleIconClick : undefined}
@@ -265,10 +264,10 @@ export function ProfileIcon({
           />
           {canBeClicked && (
              <div className={cn(
-                "absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200",
+                "absolute inset-0 flex items-center justify-center bg-bg/60 opacity-0 group-hover:opacity-100 transition-opacity duration-fast",
                 variant === "default" ? roundedClassName : ""
               )}>
-                <Icon icon="solar:gallery-edit-bold" className="w-5 h-5 text-white" />
+                <ImagePlus size={16} strokeWidth={1.75} className="text-fg" />
             </div>
           )}
         </>

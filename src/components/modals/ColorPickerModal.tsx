@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Icon } from "@iconify/react";
+import { Check, Palette } from "lucide-react";
 import { Modal } from "../ui/Modal";
 import { Button } from "../ui/buttons/Button";
 import { useThemeStore } from "../../store/useThemeStore";
@@ -175,22 +175,47 @@ export function ColorPickerModal({
 
   const rgb = hsvToRgb(hsv.h, hsv.s, hsv.v);
 
+  const field =
+    "w-full h-8 px-2.5 bg-s2 border border-line text-fg font-mono text-xs outline-none focus:border-line-3 transition-colors duration-fast";
+
   return (
     <Modal
       title={t('color_picker.title')}
+      titleIcon={<Palette size={16} strokeWidth={1.75} />}
       onClose={onClose}
-      width="lg"
+      width="md"
+      footer={
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span
+              className="w-6 h-6 flex-shrink-0 border border-white/[0.14]"
+              style={{ backgroundColor: hex, borderRadius: "var(--r-sm)" }}
+            />
+            <span className="text-xs text-fg-3 truncate">{t('color_picker.selected_color')}</span>
+            <span className="font-mono text-xs text-fg uppercase">{hex}</span>
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={onClose} variant="ghost" size="sm">
+              {t('common.cancel')}
+            </Button>
+            <Button onClick={handleApply} variant="default" size="sm" icon={<Check size={14} strokeWidth={2} />}>
+              {t('color_picker.button.apply')}
+            </Button>
+          </div>
+        </div>
+      }
     >
-      <div className="p-6 space-y-6">
+      <div className="p-5 space-y-5">
         {/* Color Picker Interface */}
-        <div className="flex gap-6">
+        <div className="flex gap-3">
           {/* Saturation/Value Picker */}
           <div className="flex-1">
             <div
               ref={saturationRef}
-              className="relative w-full h-48 rounded-lg cursor-crosshair border border-white/20"
+              className="relative w-full h-48 cursor-crosshair border border-line-2"
               style={{
-                background: `hsl(${hsv.h}, 100%, 50%)`
+                background: `hsl(${hsv.h}, 100%, 50%)`,
+                borderRadius: "var(--r-md)",
               }}
               onMouseDown={(e) => {
                 e.preventDefault();
@@ -203,10 +228,11 @@ export function ColorPickerModal({
                 }
               }}
             >
-              {/* Saturation gradient overlay */}
+              {/* Saturation gradient overlay (the colour field itself, not decoration) */}
               <div
-                className="absolute inset-0 rounded-lg"
+                className="absolute inset-0"
                 style={{
+                  borderRadius: "inherit",
                   background:
                       "linear-gradient(to top, rgb(0, 0, 0), rgba(0, 0, 0, 0)), " +
                       "linear-gradient(to right, rgb(255, 255, 255), rgba(255, 255, 255, 0))"
@@ -214,7 +240,7 @@ export function ColorPickerModal({
               />
               {/* Color indicator */}
               <div
-                className="absolute w-4 h-4 border-2 border-white rounded-full shadow-lg transform -translate-x-1/2 -translate-y-1/2"
+                className="absolute w-3.5 h-3.5 border-2 border-white rounded-full ring-1 ring-black/40 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
                 style={{
                   left: `${hsv.s * 100}%`,
                   top: `${(1 - hsv.v) * 100}%`,
@@ -225,12 +251,13 @@ export function ColorPickerModal({
           </div>
 
           {/* Hue Slider */}
-          <div className="w-8">
+          <div className="w-6">
             <div
               ref={hueRef}
-              className="relative h-48 rounded-lg cursor-pointer border border-white/20"
+              className="relative h-48 cursor-pointer border border-line-2"
               style={{
-                background: 'linear-gradient(to bottom, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)'
+                background: 'linear-gradient(to bottom, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)',
+                borderRadius: "var(--r-sm)",
               }}
               onMouseDown={(e) => {
                 e.preventDefault();
@@ -245,9 +272,10 @@ export function ColorPickerModal({
             >
               {/* Hue indicator */}
               <div
-                className="absolute left-0 w-full h-1 bg-white border border-black transform -translate-y-1/2"
+                className="absolute -left-0.5 -right-0.5 h-1.5 bg-white border border-black/50 -translate-y-1/2 pointer-events-none"
                 style={{
-                  top: `${(hsv.h / 359.99) * 100}%`
+                  top: `${(hsv.h / 359.99) * 100}%`,
+                  borderRadius: 2,
                 }}
               />
             </div>
@@ -255,19 +283,20 @@ export function ColorPickerModal({
         </div>
 
         {/* Color Values */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-[2fr_1fr_1fr_1fr] gap-2">
           <div>
-            <label className="block text-sm font-minecraft text-white/70 mb-1">{t('color_picker.hex')}</label>
+            <label className="block cc-eyebrow mb-1">{t('color_picker.hex')}</label>
             <input
               type="text"
               value={hex}
               onChange={(e) => handleHexChange(e.target.value)}
-              className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-md text-white font-minecraft focus:outline-none focus:ring-2 focus:ring-white/30"
+              className={field}
+              style={{ borderRadius: "var(--r-md)" }}
               placeholder="#000000"
             />
           </div>
           <div>
-            <label className="block text-sm font-minecraft text-white/70 mb-1">{t('color_picker.r')}</label>
+            <label className="block cc-eyebrow mb-1">{t('color_picker.r')}</label>
             <input
               type="number"
               value={rgb.r}
@@ -275,13 +304,14 @@ export function ColorPickerModal({
                 const newRgb = { ...rgb, r: parseInt(e.target.value) || 0 };
                 setHsv(rgbToHsv(newRgb.r, newRgb.g, newRgb.b));
               }}
-              className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-md text-white font-minecraft focus:outline-none focus:ring-2 focus:ring-white/30"
+              className={field}
+              style={{ borderRadius: "var(--r-md)" }}
               min="0"
               max="255"
             />
           </div>
           <div>
-            <label className="block text-sm font-minecraft text-white/70 mb-1">{t('color_picker.g')}</label>
+            <label className="block cc-eyebrow mb-1">{t('color_picker.g')}</label>
             <input
               type="number"
               value={rgb.g}
@@ -289,13 +319,14 @@ export function ColorPickerModal({
                 const newRgb = { ...rgb, g: parseInt(e.target.value) || 0 };
                 setHsv(rgbToHsv(newRgb.r, newRgb.g, newRgb.b));
               }}
-              className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-md text-white font-minecraft focus:outline-none focus:ring-2 focus:ring-white/30"
+              className={field}
+              style={{ borderRadius: "var(--r-md)" }}
               min="0"
               max="255"
             />
           </div>
           <div>
-            <label className="block text-sm font-minecraft text-white/70 mb-1">{t('color_picker.b')}</label>
+            <label className="block cc-eyebrow mb-1">{t('color_picker.b')}</label>
             <input
               type="number"
               value={rgb.b}
@@ -303,44 +334,11 @@ export function ColorPickerModal({
                 const newRgb = { ...rgb, b: parseInt(e.target.value) || 0 };
                 setHsv(rgbToHsv(newRgb.r, newRgb.g, newRgb.b));
               }}
-              className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-md text-white font-minecraft focus:outline-none focus:ring-2 focus:ring-white/30"
+              className={field}
+              style={{ borderRadius: "var(--r-md)" }}
               min="0"
               max="255"
             />
-          </div>
-        </div>
-
-        {/* Current Color Display */}
-        <div className="flex items-center justify-between p-4 rounded-lg border border-[#ffffff20] bg-black/20">
-          <div className="flex items-center gap-3">
-            <div
-              className="w-12 h-12 rounded-lg border-2 border-white/20 shadow-lg"
-              style={{ backgroundColor: hex }}
-            />
-            <div>
-              <h5 className="font-smallcaps text-xs text-white">
-                {t('color_picker.selected_color')}
-              </h5>
-              <p className="text-sm text-white/70 font-minecraft">
-                {hex}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            <Button
-              onClick={onClose}
-              variant="ghost"
-            >
-              {t('common.cancel')}
-            </Button>
-            <Button
-              onClick={handleApply}
-              variant="3d"
-              icon={<Icon icon="solar:check-circle-bold" />}
-            >
-              {t('color_picker.button.apply')}
-            </Button>
           </div>
         </div>
       </div>

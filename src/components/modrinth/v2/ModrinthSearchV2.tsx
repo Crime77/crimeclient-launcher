@@ -2943,10 +2943,8 @@ export function ModrinthSearchV2({
   };
 
   return (
-    // Overall container: now flex-row to place left content and sidebar side-by-side
-    <div className={`modrinth-search-v2 flex flex-row h-full gap-3 ${className}`}> {/* Added gap-3 */} 
-      {/* Left Content Area: Takes up most space, contains search bar and results */} 
-      <div className="left-content-area flex flex-col flex-1 overflow-hidden">
+    // Toolbar across the top, below it the filter column (left) and the result rows
+    <div className={`modrinth-search-v2 flex flex-col h-full min-h-0 ${className}`}>
         {/* Search controls are now in a separate component */}
         <ModrinthSearchControlsV2
           searchTerm={searchTerm}
@@ -2986,20 +2984,48 @@ export function ModrinthSearchV2({
           onModSourceChange={setModSource}
         />
 
-        {/* Search Results Area (scrollable within the left content area) */}
-        <div ref={searchResultsAreaRef} onScroll={handleScrollSave} className="search-results-area flex-1 overflow-y-auto"> {/* Removed p-4 */}
+      <div className="flex flex-1 min-h-0">
+        {/* Filter column (left, full height, scrollable) */}
+        {isSidebarVisible && (
+          <ModrinthFilterSidebarV2
+            projectType={projectType}
+            accentColor={accentColor}
+            gameVersionSearchTerm={gameVersionSearchTerm}
+            onGameVersionSearchTermChange={setGameVersionSearchTerm}
+            displayedGameVersions={displayedGameVersions}
+            selectedGameVersions={selectedGameVersions}
+            onGameVersionToggle={handleGameVersionToggle}
+            showAllGameVersionsSidebar={showAllGameVersionsSidebar}
+            onShowAllGameVersionsSidebarChange={setShowAllGameVersionsSidebar}
+            availableLoaders={availableLoaders}
+            currentSelectedLoaders={currentSelectedLoaders}
+            onLoaderToggle={handleLoaderToggle}
+            allLoadersData={allLoadersData}
+            dynamicFilterGroups={dynamicFilterGroups}
+            currentSelectedCategories={currentSelectedCategories}
+            onCategoryToggle={handleCategoryToggle}
+            filterClientRequired={filterClientRequired}
+            onClientRequiredToggle={() => setFilterClientRequired(!filterClientRequired)}
+            filterServerRequired={filterServerRequired}
+            onServerRequiredToggle={() => setFilterServerRequired(!filterServerRequired)}
+          />
+        )}
+
+      <div className="left-content-area flex flex-col flex-1 min-w-0 overflow-hidden">
+        {/* Search Results Area (scrollable) */}
+        <div ref={searchResultsAreaRef} onScroll={handleScrollSave} className="search-results-area flex-1 overflow-y-auto">
           {/* {loading && searchResults.length === 0 && <p className="p-4 text-center">Loading initial results...</p>} REMOVED */}
           {searchResults.length === 0 && !loading && error && (
-            <p className="p-4 text-red-500 text-center">{t('content.search.error', { error })}</p>
+            <p className="px-3 py-8 text-[13px] text-err">{t('content.search.error', { error })}</p>
           )}
           {searchResults.length === 0 && !loading && !error && showNoResultsMessage && (
-            <p className="p-4 text-center text-sm text-gray-400">{t('content.search.no_results')}</p>
+            <p className="px-3 py-8 text-[13px] text-fg-3">{t('content.search.no_results')}</p>
           )}
 
           {searchResults.length > 0 && (
             disableVirtualization ? (
               // Non-virtualized scrollable div
-              <div className="space-y-1">
+              <div>
                 {searchResults.map((hit, index) => {
                   const projectVersions = expandedVersions[hit.project_id];
                   const displayedCount = numDisplayedVersions[hit.project_id] || initialDisplayCount;
@@ -3060,26 +3086,23 @@ export function ModrinthSearchV2({
 
                 {/* Load more button for non-virtualized mode */}
                 {!loading && searchResults.length > 0 && searchResults.length < totalHits && (
-                  <div className="flex justify-center p-4">
-                    <button
-                      onClick={loadMoreResults}
-                      className="px-4 py-2 bg-black/30 hover:bg-black/40 text-white/70 hover:text-white border border-white/10 hover:border-white/20 rounded-lg font-smallcaps text-base transition-all duration-200"
-                    >
+                  <div className="flex justify-center py-4">
+                    <Button variant="secondary" size="sm" onClick={loadMoreResults}>
                       {t('content.search.load_more', { remaining: totalHits - searchResults.length })}
-                    </button>
+                    </Button>
                   </div>
                 )}
 
                 {/* Loading indicator */}
                 {loading && searchResults.length > 0 && (
-                  <div className="p-4 text-center">
+                  <div className="py-4 text-center text-[12px] text-fg-3">
                     {t('content.search.loading_more')}
                   </div>
                 )}
 
                 {/* End of results */}
                 {!loading && searchResults.length > 0 && searchResults.length >= totalHits && (
-                  <div className="p-4 text-center text-sm text-gray-400">
+                  <div className="py-4 text-center text-[12px] text-fg-4">
                     {t('content.search.no_more_results')}
                   </div>
                 )}
@@ -3158,14 +3181,14 @@ export function ModrinthSearchV2({
                   Footer: () => {
                     if (loading && searchResults.length > 0) {
                       return (
-                        <div className="p-4 text-center">
+                        <div className="py-4 text-center text-[12px] text-fg-3">
                           {t('content.search.loading_more')}
                         </div>
                       );
                     }
                     if (!loading && searchResults.length > 0 && searchResults.length >= totalHits) {
                        return (
-                        <div className="p-4 text-center text-sm text-gray-400">
+                        <div className="py-4 text-center text-[12px] text-fg-4">
                           {t('content.search.no_more_results')}
                         </div>
                       );
@@ -3179,32 +3202,7 @@ export function ModrinthSearchV2({
 
         </div>
       </div>
-
-      {/* Filters Sidebar (Right, full height, scrollable) - Now with conditional rendering */} 
-      {isSidebarVisible && (
-        <ModrinthFilterSidebarV2
-          projectType={projectType}
-          accentColor={accentColor}
-          gameVersionSearchTerm={gameVersionSearchTerm}
-          onGameVersionSearchTermChange={setGameVersionSearchTerm}
-          displayedGameVersions={displayedGameVersions}
-          selectedGameVersions={selectedGameVersions}
-          onGameVersionToggle={handleGameVersionToggle}
-          showAllGameVersionsSidebar={showAllGameVersionsSidebar}
-          onShowAllGameVersionsSidebarChange={setShowAllGameVersionsSidebar}
-          availableLoaders={availableLoaders}
-          currentSelectedLoaders={currentSelectedLoaders}
-          onLoaderToggle={handleLoaderToggle}
-          allLoadersData={allLoadersData}
-          dynamicFilterGroups={dynamicFilterGroups}
-          currentSelectedCategories={currentSelectedCategories}
-          onCategoryToggle={handleCategoryToggle}
-          filterClientRequired={filterClientRequired}
-          onClientRequiredToggle={() => setFilterClientRequired(!filterClientRequired)}
-          filterServerRequired={filterServerRequired}
-          onServerRequiredToggle={() => setFilterServerRequired(!filterServerRequired)}
-        />
-      )}
+      </div>
 
       {/* Regular Install Modal - Now using global modal system */}
 
@@ -3235,4 +3233,4 @@ export function ModrinthSearchV2({
 
     </div>
   );
-} 
+}

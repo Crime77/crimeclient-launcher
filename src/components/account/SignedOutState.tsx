@@ -1,6 +1,7 @@
 "use client";
 
 import { Icon } from "@iconify/react";
+import { Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { EmptyState } from "../ui/EmptyState";
 import { Button } from "../ui/buttons/Button";
@@ -43,10 +44,11 @@ export function SignedOutState({ icon, title, description }: SignedOutStateProps
           variant="default"
           size="md"
           icon={
-            <Icon
-              icon={isLoading ? "svg-spinners:ring-resize" : "simple-icons:microsoft"}
-              className="w-5 h-5"
-            />
+            isLoading ? (
+              <Loader2 size={16} strokeWidth={1.75} className="animate-spin" />
+            ) : (
+              <Icon icon="simple-icons:microsoft" className="w-4 h-4" />
+            )
           }
         >
           {isLoading ? t("auth.login_required.cta_loading") : t("auth.login_required.cta")}

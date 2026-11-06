@@ -6,7 +6,7 @@ import { parseErrorMessage } from "../../utils/error-utils";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Icon } from "@iconify/react";
+import { ArrowLeft, CircleCheck, CircleX, Plus, Trash2, TriangleAlert } from "lucide-react";
 
 import { preloadIcons } from "../../lib/icon-utils";
 import { useThemeStore } from "../../store/useThemeStore";
@@ -24,6 +24,7 @@ import type { SyncPackEntryRef } from "../../services/sync-pack-service";
 import { FloatingActionBar, type FABActionConfig } from "../profiles/v3/shared/FloatingActionBar";
 import { useSyncPacks } from "./useSyncPacks";
 import { BetaNotice } from "../ui/BetaNotice";
+import { Button } from "../ui/buttons/Button";
 
 
 preloadIcons([
@@ -190,19 +191,19 @@ export function SyncPacksPage() {
 
   const fabActions: FABActionConfig[] = [
     {
-      icon: "solar:check-circle-bold",
+      icon: CircleCheck,
       label: t("syncPacks.selection.enable"),
       onClick: () => void setSelectedModsEnabled(true),
       disabled: !modsSelected,
     },
     {
-      icon: "solar:close-circle-bold",
+      icon: CircleX,
       label: t("syncPacks.selection.disable"),
       onClick: () => void setSelectedModsEnabled(false),
       disabled: !modsSelected,
     },
     {
-      icon: "solar:trash-bin-trash-bold",
+      icon: Trash2,
       label: t("syncPacks.targets.remove"),
       onClick: () => void removeSelected(),
       tone: "danger",
@@ -211,48 +212,56 @@ export function SyncPacksPage() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden relative select-none">
-      <div className="flex items-center justify-between px-5 h-11 border-b border-white/5 flex-shrink-0">
+      <div className="flex-shrink-0 px-6 pt-4 pb-5 border-b border-line">
         <button
+          type="button"
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-white/60 hover:text-white transition-colors"
+          className="-ml-1.5 mb-3 inline-flex h-7 items-center gap-1.5 px-1.5 rounded-sm text-[12px] text-fg-3 transition-colors duration-fast hover:bg-s2 hover:text-fg"
         >
-          <Icon icon="solar:arrow-left-linear" className="w-4 h-4" />
-          <span className="text-xs font-minecraft uppercase tracking-wider">
-            {t("profiles.back")}
-          </span>
-          <span className="text-white/30">/</span>
-          <span className="text-xs font-minecraft uppercase tracking-wider text-white/80">
-            {t("syncPacks.title")}
-          </span>
+          <ArrowLeft size={14} strokeWidth={1.75} />
+          {t("profiles.back")}
         </button>
 
-        <button
-          onClick={() => setIsCreating(true)}
-          disabled={showBusy || isCreating}
-          className="px-2 py-1 text-[11px] font-minecraft uppercase tracking-wider text-white/45 transition-colors hover:text-white disabled:opacity-25"
-        >
-          + {t("syncPacks.create")}
-        </button>
+        <div className="flex items-end justify-between gap-6">
+          <div className="min-w-0 flex-1">
+            <h1 className="font-display text-[24px] leading-none font-[680] tracking-[-0.015em] text-fg">
+              {t("syncPacks.title")}
+            </h1>
+            <BetaNotice
+              className="mt-2.5 max-w-[640px]"
+              tag={t("syncPacks.betaTag")}
+              hint={t("syncPacks.description")}
+              feedbackLabel={t("syncPacks.betaFeedbackLink")}
+              feedbackUrl={DISCORD_INVITE_URL}
+            />
+          </div>
+
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => setIsCreating(true)}
+            disabled={showBusy || isCreating}
+            icon={<Plus size={15} strokeWidth={1.75} />}
+          >
+            {t("syncPacks.create")}
+          </Button>
+        </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-4">
-        <BetaNotice
-          className="mb-4"
-          tag={t("syncPacks.betaTag")}
-          hint={t("syncPacks.description")}
-          feedbackLabel={t("syncPacks.betaFeedbackLink")}
-          feedbackUrl={DISCORD_INVITE_URL}
-        />
-
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-6 py-5">
         {conflicts.length > 0 && (
-          <div className="mb-3 space-y-1.5 rounded-lg border border-amber-500/30 bg-amber-500/[0.07] px-4 py-3">
-            <div className="font-minecraft text-xs uppercase tracking-wider text-amber-300/80">
+          <div
+            className="mb-4 space-y-1 border border-warn/30 bg-warn/[0.06] px-3 py-2.5"
+            style={{ borderRadius: "var(--r-md)" }}
+          >
+            <div className="flex items-center gap-2 text-[12.5px] font-medium text-warn">
+              <TriangleAlert size={14} strokeWidth={1.75} className="flex-shrink-0" />
               {t("syncPacks.conflicts.title")}
             </div>
             {conflicts.map((conflict) => (
               <div
                 key={conflict.path + conflict.loser_pack_id}
-                className="font-minecraft text-xs text-white/55"
+                className="pl-[22px] text-[12px] text-fg-2"
               >
                 {t("syncPacks.conflicts.line", {
                   path: conflict.path,
@@ -278,8 +287,8 @@ export function SyncPacksPage() {
 
           {isCreating && (
             <div
-              className="flex items-center gap-3 rounded-lg border bg-black/20 px-4 py-3"
-              style={{ borderColor: `${accentColor.value}55` }}
+              className="flex items-center gap-2 h-14 px-3 border border-line-3 bg-s2"
+              style={{ borderRadius: "var(--r-lg)" }}
             >
               <input
                 ref={inputRef}
@@ -290,22 +299,19 @@ export function SyncPacksPage() {
                   if (event.key === "Escape") closeDraft();
                 }}
                 placeholder={t("syncPacks.namePlaceholder")}
-                className="min-w-0 flex-1 bg-transparent font-minecraft text-lg normal-case text-white outline-none placeholder:text-white/25"
+                className="min-w-0 flex-1 h-8 bg-transparent text-[13.5px] font-semibold text-fg outline-none placeholder:font-normal placeholder:text-fg-4"
               />
-              <button
+              <Button variant="ghost" size="xs" onClick={closeDraft}>
+                {t("common.cancel")}
+              </Button>
+              <Button
+                variant="default"
+                size="xs"
                 onClick={submitDraft}
                 disabled={!draftName.trim() || showBusy}
-                className="px-2 py-1 font-minecraft text-[10px] uppercase tracking-wider transition-opacity disabled:opacity-30"
-                style={{ color: accentColor.value }}
               >
                 {t("syncPacks.create")}
-              </button>
-              <button
-                onClick={closeDraft}
-                className="px-2 py-1 font-minecraft text-[10px] uppercase tracking-wider text-white/35 transition-colors hover:text-white"
-              >
-                {t("common.cancel")}
-              </button>
+              </Button>
             </div>
           )}
         </div>

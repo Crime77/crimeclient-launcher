@@ -1,7 +1,7 @@
 "use client";
 
-import { Icon } from "@iconify/react";
 import { useRef } from "react";
+import { Search, X } from "lucide-react";
 import { StableIcon } from "./IconWrapper";
 import { CustomDropdown } from "./CustomDropdown";
 import type { DropdownOption } from "./CustomDropdown";
@@ -83,16 +83,25 @@ export function SearchWithFilters({
   const showFilterSection = showFilter && filterOptions.length > 0;
   const hasSearchValue = Boolean(searchValue);
 
+  const separator = <div className="h-4 w-px bg-line-2 mx-1 shrink-0" />;
+
   return (
-    <div className={`flex items-center gap-4 ${className}`}>
+    <div className={`flex items-center gap-3 ${className}`}>
       {/* Search with integrated filters */}
       <div
-        className={`flex items-center gap-2 bg-white/[0.04] rounded-full border border-white/[0.09] hover:bg-white/[0.06] focus-within:border-[var(--accent)] transition-colors ${
-          compact ? "px-3 py-2 w-full" : "px-4 py-3 flex-1 max-w-md"
+        className={`group flex items-center gap-1 bg-s2 rounded-md border border-line [&:hover:not(:focus-within)]:border-line-2 focus-within:border-line-3 transition-colors duration-fast ${
+          compact ? "h-8 pl-2.5 pr-1 w-full" : "h-9 pl-3 pr-1 flex-1 max-w-md"
         }`}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) inputRef.current?.focus();
+        }}
       >
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <StableIcon icon={searchIcon} className="w-4 h-4 text-white/50 shrink-0" />
+        <div className="flex items-center gap-2 flex-1 min-w-0 h-full">
+          {searchIcon === "solar:magnifer-bold" ? (
+            <Search size={compact ? 14 : 15} strokeWidth={1.75} className="text-fg-3 shrink-0 group-focus-within:text-fg-2 transition-colors duration-fast" />
+          ) : (
+            <StableIcon icon={searchIcon} className="w-4 h-4 text-fg-3 shrink-0" />
+          )}
           <input
             ref={inputRef}
             type="text"
@@ -100,28 +109,27 @@ export function SearchWithFilters({
             value={searchValue}
             onChange={handleSearchChange}
             onKeyDown={handleSearchKeyDown}
-            className="bg-transparent text-white placeholder-white/50 font-minecraft text-sm flex-1 min-w-0 outline-none"
+            className="bg-transparent text-fg placeholder:text-fg-4 text-[13px] flex-1 min-w-0 h-full outline-none"
+            spellCheck={false}
+            autoComplete="off"
           />
           {hasSearchValue && (
             <button
               type="button"
               onClick={handleClearSearch}
               aria-label="Clear search"
-              className="text-white/60 hover:text-white transition-colors duration-200 shrink-0"
+              className="flex items-center justify-center w-6 h-6 rounded-sm text-fg-3 hover:text-fg hover:bg-s3 transition-colors duration-fast shrink-0"
             >
-              <Icon icon="lucide:x" className="w-4 h-4" />
+              <X size={14} strokeWidth={1.75} />
             </button>
           )}
         </div>
-        
+
         {/* Sort Filter */}
         {showSortSection && (
           <>
-            {/* Separator */}
-            <div className="h-4 w-px bg-white/20 mx-2"></div>
-            
-            {/* Sort Filter Button */}
-            <div className="relative">
+            {separator}
+            <div className="relative shrink-0">
               <CustomDropdown
                 label=""
                 value={sortValue}
@@ -133,22 +141,18 @@ export function SearchWithFilters({
             </div>
           </>
         )}
-        
+
         {/* Version/Filter */}
         {filterSlot ? (
           <>
-            {/* Separator */}
-            <div className="h-4 w-px bg-white/20 mx-2"></div>
-            <div className="relative">{filterSlot}</div>
+            {separator}
+            <div className="relative shrink-0">{filterSlot}</div>
           </>
         ) : (
           showFilterSection && (
             <>
-              {/* Separator */}
-              <div className="h-4 w-px bg-white/20 mx-2"></div>
-
-              {/* Filter Button */}
-              <div className="relative">
+              {separator}
+              <div className="relative shrink-0">
                 <CustomDropdown
                   label=""
                   value={filterValue}

@@ -1,14 +1,11 @@
 "use client";
 
 import type React from "react";
-import { forwardRef, useRef, useState } from "react";
+import { forwardRef, useRef } from "react";
 import { Icon } from "@iconify/react";
 import { cn } from "../../lib/utils";
 import { useThemeStore } from "../../store/useThemeStore";
 import {
-  getSizeClasses,
-  getBorderRadiusClass,
-  createRadiusStyle,
   getAccessibilityProps,
   type ComponentSize,
   type ComponentVariant
@@ -26,6 +23,19 @@ export interface InputProps
   description?: string;
 }
 
+// "Werkzeug" field: s2 with a hairline, the line brightens on focus; heights 28 / 32 / 36 / 40 / 44 px
+const FIELD_BASE = "bg-s2 border transition-colors duration-fast ease-out";
+const FIELD_OK = "border-line [&:hover:not(:focus-within)]:border-line-2 focus-within:border-line-3";
+const FIELD_ERROR = "border-err/50 focus-within:border-err/70";
+
+const FIELD_HEIGHT: Record<ComponentSize, string> = {
+  xs: "h-7 text-xs",
+  sm: "h-8 text-[13px]",
+  md: "h-9 text-[13px]",
+  lg: "h-10 text-[13px]",
+  xl: "h-11 text-sm",
+};
+
 // Neue SearchWithFilters-Style Input Komponente
 export interface SearchStyleInputProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "size"> {
@@ -36,20 +46,24 @@ export interface SearchStyleInputProps
 
 export const SearchStyleInput = forwardRef<HTMLInputElement, SearchStyleInputProps>(
   ({ className, placeholder = "Enter name for new profile", icon, error, ...props }, ref) => {
-    const accentColor = useThemeStore((state) => state.accentColor);
-
     return (
       <div className="w-full">
-        <div className="flex items-center gap-2 bg-white/[0.04] rounded-lg px-4 py-3 border border-white/[0.09] hover:bg-white/[0.06] focus-within:border-[var(--accent)] transition-colors">
+        <div
+          className={cn(
+            "flex items-center gap-2 h-9 px-3 rounded-md",
+            FIELD_BASE,
+            error ? FIELD_ERROR : FIELD_OK,
+          )}
+        >
           {icon && (
-            <Icon icon={icon} className="w-4 h-4 text-white/50 flex-shrink-0" />
+            <Icon icon={icon} className="w-4 h-4 text-fg-3 flex-shrink-0" />
           )}
           <input
             ref={ref}
             type="text"
             placeholder={placeholder}
             className={cn(
-              "bg-transparent text-white placeholder-white/50 font-minecraft text-lg flex-1 outline-none",
+              "bg-transparent text-fg placeholder:text-fg-4 text-[13px] flex-1 min-w-0 h-full outline-none",
               className
             )}
             spellCheck={false}
@@ -58,7 +72,7 @@ export const SearchStyleInput = forwardRef<HTMLInputElement, SearchStyleInputPro
           />
         </div>
         {error && (
-          <p className="mt-1 text-sm text-red-400 font-smallcaps">
+          <p className="mt-1.5 text-xs text-err">
             {error}
           </p>
         )}
@@ -82,15 +96,21 @@ export const SearchStyleTextArea = forwardRef<HTMLTextAreaElement, SearchStyleTe
   ({ className, placeholder = "Enter text...", icon, error, minHeight = "100px", ...props }, ref) => {
     return (
       <div className="w-full">
-        <div className="flex items-start gap-2 bg-white/[0.04] rounded-lg px-4 py-3 border border-white/[0.09] hover:bg-white/[0.06] focus-within:border-[var(--accent)] transition-colors">
+        <div
+          className={cn(
+            "flex items-start gap-2 px-3 py-2 rounded-md",
+            FIELD_BASE,
+            error ? FIELD_ERROR : FIELD_OK,
+          )}
+        >
           {icon && (
-            <Icon icon={icon} className="w-4 h-4 text-white/50 flex-shrink-0 mt-1" />
+            <Icon icon={icon} className="w-4 h-4 text-fg-3 flex-shrink-0 mt-0.5" />
           )}
           <textarea
             ref={ref}
             placeholder={placeholder}
             className={cn(
-              "bg-transparent text-white placeholder-white/50 font-minecraft text-sm flex-1 outline-none resize-none",
+              "bg-transparent text-fg placeholder:text-fg-4 text-[13px] leading-[1.5] flex-1 min-w-0 outline-none resize-none",
               className
             )}
             style={{ minHeight }}
@@ -100,7 +120,7 @@ export const SearchStyleTextArea = forwardRef<HTMLTextAreaElement, SearchStyleTe
           />
         </div>
         {error && (
-          <p className="mt-1 text-sm text-red-400 font-smallcaps">
+          <p className="mt-1.5 text-xs text-err">
             {error}
           </p>
         )}
@@ -127,14 +147,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     },
     ref,
   ) => {
-    const [isFocused, setIsFocused] = useState(false);
-    const [isHovered, setIsHovered] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
-    const accentColor = useThemeStore((state) => state.accentColor);
     const borderRadius = useThemeStore((state) => state.borderRadius);
-    
-    const sizeClasses = getSizeClasses(size, "input");
-    const radiusClass = getBorderRadiusClass();
+
     const accessibilityProps = getAccessibilityProps({
       label,
       description,
@@ -142,30 +157,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       disabled: props.disabled
     });
 
-    const handleFocus = () => {
-      if (props.disabled) return;
-      setIsFocused(true);
-    };
-
     const hasClearableValue =
       !!clearable &&
       typeof props.value === "string" &&
       props.value.length > 0;
-
-    const handleBlur = () => {
-      if (props.disabled) return;
-      setIsFocused(false);
-    };
-
-    const handleMouseEnter = () => {
-      if (props.disabled) return;
-      setIsHovered(true);
-    };
-
-    const handleMouseLeave = () => {
-      if (props.disabled) return;
-      setIsHovered(false);
-    };
 
     const handleClear = () => {
       if (onClear) {
@@ -174,61 +169,44 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         const event = {
           target: { value: "" },
         } as React.ChangeEvent<HTMLInputElement>;
-        props.onChange(event);      }
-    };
-
-    const getBorderClasses = () => {
-      if (variant === "3d") {
-        return "border";
+        props.onChange(event);
       }
-      return "border";
     };
 
     return (
-      <div className="w-full">        <div
-          ref={containerRef}          className={cn(
-            "relative overflow-hidden backdrop-blur-md",
-            getBorderClasses(),
-            radiusClass,
-            error ? "border-red-500" : "",
-            props.disabled ? "opacity-50 cursor-not-allowed" : "",
-            sizeClasses,
+      <div className="w-full">
+        <div
+          ref={containerRef}
+          data-variant={variant}
+          className={cn(
+            "relative overflow-hidden",
+            FIELD_BASE,
+            error ? FIELD_ERROR : FIELD_OK,
+            props.disabled && "opacity-50 cursor-not-allowed",
+            FIELD_HEIGHT[size] ?? FIELD_HEIGHT.md,
             className,
           )}
-          style={{
-            backgroundColor: isFocused ? "rgba(255,255,255,0.07)" : isHovered ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.04)",
-            borderColor: error
-              ? "rgba(239, 68, 68, 0.6)"
-              : isFocused
-                ? accentColor.value
-                : "rgba(255,255,255,0.09)",
-            boxShadow: isFocused && !error ? `0 0 0 3px ${accentColor.value}26` : "none",
-            transition: "background-color 0.15s, border-color 0.15s, box-shadow 0.15s",
-            ...createRadiusStyle(borderRadius),
-          }}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
+          style={{ borderRadius: borderRadius === 0 ? 0 : "var(--r-md)" }}
         >
-          <div className="flex items-center h-full w-full transition-transform duration-200" style={{
-            transform: "none",
-          }}>
+          <div className="flex items-center h-full w-full">
             {icon && (
-              <div className="flex items-center justify-center w-10 h-full text-white">
+              <div className="flex items-center justify-center pl-2.5 h-full text-fg-3 flex-shrink-0">
                 {icon}
               </div>
-            )}            <input
+            )}
+            <input
               ref={ref}
               className={cn(
-                "flex-1 h-full bg-transparent border-none outline-none px-3 text-white font-smallcaps placeholder:text-white/50",
-                "flex items-center"
+                "flex-1 min-w-0 h-full bg-transparent border-none outline-none text-fg placeholder:text-fg-4",
+                icon ? "pl-2 pr-3" : "px-3",
+                hasClearableValue && "pr-1",
+                props.disabled && "cursor-not-allowed",
               )}
               style={{
                 lineHeight: "1.1",
                 paddingTop: "0",
                 paddingBottom: "0",
               }}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
               spellCheck={false}
               autoComplete="off"
               {...accessibilityProps}
@@ -239,15 +217,17 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               <button
                 type="button"
                 onClick={handleClear}
-                className="flex items-center justify-center w-10 h-full transition-opacity duration-200 hover:opacity-80 text-white"
+                className="flex items-center justify-center w-6 h-6 mr-1.5 flex-shrink-0 rounded-sm text-fg-3 hover:text-fg hover:bg-s3 transition-colors duration-fast"
                 aria-label="Clear input"
                 tabIndex={-1}
               >
-                <Icon icon="lucide:x" className="w-4 h-4" />
+                <Icon icon="lucide:x" className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
-        </div> {error && ( <p className="mt-1 text-sm text-red-400 font-smallcaps">
+        </div>
+        {error && (
+          <p className="mt-1.5 text-xs text-err">
             {error}
           </p>
         )}

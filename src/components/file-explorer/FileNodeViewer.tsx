@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Icon } from '@iconify/react';
+import { ChevronRight, FileText, Folder, FolderOpen } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import type { FileNode } from '../../types/fileSystem'; // Adjust path as necessary
 import { Checkbox } from '../ui/Checkbox'; // Adjust path as necessary
@@ -48,7 +48,7 @@ const FileNodeItem: React.FC<FileNodeItemProps> = ({
   expandedNodes,
   selectedFiles,
 }) => {
-  const accentColor = useThemeStore((state) => state.accentColor);
+  const { t } = useTranslation();
   const [isHovered, setIsHovered] = useState(false);
 
   const handleContentDivClick = (event: React.MouseEvent) => {
@@ -69,28 +69,28 @@ const FileNodeItem: React.FC<FileNodeItemProps> = ({
     onNodeSelected(node, event);
   };
 
+  const FolderIcon = currentIsExpanded ? FolderOpen : Folder;
+
   return (
     <li
       className={cn(
         'file-node list-none',
         node.is_dir ? 'directory' : 'file',
       )}
-      style={{ paddingLeft: `${currentDepth * 1.5}rem` }}
+      style={{ paddingLeft: `${currentDepth * 16}px` }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div 
+      <div
         className={cn(
-            "node-content flex items-center py-1 pr-2 transition-colors duration-150",
+            "node-content h-7 flex items-center pl-1 pr-2 transition-colors duration-fast",
             {"cursor-pointer": node.is_dir || !checkboxesEnabled || checkboxesEnabled && !node.is_dir },
+            currentIsSelected && checkboxesEnabled
+              ? "bg-s3"
+              : isHovered && (node.is_dir || !checkboxesEnabled) && "bg-s2",
         )}
+        style={{ borderRadius: "var(--r-sm)" }}
         onClick={handleContentDivClick}
-        style={{
-          backgroundColor: 
-            currentIsSelected && checkboxesEnabled ? `${accentColor.value}30` : 
-            (isHovered && (node.is_dir || !checkboxesEnabled)) ? `${accentColor.value}1A` : 
-            'transparent'
-        }}
       >
         {node.is_dir ? (
           <button
@@ -99,14 +99,19 @@ const FileNodeItem: React.FC<FileNodeItemProps> = ({
                 e.stopPropagation();
                 onToggleExpand(node.path, e);
             }}
-            className="expand-toggle-button p-0.5 mr-1 text-white/70 hover:text-white flex-shrink-0"
-            aria-label={currentIsExpanded ? 'Collapse' : 'Expand'}
+            className="expand-toggle-button w-5 h-5 mr-0.5 grid place-items-center text-fg-4 hover:text-fg transition-colors duration-fast flex-shrink-0"
+            aria-label={currentIsExpanded ? t('mods.files.collapse') : t('mods.files.expand')}
           >
-            <Icon icon={currentIsExpanded ? "solar:alt-arrow-down-bold" : "solar:alt-arrow-right-bold"} className="w-4 h-4" />
+            <ChevronRight
+              size={13}
+              strokeWidth={2}
+              className={cn("transition-transform duration-fast", currentIsExpanded && "rotate-90")}
+            />
           </button>
         ) : (
-          <span className="expand-placeholder w-[20px] mr-1 flex-shrink-0"></span>
-        )}        {checkboxesEnabled && (
+          <span className="expand-placeholder w-5 mr-0.5 flex-shrink-0"></span>
+        )}
+        {checkboxesEnabled && (
           <div className="filenode-checkbox-area mr-2 flex-shrink-0 self-center">
             <Checkbox
               checked={currentIsSelected}
@@ -116,11 +121,16 @@ const FileNodeItem: React.FC<FileNodeItemProps> = ({
           </div>
         )}
 
-        <Icon icon={node.is_dir ? "solar:folder-bold" : "solar:document-bold"} className="w-4 h-4 mr-2 flex-shrink-0 text-white/90 self-center" />
-        
-        <span 
+        {node.is_dir ? (
+          <FolderIcon size={14} strokeWidth={1.75} className="mr-2 flex-shrink-0 text-fg-3" />
+        ) : (
+          <FileText size={14} strokeWidth={1.75} className="mr-2 flex-shrink-0 text-fg-4" />
+        )}
+
+        <span
             className={cn(
-              "node-name flex-1 truncate text-sm font-minecraft self-center", 
+              "node-name flex-1 truncate text-[13px]",
+              node.is_dir ? "text-fg" : "text-fg-2",
               {"cursor-pointer": node.is_dir || checkboxesEnabled && !node.is_dir }
             )}
             onClick={(e) => {
@@ -129,24 +139,24 @@ const FileNodeItem: React.FC<FileNodeItemProps> = ({
                     onToggleExpand(node.path, e);
                 } else if (checkboxesEnabled) {
                     onNodeSelected(node, e);
-                } 
+                }
             }}
         >
           {node.name}
         </span>
 
         {!node.is_dir && (
-          <span className="node-size text-xs text-white/60 font-minecraft w-[70px] text-right mr-2 tabular-nums flex-shrink-0 self-center">
+          <span className="node-size cc-num text-[11px] text-fg-3 w-[70px] text-right mr-2 flex-shrink-0">
             {formatFileSize(node.size)}
           </span>
         )}
-        <span className="node-date text-xs text-white/60 font-minecraft w-[150px] text-right tabular-nums flex-shrink-0 self-center">
+        <span className="node-date cc-num text-[11px] text-fg-4 w-[150px] text-right flex-shrink-0">
           {formatDate(node.last_modified)}
         </span>
       </div>
 
       {node.is_dir && currentIsExpanded && node.children && node.children.length > 0 && (
-        <ul className="file-children list-none p-0 mt-0.5">
+        <ul className="file-children list-none p-0">
           {node.children.map((childNode) => (
             <FileNodeItem
               key={childNode.path}
@@ -346,15 +356,15 @@ export const FileNodeViewer: React.FC<FileNodeViewerProps> = ({
   };
 
   if (loading) {
-    return <div className="p-4 text-center text-white/70 font-minecraft">{t('files.loading_structure')}</div>;
+    return <div className="px-3 py-6 text-[13px] text-fg-3">{t('files.loading_structure')}</div>;
   }
 
   if (error) {
-    return <div className="p-4 text-center text-red-400 font-minecraft">{t('common.error')}: {error}</div>;
+    return <div className="px-3 py-6 text-[13px] text-err">{t('common.error')}: {error}</div>;
   }
 
   if (!rootNode) {
-    return <div className="p-4 text-center text-white/70 font-minecraft">{t('files.no_structure_available')}</div>;
+    return <div className="px-3 py-6 text-[13px] text-fg-3">{t('files.no_structure_available')}</div>;
   }
 
   const nodesToRender = hideRootNode ? rootNode.children || [] : [rootNode];

@@ -2,6 +2,23 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
+import {
+  Check,
+  FastForward,
+  Info,
+  Loader2,
+  Pause,
+  Play,
+  Plus,
+  Redo2,
+  Rewind,
+  Scissors,
+  SkipBack,
+  SkipForward,
+  Trash2,
+  Undo2,
+  X,
+} from "lucide-react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { toast } from "react-hot-toast";
 import { Group, Panel as LayoutPanel, useDefaultLayout, usePanelRef } from "react-resizable-panels";
@@ -19,6 +36,7 @@ import {
 import { TrackLevelControl, trackName } from "./ClipTimeline";
 import { ClipIconButton } from "./ClipIconButton";
 import { cn } from "../../lib/utils";
+import { WindowTitleBar } from "../log/LogWindowTitlebar";
 import { useTrimPreview } from "./useTrimPreview";
 import { usePlayback } from "./usePlayback";
 import { typing, useEditHistory } from "./useEditHistory";
@@ -756,68 +774,32 @@ export function ClipTrimmer({
 
   return (
     <WindowFrame className="select-none [&_button_svg]:pointer-events-none [&_input]:select-text [&_textarea]:select-text">
-      <header
-        data-tauri-drag-region
-        className="relative flex h-11 shrink-0 select-none items-center gap-3 border-b border-white/5 bg-black/40 pl-4 pr-2"
+      <WindowTitleBar
+        title={name}
+        lead={<EditorMenuBar menus={menus} open={menuOpen} onOpenChange={setMenuOpen} />}
+        onMinimize={() => void getCurrentWindow().minimize()}
+        onMaximize={() => void getCurrentWindow().toggleMaximize()}
+        onClose={onCancel}
+        closeDisabled={busy}
       >
-        <Icon
-          icon="solar:videocamera-record-bold"
-          className="pointer-events-none h-4 w-4 shrink-0"
-          style={{ color: accentColor.value }}
-        />
-        <EditorMenuBar menus={menus} open={menuOpen} onOpenChange={setMenuOpen} />
-        <div
-          data-tauri-drag-region
-          className="pointer-events-none flex h-full min-w-0 flex-1 items-center"
-        >
-          <span
-            className="truncate font-minecraft text-xs normal-case tracking-wider"
-            style={{ color: accentColor.value }}
-          >
-            {name}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-1">
-          <WindowButton
-            icon="mdi:minus"
-            label={t("window.minimize")}
-            onClick={() => void getCurrentWindow().minimize()}
-          />
-          <WindowButton
-            icon="mdi:checkbox-blank-outline"
-            iconClassName="h-3.5 w-3.5"
-            label={t("window.maximize")}
-            onClick={() => void getCurrentWindow().toggleMaximize()}
-          />
-          <WindowButton
-            icon="mdi:close"
-            label={t("window.close")}
-            danger
-            disabled={busy}
-            onClick={onCancel}
-          />
-        </div>
-
         {render.rendering && (
-          <span className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-white/10">
+          <span className="pointer-events-none absolute inset-x-0 bottom-0 h-[2px] bg-s3">
             <span
               className={cn(
-                "block h-full transition-[width] duration-200",
+                "block h-full bg-accent transition-[width] duration-med",
                 exportPercent === null && "w-1/3 animate-pulse",
               )}
               style={{
-                backgroundColor: accentColor.value,
                 width: exportPercent === null ? undefined : `${Math.max(2, exportPercent)}%`,
               }}
             />
           </span>
         )}
-      </header>
+      </WindowTitleBar>
 
       {helpOpen && <EditorHelpModal onClose={() => setHelpOpen(false)} t={t} />}
 
-      <div className="flex min-h-0 flex-1 flex-col p-1.5">
+      <div className="flex min-h-0 flex-1 flex-col">
         <Group
           id={ROWS_ID}
           orientation="vertical"
@@ -831,8 +813,8 @@ export function ClipTrimmer({
           resizeTargetMinimumSize={HIT_AREA}
         >
           <LayoutPanel id="stage" minSize={STAGE_MIN} className="flex flex-col" style={{ overflow: "hidden" }}>
-            <div className="flex min-h-0 flex-1 gap-1.5">
-              <nav className="flex w-[6.5rem] shrink-0 flex-col gap-1 overflow-hidden rounded-[var(--border-radius)] border border-white/10 bg-black/30 p-1">
+            <div className="flex min-h-0 flex-1">
+              <nav className="flex w-[4.75rem] shrink-0 flex-col gap-0.5 overflow-hidden border-r border-line bg-s1 px-1 py-1.5">
                 {OFFERED_PANELS.map((entry) => (
                   <button
                     key={entry.id}
@@ -840,18 +822,17 @@ export function ClipTrimmer({
                     onClick={() => setPanel(entry.id)}
                     aria-pressed={panel === entry.id}
                     className={cn(
-                      "flex w-full flex-col items-center gap-1.5 rounded border px-0.5 py-2.5 transition-colors",
+                      "relative flex w-full flex-col items-center gap-1 rounded-sm px-0.5 py-2 transition-colors duration-fast",
                       panel === entry.id
-                        ? "border-white/20 bg-white/10 text-white"
-                        : "border-transparent text-white/60 hover:bg-white/5 hover:text-white",
+                        ? "bg-s3 text-fg"
+                        : "text-fg-3 hover:bg-s2 hover:text-fg",
                     )}
                   >
-                    <Icon
-                      icon={entry.icon}
-                      className="h-5 w-5"
-                      style={panel === entry.id ? { color: accentColor.value } : undefined}
-                    />
-                    <span className="w-full text-center font-minecraft text-[10px] leading-tight [overflow-wrap:anywhere]">
+                    {panel === entry.id && (
+                      <span className="absolute -left-1 bottom-2 top-2 w-[2px] rounded-full bg-accent" />
+                    )}
+                    <Icon icon={entry.icon} className="h-[18px] w-[18px]" />
+                    <span className="w-full text-center text-[10.5px] leading-tight [overflow-wrap:anywhere]">
                       {t(entry.label)}
                     </span>
                   </button>
@@ -879,26 +860,22 @@ export function ClipTrimmer({
                   <aside className={CARD}>
                     <PanelTitle color={accentColor.value}>{t(activePanel.label)}</PanelTitle>
                     <div className="custom-scrollbar flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
-                      <p className="font-minecraft text-xs leading-relaxed text-white/50">
+                      <p className="text-xs leading-relaxed text-fg-3">
                         {t(activePanel.hint)}
                       </p>
                       {!FULL_EDITOR && (
-                        <div className="flex items-start gap-2.5 rounded border border-white/10 bg-black/30 px-3 py-2.5">
-                          <Icon
-                            icon="solar:info-circle-bold"
-                            className="mt-0.5 h-4 w-4 shrink-0"
-                            style={{ color: accentColor.value }}
-                          />
+                        <div className="flex items-start gap-2.5 rounded-md border border-line bg-s2 px-3 py-2.5">
+                          <Info size={14} strokeWidth={1.75} className="mt-0.5 shrink-0 text-fg-3" />
                           <div className="flex min-w-0 flex-col gap-1">
-                            <span className="font-minecraft text-sm text-white">{t("clips.editor.mac_notice.title")}</span>
-                            <span className="font-minecraft text-xs leading-relaxed text-white/60">
+                            <span className="text-[13px] text-fg">{t("clips.editor.mac_notice.title")}</span>
+                            <span className="text-xs leading-relaxed text-fg-3">
                               {t("clips.editor.mac_notice.message")}
                             </span>
                           </div>
                         </div>
                       )}
                       {panel === "tools" && (
-                        <div className="flex flex-col gap-2">
+                        <div className="flex flex-col gap-1.5">
                           {TOOLS.map((tool) => (
                             <button
                               key={tool.seed.kind}
@@ -912,15 +889,16 @@ export function ClipTrimmer({
                               }
                               disabled={busy}
                               className={cn(
-                                "group flex items-center gap-2 rounded border border-white/10 bg-black/30 px-2.5 py-2 text-left font-minecraft text-xs leading-tight text-white/80 transition-colors",
-                                busy ? "cursor-not-allowed opacity-40" : "hover:border-white/20 hover:bg-white/5 hover:text-white",
+                                "group flex min-h-9 items-center gap-2.5 rounded-md border border-line bg-s2 px-2.5 py-1.5 text-left text-[13px] leading-tight text-fg-2 transition-colors duration-fast",
+                                busy ? "cursor-not-allowed opacity-40" : "hover:border-line-2 hover:bg-s3 hover:text-fg",
                               )}
                             >
-                              <Icon icon={tool.icon} className="h-4 w-4 shrink-0 text-white/60" />
+                              <Icon icon={tool.icon} className="h-4 w-4 shrink-0 text-fg-3" />
                               <span className="min-w-0 flex-1 break-words">{t(tool.label)}</span>
-                              <Icon
-                                icon="solar:add-circle-bold"
-                                className={cn("h-4 w-4 shrink-0 text-white/30", !busy && "group-hover:text-white/70")}
+                              <Plus
+                                size={14}
+                                strokeWidth={1.75}
+                                className={cn("shrink-0 text-fg-4", !busy && "group-hover:text-fg-2")}
                               />
                             </button>
                           ))}
@@ -930,7 +908,7 @@ export function ClipTrimmer({
                       {panel === "audio" && (
                         <>
                           {adjustable.length === 0 ? (
-                            <p className="font-minecraft text-xs leading-relaxed text-white/50">
+                            <p className="text-xs leading-relaxed text-fg-3">
                               {t("clips.editor.audio.none")}
                             </p>
                           ) : (
@@ -948,7 +926,7 @@ export function ClipTrimmer({
                                   t={t}
                                 />
                               ))}
-                              <p className="font-minecraft text-xs leading-relaxed text-white/50">
+                              <p className="text-xs leading-relaxed text-fg-3">
                                 {previewState === "live"
                                   ? t("clips.trim.levels.live")
                                   : previewState === "loading"
@@ -959,7 +937,7 @@ export function ClipTrimmer({
                               </p>
                             </>
                           )}
-                          <p className="font-minecraft text-xs leading-relaxed text-white/40">
+                          <p className="text-xs leading-relaxed text-fg-4">
                             {t("clips.editor.audio.shift")}
                           </p>
                         </>
@@ -974,13 +952,13 @@ export function ClipTrimmer({
                               onClick={() => setShape(entry.choice)}
                               disabled={busy}
                               className={cn(
-                                "rounded border px-2 py-2.5 font-minecraft text-xs leading-tight transition-colors",
+                                "min-h-9 rounded-md border px-2 py-2 text-xs leading-tight transition-colors duration-fast",
                                 shape === entry.choice
-                                  ? "border-white/20 bg-white/10 text-white"
-                                  : "border-white/10 bg-black/30 text-white/60",
+                                  ? "border-line-3 bg-s3 text-fg"
+                                  : "border-line bg-s2 text-fg-2",
                                 busy
                                   ? "cursor-not-allowed opacity-40"
-                                  : shape !== entry.choice && "hover:border-white/20 hover:bg-white/5 hover:text-white",
+                                  : shape !== entry.choice && "hover:border-line-2 hover:bg-s3 hover:text-fg",
                               )}
                             >
                               {t(entry.label)}
@@ -995,12 +973,12 @@ export function ClipTrimmer({
                 <ResizeBar orientation="vertical" label={t("clips.editor.menu.resize")} color={accentColor.value} />
 
                 <LayoutPanel id="main" minSize={MAIN_MIN} className="flex" style={{ overflow: "hidden" }}>
-                  <main className={CARD}>
-                    <div className="min-h-0 flex-1 px-4 pb-2 pt-4" onPointerDown={() => setChosen(null)}>
+                  <main className={cn(CARD, "bg-bg")}>
+                    <div className="min-h-0 flex-1 px-4 pb-3 pt-4" onPointerDown={() => setChosen(null)}>
                       <div className="flex h-full w-full items-center justify-center" style={{ containerType: "size" }}>
                         <div
                           ref={frameRef}
-                          className="group relative overflow-hidden rounded border border-white/10 bg-black shadow-2xl"
+                          className="group relative overflow-hidden rounded-sm border border-line bg-black"
                           style={{
                             width: `min(100cqw, calc(100cqh * ${ratio}))`,
                             height: `min(100cqh, calc(100cqw / ${ratio}))`,
@@ -1029,14 +1007,14 @@ export function ClipTrimmer({
                           />
 
                           {buffering && (
-                            <span className="pointer-events-none absolute left-1/2 top-1/2 flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-black/50">
-                              <Icon icon="svg-spinners:ring-resize" className="h-6 w-6" style={{ color: accentColor.value }} />
+                            <span className="pointer-events-none absolute left-1/2 top-1/2 flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-md bg-black/60 text-fg-2">
+                              <Loader2 size={20} strokeWidth={1.75} className="animate-spin" />
                             </span>
                           )}
 
                           {!playing && !buffering && (
-                            <span className="pointer-events-none absolute left-1/2 top-1/2 flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/40 opacity-0 transition-opacity duration-150 group-hover:opacity-70">
-                              <Icon icon="solar:play-bold" className="h-5 w-5 text-white" />
+                            <span className="pointer-events-none absolute left-1/2 top-1/2 flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-md bg-black/60 text-fg opacity-0 transition-opacity duration-fast group-hover:opacity-100">
+                              <Play size={18} strokeWidth={1.75} fill="currentColor" />
                             </span>
                           )}
 
@@ -1044,12 +1022,12 @@ export function ClipTrimmer({
 
                           {guide && (
                             <div
-                              className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 border-2"
+                              className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 border border-fg/80"
                               style={{
                                 width: `${guide.width * 100}%`,
                                 height: `${guide.height * 100}%`,
-                                borderColor: accentColor.value,
-                                boxShadow: "0 0 0 9999px rgba(0, 0, 0, 0.55)",
+                                // dims everything outside the kept frame
+                                boxShadow: "0 0 0 9999px rgba(0, 0, 0, 0.6)",
                               }}
                             />
                           )}
@@ -1072,42 +1050,48 @@ export function ClipTrimmer({
                       </div>
                     </div>
 
-                    <div className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 pb-3 pt-1">
+                    <div className="grid h-12 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-3 border-t border-line px-4">
                       <PlayheadClock live={live} view={view} color={accentColor.value} />
                       <div className="flex items-center gap-1.5">
                         <ClipIconButton
-                          icon="solar:skip-previous-bold"
+                          icon={<SkipBack size={15} strokeWidth={1.75} />}
                           label={t("clips.editor.transport.to_start")}
                           tooltipPosition="top"
                           onClick={() => jump(start)}
                         />
                         <ClipIconButton
-                          icon="solar:rewind-back-bold"
+                          icon={<Rewind size={15} strokeWidth={1.75} />}
                           label={t("clips.editor.transport.step_back")}
                           tooltipPosition="top"
                           onClick={() => jump(view.shift(playhead, -STEP_SECONDS))}
                         />
                         <ClipIconButton
-                          icon={playing ? "solar:pause-bold" : "solar:play-bold"}
+                          icon={
+                            playing ? (
+                              <Pause size={16} strokeWidth={1.75} fill="currentColor" />
+                            ) : (
+                              <Play size={16} strokeWidth={1.75} fill="currentColor" />
+                            )
+                          }
                           label={playing ? t("clips.editor.transport.pause") : t("clips.trim.preview")}
                           tooltipPosition="top"
                           onClick={preview}
-                          className="mx-1 h-10 w-10 [&_svg]:h-5 [&_svg]:w-5"
+                          className="mx-1 h-8 w-8 rounded-md bg-s3 text-fg enabled:hover:bg-s4"
                         />
                         <ClipIconButton
-                          icon="solar:rewind-forward-bold"
+                          icon={<FastForward size={15} strokeWidth={1.75} />}
                           label={t("clips.editor.transport.step_forward")}
                           tooltipPosition="top"
                           onClick={() => jump(view.shift(playhead, STEP_SECONDS))}
                         />
                         <ClipIconButton
-                          icon="solar:skip-next-bold"
+                          icon={<SkipForward size={15} strokeWidth={1.75} />}
                           label={t("clips.editor.transport.to_end")}
                           tooltipPosition="top"
                           onClick={() => jump(end)}
                         />
                       </div>
-                      <span className="min-w-0 justify-self-end truncate font-minecraft text-sm tabular-nums leading-none text-white/50">
+                      <span className="min-w-0 justify-self-end truncate font-mono text-xs tabular-nums leading-none text-fg-3">
                         {formatTime(view.length)}
                       </span>
                     </div>
@@ -1166,33 +1150,32 @@ export function ClipTrimmer({
               <div className={PANEL_HEAD}>
                 <div className="flex shrink-0 items-center gap-1.5">
                   <ClipIconButton
-                    icon="solar:undo-left-bold"
+                    icon={<Undo2 size={15} strokeWidth={1.75} />}
                     label={t("clips.editor.transport.undo")}
                     onClick={history.undo}
                     disabled={!history.canUndo}
                   />
                   <ClipIconButton
-                    icon="solar:undo-right-bold"
+                    icon={<Redo2 size={15} strokeWidth={1.75} />}
                     label={t("clips.editor.transport.redo")}
                     onClick={history.redo}
                     disabled={!history.canRedo}
                   />
                   {FULL_EDITOR && (
                     <>
-                      <span className="mx-1 h-6 w-px bg-white/10" />
+                      <span className="mx-1 h-4 w-px bg-line-2" />
                       <ClipIconButton
-                        icon="solar:scissors-square-bold"
+                        icon={<Scissors size={15} strokeWidth={1.75} />}
                         label={t("clips.editor.cut.start")}
                         aria-pressed={mark !== null}
                         onClick={toggleMark}
                         disabled={busy}
-                        className={cn(mark && "bg-white/10")}
-                        style={mark ? { color: accentColor.value, borderColor: accentColor.value } : undefined}
+                        className={cn(mark && "bg-s3 text-fg")}
                       />
                     </>
                   )}
                 </div>
-                <span className="h-6 w-px shrink-0 bg-white/10" />
+                <span className="h-4 w-px shrink-0 bg-line-2" />
                 <div className="flex min-w-0 items-center gap-4 overflow-hidden">
                   <Readout label={t("clips.trim.from")} value={formatTime(view.toView(shot.from))} />
                   <Readout
@@ -1203,16 +1186,17 @@ export function ClipTrimmer({
                   <Readout label={t("clips.trim.to")} value={formatTime(view.toView(shot.to))} />
                 </div>
                 <Button
-                  variant="success"
+                  variant="default"
                   size="xs"
                   className="ml-auto shrink-0"
                   onClick={() => void save()}
                   disabled={!canSave}
                   icon={
-                    <Icon
-                      icon={busy ? "svg-spinners:ring-resize" : "solar:check-circle-bold"}
-                      className="h-4 w-4"
-                    />
+                    busy ? (
+                      <Loader2 size={14} strokeWidth={1.75} className="animate-spin" />
+                    ) : (
+                      <Check size={14} strokeWidth={2} />
+                    )
                   }
                 >
                   {t("clips.trim.save")}
@@ -1243,7 +1227,7 @@ export function ClipTrimmer({
                           t={t}
                         />
                         {separate && (
-                          <p className="min-w-0 truncate font-minecraft text-xs text-white/50">
+                          <p className="min-w-0 truncate text-xs text-fg-3">
                             {t("clips.editor.link.hint")}
                           </p>
                         )}
@@ -1251,15 +1235,15 @@ export function ClipTrimmer({
                     )}
                     {mark ? (
                       <div className="ml-auto flex shrink-0 items-center gap-2">
-                        <span className="font-minecraft text-xs text-white/60">{t("clips.editor.cut.label")}</span>
-                        <span className="font-minecraft text-sm tabular-nums" style={{ color: accentColor.value }}>
+                        <span className="text-xs text-fg-3">{t("clips.editor.cut.label")}</span>
+                        <span className="font-mono text-xs tabular-nums text-fg">
                           {`${(view.toView(mark.endSeconds) - view.toView(mark.startSeconds)).toFixed(1)} s`}
                         </span>
                         <Button
                           variant="secondary"
                           size="xs"
                           onClick={cancelMark}
-                          icon={<Icon icon="solar:close-circle-bold" className="h-4 w-4" />}
+                          icon={<X size={14} strokeWidth={1.75} />}
                         >
                           {t("common.cancel")}
                         </Button>
@@ -1268,13 +1252,13 @@ export function ClipTrimmer({
                           size="xs"
                           onClick={removeMark}
                           disabled={busy}
-                          icon={<Icon icon="solar:trash-bin-trash-bold" className="h-4 w-4" />}
+                          icon={<Trash2 size={14} strokeWidth={1.75} />}
                         >
                           {t("clips.editor.cut.apply")}
                         </Button>
                       </div>
                     ) : (
-                      <p className="ml-auto min-w-0 truncate font-minecraft text-[11px] text-white/40">
+                      <p className="ml-auto min-w-0 truncate text-[11px] text-fg-4">
                         {overlays.length > 0
                           ? t("clips.editor.overlay.hint")
                           : FULL_EDITOR
@@ -1320,12 +1304,12 @@ export function ClipTrimmer({
                             src={filmstrip}
                             alt=""
                             draggable={false}
-                            className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-90"
+                            className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-80"
                           />
                         </Pieces>
                       ) : (
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <Icon icon="svg-spinners:ring-resize" className="h-4 w-4 text-white/40" />
+                          <Loader2 size={14} strokeWidth={1.75} className="animate-spin text-fg-4" />
                         </div>
                       )}
 
@@ -1452,11 +1436,11 @@ export function WindowButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "flex h-8 w-8 items-center justify-center rounded transition-colors disabled:cursor-not-allowed disabled:opacity-40",
-        danger ? "enabled:hover:bg-red-500/80" : "enabled:hover:bg-white/10",
+        "cc-window-btn h-full disabled:pointer-events-none disabled:opacity-40",
+        danger && "is-close",
       )}
     >
-      <Icon icon={icon} className={cn(iconClassName, "text-white/70")} />
+      <Icon icon={icon} className={iconClassName} />
     </button>
   );
 }

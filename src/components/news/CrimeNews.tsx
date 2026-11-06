@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Sparkles } from "lucide-react";
 import { cn } from "../../lib/utils";
 
 /** The client's changelog, served by the CrimeClient update API (same file the website shows). */
@@ -20,7 +19,7 @@ interface CrimeNewsProps {
   style?: React.CSSProperties;
 }
 
-/** Right-hand panel on the play tab: what is new in CrimeClient, as a timeline. */
+/** What is new in CrimeClient: versions in mono, the changes as plain lines. */
 export function CrimeNews({ className, style }: CrimeNewsProps) {
   const { t, i18n } = useTranslation();
   const [entries, setEntries] = useState<ChangelogEntry[] | null>(null);
@@ -44,55 +43,44 @@ export function CrimeNews({ className, style }: CrimeNewsProps) {
   }, []);
 
   return (
-    <aside className={cn(className)} style={style}>
-      <div className="flex items-center gap-3 px-6 pt-6 pb-4">
-        <div
-          className="w-9 h-9 grid place-items-center text-white"
-          style={{ borderRadius: 12, background: "linear-gradient(135deg, var(--accent), var(--accent-hover))" }}
-        >
-          <Sparkles size={18} />
-        </div>
-        <div>
-          <h2 className="font-display text-lg font-bold text-white leading-tight">{t("play.news.title")}</h2>
-          <p className="text-xs text-white/40">{t("play.news.subtitle")}</p>
-        </div>
+    <aside className={cn("flex flex-col min-h-0", className)} style={style}>
+      <div className="flex items-baseline justify-between px-6 pt-5 pb-3 flex-shrink-0">
+        <h2 className="cc-eyebrow">{t("play.news.title")}</h2>
+        <span className="text-[11px] text-fg-4">{t("play.news.subtitle")}</span>
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hover px-6 pb-6">
-        {failed && <p className="text-sm text-white/50">{t("play.news.unreachable")}</p>}
+        {failed && <p className="text-[13px] text-fg-3">{t("play.news.unreachable")}</p>}
         {!entries && !failed && (
-          <div className="space-y-3">
+          <div className="space-y-5 pt-1">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="h-20 rounded-2xl bg-white/[0.04] animate-skeleton-pulse" />
+              <div key={i} className="space-y-2">
+                <div className="h-3 w-14 bg-s3 animate-skeleton-pulse" style={{ borderRadius: 2 }} />
+                <div className="h-2.5 w-full bg-s2 animate-skeleton-pulse" style={{ borderRadius: 2 }} />
+                <div className="h-2.5 w-4/5 bg-s2 animate-skeleton-pulse" style={{ borderRadius: 2 }} />
+              </div>
             ))}
           </div>
         )}
         {entries && (
-          <ol className="relative border-l border-white/[0.08] ml-1.5">
+          <ol className="divide-y divide-line">
             {entries.map((entry, index) => (
-              <li key={entry.version} className="relative pl-5 pb-6 last:pb-0">
-                <span
-                  className="absolute -left-[5px] top-1.5 w-[9px] h-[9px] rounded-full"
-                  style={{
-                    background: index === 0 ? "var(--accent)" : "rgba(255,255,255,0.25)",
-                    boxShadow: index === 0 ? "0 0 0 4px rgba(var(--accent-rgb),0.2)" : undefined,
-                  }}
-                />
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="font-display text-sm font-bold text-white">v{entry.version}</span>
+              <li key={entry.version} className="py-4 first:pt-1">
+                <div className="flex items-baseline gap-2 mb-2">
+                  <span className={cn("cc-num text-[13px] font-[600]", index === 0 ? "text-fg" : "text-fg-2")}>
+                    {entry.version}
+                  </span>
                   {index === 0 && (
-                    <span
-                      className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full text-white"
-                      style={{ background: "var(--accent)" }}
-                    >
+                    <span className="text-[10.5px] font-[600] uppercase tracking-[0.06em] text-fg-3">
                       {t("play.news.latest")}
                     </span>
                   )}
                 </div>
                 <ul className="space-y-1.5">
                   {(german ? entry.de : entry.en).map((line) => (
-                    <li key={line} className="text-[13px] leading-snug text-white/70">
-                      {line}
+                    <li key={line} className="flex gap-2.5 text-[13px] leading-[1.45] text-fg-2">
+                      <span className="text-fg-4 select-none">–</span>
+                      <span className="min-w-0">{line}</span>
                     </li>
                   ))}
                 </ul>

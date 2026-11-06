@@ -4,7 +4,6 @@ import type React from "react";
 import { forwardRef, useEffect, useRef, useState } from "react";
 import { cn } from "../../lib/utils";
 import { gsap } from "gsap";
-import { useThemeStore } from "../../store/useThemeStore";
 import { LoadingSpinner } from "./LoadingSpinner";
 
 interface LoadingOverlayProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -43,7 +42,6 @@ export const LoadingOverlay = forwardRef<HTMLDivElement, LoadingOverlayProps>(
     const progressRef = useRef<HTMLDivElement>(null);
     const isFirstRender = useRef(true);
     const [isVisible, setIsVisible] = useState(isLoading);
-    const accentColor = useThemeStore((state) => state.accentColor);
 
     const mergedRef = (node: HTMLDivElement) => {
       if (ref) {
@@ -78,16 +76,15 @@ export const LoadingOverlay = forwardRef<HTMLDivElement, LoadingOverlayProps>(
         });
       } else {
         tl.to(content, {
-          scale: 0.95,
-          y: -20,
+          y: 4,
           opacity: 0,
-          duration: 0.3,
+          duration: 0.18,
           ease: "power2.in",
         })
           .to(
             overlay,
-            { opacity: 0, duration: 0.3, ease: "power2.in" },
-            "-=0.1",
+            { opacity: 0, duration: 0.18, ease: "power2.in" },
+            "-=0.06",
           )
           .set(overlay, { display: "none" })
           .call(() => setIsVisible(false));
@@ -108,97 +105,18 @@ export const LoadingOverlay = forwardRef<HTMLDivElement, LoadingOverlayProps>(
       }
     }, [progress, showProgressBar]);
 
-    const getVariantColors = () => {
-      switch (variant) {
-        case "warning":
-          return {
-            main: "#f59e0b",
-            light: "#fbbf24",
-            dark: "#d97706",
-            text: "#fef3c7",
-          };
-        case "destructive":
-          return {
-            main: "#ef4444",
-            light: "#f87171",
-            dark: "#dc2626",
-            text: "#fee2e2",
-          };
-        case "info":
-          return {
-            main: "#3b82f6",
-            light: "#60a5fa",
-            dark: "#2563eb",
-            text: "#dbeafe",
-          };
-        case "success":
-          return {
-            main: "#10b981",
-            light: "#34d399",
-            dark: "#059669",
-            text: "#d1fae5",
-          };
-        case "secondary":
-          return {
-            main: "#6b7280",
-            light: "#9ca3af",
-            dark: "#4b5563",
-            text: "#f3f4f6",
-          };
-        default:
-          return {
-            main: accentColor.value,
-            light: accentColor.hoverValue || accentColor.value,
-            dark: accentColor.value,
-            text: "#ffffff",
-          };
-      }
-    };
-
-    const getSizeStyles = () => {
+    const sizeStyles = (() => {
       switch (size) {
         case "sm":
-          return {
-            container: "p-4 max-w-sm",
-            spinner: "md",
-            text: "text-base",
-            progressHeight: "h-1.5",
-          };        case "lg":
-          return {
-            container: "p-8 max-w-2xl",
-            spinner: "xl",
-            text: "text-xl",
-            progressHeight: "h-3",
-          };
+          return { container: "px-5 py-4 max-w-sm", spinner: "sm", text: "text-xs" };
+        case "lg":
+          return { container: "px-7 py-6 max-w-2xl", spinner: "lg", text: "text-[13px]" };
         case "xl":
-          return {
-            container: "p-10 max-w-3xl",
-            spinner: "xxl",
-            text: "text-2xl",
-            progressHeight: "h-4",
-          };
+          return { container: "px-8 py-7 max-w-3xl", spinner: "xl", text: "text-sm" };
         default:
-          return {
-            container: "p-6 max-w-lg",
-            spinner: "lg",
-            text: "text-lg",
-            progressHeight: "h-2",
-          };
+          return { container: "px-6 py-5 max-w-lg", spinner: "md", text: "text-[13px]" };
       }
-    };
-
-    const colors = getVariantColors();
-    const sizeStyles = getSizeStyles();
-
-    const getShadowStyle = () => {
-      if (shadowDepth === "none") return "none";
-
-      if (shadowDepth === "short") {
-        return `0 10px 30px -18px rgba(0,0,0,0.8), inset 0 1px 0 ${colors.light}40, inset 0 0 0 1px ${colors.main}20`;
-      }
-
-      return `0 14px 34px -18px rgba(0,0,0,0.85), inset 0 1px 0 ${colors.light}40, inset 0 0 0 1px ${colors.main}20`;
-    };
+    })();
 
     if (!isVisible) return null;
 
@@ -206,58 +124,38 @@ export const LoadingOverlay = forwardRef<HTMLDivElement, LoadingOverlayProps>(
       <div
         ref={mergedRef}
         className={cn(
-          "absolute inset-0 z-10 flex items-center justify-center backdrop-blur-sm transition-opacity",
+          "absolute inset-0 z-10 flex items-center justify-center transition-opacity",
           className,
         )}
-        style={{ backgroundColor: "rgba(0, 0, 0, 0.7)" }}
+        style={{ backgroundColor: "rgba(14, 14, 15, 0.78)" }}
         {...props}
       >
         <div
           ref={contentRef}
           className={cn(
-            "relative overflow-hidden rounded-md backdrop-blur-md",
-            shadowDepth !== "none" && "border",
+            "relative overflow-hidden min-w-[220px]",
+            shadowDepth !== "none" && "bg-s1 border border-line-2 shadow-pop",
             sizeStyles.container,
           )}
-          style={{
-            backgroundColor: `${colors.main}30`,
-            borderColor: `${colors.main}80`,
-            borderBottomColor: colors.dark,
-            boxShadow: getShadowStyle(),
-          }}
+          style={{ borderRadius: "var(--r-lg)" }}
         >
-          <span
-            className="absolute inset-x-0 top-0 h-[2px] rounded-t-sm"
-            style={{ backgroundColor: `${colors.light}80` }}
-          />
-
-          <div className="flex flex-col items-center space-y-4">
+          <div className="flex flex-col items-center gap-3">
             <LoadingSpinner
               variant={variant}
               size={sizeStyles.spinner as any}
               shadowDepth="none"
             />
 
-            <p
-              className={cn("text-center tracking-wider", sizeStyles.text)}
-              style={{ color: colors.text }}
-            >
+            <p className={cn("text-center text-fg-2", sizeStyles.text)}>
               {message}
             </p>
 
             {showProgressBar && (
-              <div
-                className={cn(
-                  "w-full overflow-hidden rounded-full bg-black/20",
-                  sizeStyles.progressHeight,
-                )}
-                style={{ boxShadow: "inset 0 1px 2px rgba(0,0,0,0.3)" }}
-              >
+              <div className="w-full h-[2px] overflow-hidden rounded-full bg-s4">
                 <div
                   ref={progressRef}
-                  className="h-full rounded-full transition-all"
+                  className="h-full rounded-full bg-accent"
                   style={{
-                    backgroundColor: colors.text,
                     width:
                       progress >= 0 ? `${Math.min(100, progress)}%` : "30%",
                     animation:

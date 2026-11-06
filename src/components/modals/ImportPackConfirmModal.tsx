@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Icon } from "@iconify/react";
+import { Download, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Modal } from "../ui/Modal";
@@ -19,6 +19,7 @@ import { ImportRemovedList } from "../profiles/import/ImportRemovedList";
 import { useImportConfirmStore } from "../../store/import-confirm-store";
 import { useKnownProfileGroups } from "../../hooks/useKnownProfileGroups";
 import { runPackImport } from "../../utils/pack-import";
+import { FieldLabel } from "../profiles/wizard-v2/WizardParts";
 
 export function ImportPackConfirmModal() {
   const { t } = useTranslation();
@@ -67,16 +68,17 @@ export function ImportPackConfirmModal() {
   };
 
   const renderFooter = () => (
-    <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
-      <Button variant="secondary" onClick={close} size="md" disabled={isImporting}>
+    <div className="flex justify-end gap-2">
+      <Button variant="ghost" onClick={close} size="sm" disabled={isImporting}>
         {t("common.cancel")}
       </Button>
       <Button
         variant="default"
         onClick={handleConfirm}
-        size="md"
+        size="sm"
+        className="min-w-[112px]"
         disabled={isLoading || isImporting || !trimmedName}
-        icon={<Icon icon="solar:download-bold" className="w-5 h-5 text-white" />}
+        icon={<Download size={15} strokeWidth={1.75} />}
       >
         {t("profiles.import.confirm")}
       </Button>
@@ -101,31 +103,27 @@ export function ImportPackConfirmModal() {
       width="lg"
       footer={renderFooter()}
     >
-      <div className="p-6 space-y-5">
+      <div className="px-5 py-5 space-y-5">
         {isLoading || !preview ? (
-          <div className="flex items-center gap-3 text-white/70 font-minecraft tracking-wide">
-            <Icon icon="svg-spinners:ring-resize" className="w-5 h-5" />
+          <div className="flex items-center gap-2 text-[12.5px] text-fg-3">
+            <Loader2 size={15} strokeWidth={1.75} className="animate-spin" />
             <span>{t("profiles.import.reading_pack")}</span>
           </div>
         ) : (
           <>
-            <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col">
-                <label className="block text-lg font-smallcaps text-white mb-2">
-                  {t("profiles.import.field_name")}
-                </label>
+                <FieldLabel>{t("profiles.import.field_name")}</FieldLabel>
                 <SearchStyleInput
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder={t("profiles.import.field_name_placeholder")}
-                  className="text-sm w-full"
+                  className="w-full"
                 />
               </div>
 
               <div className="flex flex-col">
-                <label className="block text-lg font-smallcaps text-white mb-2">
-                  {t("profiles.import.field_group")}
-                </label>
+                <FieldLabel>{t("profiles.import.field_group")}</FieldLabel>
                 <GroupPicker value={group} onChange={setGroup} options={knownGroups} />
               </div>
             </div>
@@ -134,7 +132,7 @@ export function ImportPackConfirmModal() {
               label={t("profiles.import.norisk_toggle_title")}
               checked={useNoriskPack}
               onChange={(event) => setUseNoriskPack(event.target.checked)}
-              size="lg"
+              size="md"
             />
 
             <ImportTrustWarning />

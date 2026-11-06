@@ -4,12 +4,7 @@ import type { ReactNode } from "react";
 import { useRef } from "react";
 import { Icon } from "@iconify/react";
 import { cn } from "../../lib/utils";
-import { useThemeStore } from "../../store/useThemeStore";
-import { useEntranceAnimation } from "../../hooks/useEntranceAnimation";
-import { 
-  getVariantColors,
-  getAccessibilityProps
-} from "./design-system";
+import { getAccessibilityProps } from "./design-system";
 
 interface TabHeaderProps {
   title: string;
@@ -20,6 +15,7 @@ interface TabHeaderProps {
   ariaLabel?: string;
 }
 
+/** A section header: display title, optional icon, content below; a hairline closes it. */
 export function TabHeader({
   title,
   icon,
@@ -29,44 +25,29 @@ export function TabHeader({
   ariaLabel,
 }: TabHeaderProps) {
   const headerRef = useRef<HTMLDivElement>(null);
-  const accentColor = useThemeStore((state) => state.accentColor);
-
-  const colors = getVariantColors("default", accentColor);
   const accessibilityProps = getAccessibilityProps({
     label: ariaLabel
   });
 
-  useEntranceAnimation(
-    headerRef,
-    { opacity: 0, y: -20 },
-    { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" },
-  );
   return (
     <div
-      ref={headerRef}      className={cn(
-        "flex-shrink-0 flex flex-col gap-4 p-6 backdrop-blur-md border-b-4 shadow-md",
-        "rounded-none",
+      ref={headerRef}
+      className={cn(
+        "cc-enter flex-shrink-0 flex flex-col gap-4 px-6 py-5 border-b border-line",
         className,
       )}
-      style={{
-        backgroundColor: `${colors.main}30`,
-        borderColor: `${colors.main}60`,
-        borderRadius: "0px",
-      }}
       role={role}
       {...accessibilityProps}
-    >      <div className="flex items-center gap-3">        {icon && (
+    >
+      <div className="flex items-center gap-2.5">
+        {icon && (
           <Icon
             icon={icon}
-            className="text-sm"
-            style={{ color: colors.light }}
+            className="w-4 h-4 text-fg-3"
             aria-hidden="true"
           />
         )}
-        <h1
-          className="text-sm font-smallcaps font-bold"
-          style={{ color: "#ffffff" }}
-        >
+        <h1 className="font-display text-[15px] font-[620] text-fg leading-tight">
           {title}
         </h1>
       </div>

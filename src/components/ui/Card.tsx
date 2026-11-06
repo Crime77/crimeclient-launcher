@@ -1,13 +1,10 @@
 "use client";
 
 import type React from "react";
-import { forwardRef, type ReactNode, useRef, useState } from "react";
+import { forwardRef, type ReactNode, useRef } from "react";
 import { cn } from "../../lib/utils";
 import { useThemeStore } from "../../store/useThemeStore";
-import { 
-  getVariantColors,
-  getBorderRadiusClass,
-  createRadiusStyle,
+import {
   getAccessibilityProps,
   type ComponentVariant
 } from "./design-system";
@@ -37,12 +34,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
   ref,
 ) {
   const cardRef = useRef<HTMLDivElement>(null);
-  const accentColor = useThemeStore((state) => state.accentColor);
   const borderRadius = useThemeStore((state) => state.borderRadius);
-  const isBackgroundAnimationEnabled = useThemeStore(
-    (state) => state.isBackgroundAnimationEnabled,
-  );
-  const [isHovered, setIsHovered] = useState(false);
 
   const mergedRef = (node: HTMLDivElement) => {
     if (ref) {
@@ -55,38 +47,19 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
     cardRef.current = node;
   };
 
-  const handleMouseEnter = () => {
-    setIsHovered(true);
-  };
-
-  const handleMouseLeave = () => {
-    setIsHovered(false);
-  };
-
-  const colors = getVariantColors(variant, accentColor);
   const accessibilityProps = getAccessibilityProps({
     label: ariaLabel,
     disabled: false
   });
 
-  // CrimeClient: neutral frosted glass; status variants keep a light tint of their colour
-  const isStatus = ["warning", "destructive", "info", "success"].includes(variant);
-
-  const getBoxShadow = () =>
-    variant === "elevated" || variant === "3d"
-      ? "0 18px 40px -24px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.05)"
-      : "inset 0 1px 0 rgba(255,255,255,0.04)";
-
-  const getBorderStyle = () => "border";
-
-  const getBackgroundColor = () => {
-    if (isStatus) return `${colors.main}${isHovered && onClick ? "26" : "1a"}`;
-    return isHovered && onClick ? "rgba(255,255,255,0.065)" : "rgba(255,255,255,0.04)";
+  // "Werkzeug": a flat s1 panel with a hairline; status variants colour only the hairline
+  const STATUS_BORDER: Partial<Record<ComponentVariant, string>> = {
+    warning: "border-warn/30",
+    destructive: "border-err/30",
+    info: "border-info/30",
+    success: "border-ok/30",
   };
-
-  const getBorderColor = () => (isStatus ? `${colors.main}55` : "rgba(255,255,255,0.08)");
-
-  const getBorderBottomColor = getBorderColor;
+  const statusBorder = STATUS_BORDER[variant];
 
   return (
     <div
@@ -94,22 +67,14 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
       role={role || (onClick ? "button" : undefined)}
       tabIndex={onClick ? 0 : undefined}
       className={cn(
-        "relative backdrop-blur-md overflow-hidden",
-        getBorderRadiusClass(borderRadius),
-        getBorderStyle(),
-        onClick && "cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2",
+        "relative overflow-hidden bg-s1 border transition-colors duration-fast ease-out",
+        statusBorder ?? "border-line",
+        onClick && "cursor-pointer hover:bg-s2 focus:outline-none focus-visible:ring-1 focus-visible:ring-line-3",
+        onClick && !statusBorder && "hover:border-line-2",
         className,
       )}
-      style={{
-        backgroundColor: getBackgroundColor(),
-        borderColor: getBorderColor(),
-        borderBottomColor: getBorderBottomColor(),
-        boxShadow: getBoxShadow(),
-        ...createRadiusStyle(borderRadius, 1.2),
-      }}
+      style={{ borderRadius: borderRadius === 0 ? 0 : "var(--r-lg)" }}
       onClick={onClick}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
       onContextMenu={onContextMenu}
       {...accessibilityProps}
     >

@@ -4,12 +4,12 @@ import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ExportPackFormat, Profile } from "../../../types/profile"; // Adjust path as needed
 import { SearchStyleInput } from "../../ui/Input";
-import { Checkbox } from "../../ui/Checkbox";
+import { ToggleSwitch } from "../../ui/ToggleSwitch";
 import { Tooltip } from "../../ui/Tooltip";
 import { cn } from "../../../lib/utils";
 import { Button } from "../../ui/buttons/Button";
-import { Card } from "../../ui/Card";
-import { Icon } from "@iconify/react";
+import { CheckCheck, Upload, X } from "lucide-react";
+import { SettingsRow, SettingsSection } from "./SettingsRow";
 import { FileNodeViewer } from "../../file-explorer/FileNodeViewer"; // Adjust path as needed
 import type { FileNode } from "../../../types/fileSystem"; // Adjust path as needed
 import * as ProfileService from "../../../services/profile-service"; // Adjust path as needed
@@ -88,7 +88,7 @@ export function ExportSettingsTab({
 
   const isBackgroundAnimationEnabled = useThemeStore(
     (state) => state.isBackgroundAnimationEnabled
-  );  const accentColor = useThemeStore((state) => state.accentColor);
+  );
 
   const handleFileSelectionChange = (newSelectedPaths: Set<string>) => {
     setSelectedExportPaths(newSelectedPaths);
@@ -267,40 +267,56 @@ export function ExportSettingsTab({
     setExportOpenFolder,
   ]);
 
-  return (
-    <div ref={contentRef} className="space-y-6">
-      {!isInModalContext && (
-        <div>
-          <h3 className="text-lg font-smallcaps text-white mb-1">
-            {t('export.title')}
-          </h3>
-          <p className="text-xs text-white/70 mb-4 font-minecraft tracking-wide">
-            {t('export.description')}
-          </p>
-        </div>
-      )}
+  const formatExtension =
+    EXPORT_FORMATS.find((format) => format.value === exportFormat)?.extension ??
+    exportFormat;
 
-      {/* Card now always wraps the main form elements */}
-      <>
-        {/* Filename input section */}
-        <div className="space-y-1">
-          <label
-            htmlFor="exportFilename"
-            className="block text-base text-white font-smallcaps mb-2"
-          >
-            {t('export.filename_label')}
-          </label>
-          <div className="flex items-center gap-2">
+  const progressBlock = isExporting && exportProgress !== null && (
+    <div className="space-y-1.5">
+      <div className="flex justify-between items-center gap-3 text-[12px]">
+        <span className="text-fg-2 truncate min-w-0">{exportMessage}</span>
+        <span className="cc-num text-fg flex-shrink-0">{exportProgress}%</span>
+      </div>
+      <div
+        className="w-full h-1 bg-s3 overflow-hidden"
+        style={{ borderRadius: "var(--r-sm)" }}
+      >
+        <div
+          className="h-full bg-accent transition-[width] duration-300 ease-out"
+          style={{ width: `${exportProgress}%` }}
+        />
+      </div>
+    </div>
+  );
+
+  return (
+    <div ref={contentRef} className="space-y-8 min-w-0">
+      <SettingsSection
+        title={!isInModalContext ? t('export.title') : undefined}
+        description={!isInModalContext ? t('export.description') : undefined}
+      >
+        {/* Filename and format */}
+        <SettingsRow
+          label={t('export.filename_label')}
+          htmlFor="exportFilename"
+          stacked
+        >
+          <div className="flex items-center gap-2 min-w-0">
             <div className="flex-1 min-w-0">
               <SearchStyleInput
+                id="exportFilename"
                 value={exportFilename}
                 onChange={(e) => setExportFilename(e.target.value)}
                 placeholder={t('placeholders.enter_filename')}
-                icon="solar:document-text-bold"
                 disabled={isExporting}
+                className="font-mono text-[12px]"
               />
             </div>
-            <div className="flex gap-2 flex-shrink-0">
+            <div
+              role="radiogroup"
+              className="flex flex-shrink-0 gap-0.5 p-0.5 bg-s2 border border-line"
+              style={{ borderRadius: "var(--r-md)" }}
+            >
               {EXPORT_FORMATS.map((format) => {
                 const isSelected = exportFormat === format.value;
                 const isLocked = format.disabled === true;
@@ -316,66 +332,70 @@ export function ExportSettingsTab({
                   <Tooltip key={format.value} content={label} position="top">
                     <button
                       type="button"
+                      role="radio"
                       aria-label={label}
-                      aria-pressed={isSelected}
+                      aria-checked={isSelected}
                       aria-disabled={isBlocked}
                       onClick={() => {
                         if (isBlocked) return;
                         setExportFormat(format.value as ExportPackFormat);
                       }}
                       className={cn(
-                        "w-12 h-12 p-1.5 rounded-lg border-2 bg-black/30 transition-all duration-150",
-                        isSelected ? "" : "border-white/10",
+                        "h-8 px-2.5 flex items-center gap-2 border transition-colors duration-fast",
+                        isSelected
+                          ? "bg-s3 border-line-3 text-fg"
+                          : "border-transparent text-fg-3",
                         isLocked
-                          ? "opacity-30 grayscale cursor-not-allowed"
+                          ? "opacity-40 grayscale cursor-not-allowed"
                           : isExporting
                             ? "opacity-50 cursor-not-allowed"
-                            : "cursor-pointer hover:border-white/25",
+                            : !isSelected && "cursor-pointer hover:text-fg-2 hover:bg-s3/60",
                       )}
-                      style={
-                        isSelected
-                          ? {
-                              borderColor: accentColor.value,
-                              boxShadow: `0 0 0 2px ${accentColor.value}55`,
-                            }
-                          : undefined
-                      }
+                      style={{ borderRadius: "var(--r-sm)" }}
                     >
                       <img
                         src={format.image}
                         alt=""
                         className={cn(
-                          "w-full h-full object-contain",
-                          !isSelected && !isLocked && "opacity-70",
+                          "w-4 h-4 object-contain",
+                          !isSelected && !isLocked && "opacity-60",
                         )}
                       />
+                      <span className="cc-num text-[11px]">.{format.extension}</span>
                     </button>
                   </Tooltip>
                 );
               })}
             </div>
           </div>
-          <p className="mt-1 text-xs text-white/50 font-minecraft tracking-wide truncate">
+          <p className="mt-2 cc-num text-[11px] text-fg-3 truncate">
             {t('export.saved_as', {
-              filename: `${exportFilename.trim() || profile.name}.${
-                EXPORT_FORMATS.find((format) => format.value === exportFormat)
-                  ?.extension ?? exportFormat
-              }`,
+              filename: `${exportFilename.trim() || profile.name}.${formatExtension}`,
             })}
           </p>
-        </div>
-        {/* File selection section */}
-        <div>
-          <h4 className="text-base font-smallcaps text-white mb-1">
-            {t('export.select_files_title')}
-          </h4>
-          <p className="text-xs text-white/70 mb-3 font-minecraft tracking-wide">
-            {t('export.select_files_description')}
-          </p>
-          <div className="flex gap-2 mb-3">
+        </SettingsRow>
+
+        {!isInModalContext && (
+          <SettingsRow label={t('export.open_folder_after')}>
+            <ToggleSwitch
+              checked={exportOpenFolder}
+              onChange={(checked) => setExportOpenFolder(checked)}
+              disabled={isExporting}
+              size="sm"
+            />
+          </SettingsRow>
+        )}
+      </SettingsSection>
+
+      {/* File selection section */}
+      <SettingsSection
+        title={t('export.select_files_title')}
+        description={t('export.select_files_description')}
+        aside={
+          <>
             <Button
               variant="ghost"
-              size="sm"
+              size="xs"
               onClick={handleSelectAll}
               disabled={
                 isLoadingDirectory ||
@@ -383,125 +403,69 @@ export function ExportSettingsTab({
                 !directoryStructure.children ||
                 directoryStructure.children.length === 0
               }
-              icon={
-                <Icon icon="solar:check-read-outline" className="w-4 h-4" />
-              }
-              className="text-xs px-3 py-1.5"
+              icon={<CheckCheck size={14} strokeWidth={1.75} />}
             >
               {t('common.select_all')}
             </Button>
             <Button
               variant="ghost"
-              size="sm"
+              size="xs"
               onClick={handleDeselectAll}
               disabled={isLoadingDirectory || selectedExportPaths.size === 0}
-              icon={
-                <Icon icon="solar:close-circle-outline" className="w-4 h-4" />
-              }
-              className="text-xs px-3 py-1.5"
+              icon={<X size={14} strokeWidth={1.75} />}
             >
               {t('export.deselect_all')}
             </Button>
-          </div>
-          <Card
-            variant="flat"
-            className="p-3 bg-black/20 border border-white/10 max-h-64 min-h-64 overflow-y-auto custom-scrollbar"
-          >
-            <FileNodeViewer
-              rootNode={directoryStructure}
-              loading={isLoadingDirectory}
-              error={directoryError}
-              selectedFiles={selectedExportPaths}
-              onSelectionChange={handleFileSelectionChange}
-              checkboxesEnabled={true}
-              hideRootNode={true}
-              preSelectPaths={[
-                "resourcepacks",
-                "shaderpacks",
-                "options.txt",
-                "NoRiskClientLauncher",
-                "config",
-                "custom_mods",
-                "mods",
-              ]}
-              selectChildrenWithParent={true}
-              defaultRootCollapsed={false}
-              className="text-sm"
-            />
-          </Card>
-        </div>
-
-        {/* Progress indicator during export (shown in both contexts) */}
-        {isInModalContext && isExporting && exportProgress !== null && (
-          <div className="mt-4 space-y-2">
-            <div className="flex justify-between items-center text-sm font-minecraft">
-              <span className="text-white/70">{exportMessage}</span>
-              <span className="text-white font-smallcaps">{exportProgress}%</span>
-            </div>
-            <div className="w-full h-2 bg-black/30 border border-white/10 overflow-hidden">
-              <div
-                className="h-full transition-all duration-300 ease-out"
-                style={{
-                  width: `${exportProgress}%`,
-                  backgroundColor: accentColor.value,
-                  boxShadow: `0 0 10px ${accentColor.value}80`,
-                }}
-              />
-            </div>
-          </div>
-        )}
-
-        {!isInModalContext && ( // Internal controls only if NOT in modal context
-          <>
-            <div className="space-y-2 mt-4">
-              <Checkbox
-                checked={exportOpenFolder}
-                onChange={(e) => setExportOpenFolder(e.target.checked)}
-                label={t('export.open_folder_after')}
-              className="text-sm"
-                customSize="md"
-                disabled={isExporting}
-                variant="flat"
-              />
-            </div>
-
-            {/* Progress indicator during export */}
-            {isExporting && exportProgress !== null && (
-              <div className="mt-4 space-y-2">
-                <div className="flex justify-between items-center text-sm font-minecraft">
-                  <span className="text-white/70">{exportMessage}</span>
-                  <span className="text-white font-smallcaps">{exportProgress}%</span>
-                </div>
-                <div className="w-full h-2 bg-black/30 border border-white/10 overflow-hidden">
-                  <div
-                    className="h-full transition-all duration-300 ease-out"
-                    style={{
-                      width: `${exportProgress}%`,
-                      backgroundColor: `rgb(${accentColor})`,
-                      boxShadow: `0 0 10px rgba(${accentColor}, 0.5)`,
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-
-            <div className="mt-6 pt-4 border-t border-white/10">
-              <Button
-                variant="default"
-                onClick={handleExport}
-                disabled={
-                  isExporting || !exportFilename.trim() || isLoadingDirectory
-                }
-                icon={<Icon icon="solar:export-bold" className="w-5 h-5" />}
-                size="md"
-                className="text-sm w-full md:w-auto"
-              >
-                {isExporting ? t('export.exporting') : t('export.export_profile')}
-              </Button>
-            </div>
           </>
-        )}
-      </>
+        }
+        flush
+      >
+        <div
+          className="p-2 bg-s1 border border-line max-h-64 min-h-64 overflow-y-auto custom-scrollbar"
+          style={{ borderRadius: "var(--r-md)" }}
+        >
+          <FileNodeViewer
+            rootNode={directoryStructure}
+            loading={isLoadingDirectory}
+            error={directoryError}
+            selectedFiles={selectedExportPaths}
+            onSelectionChange={handleFileSelectionChange}
+            checkboxesEnabled={true}
+            hideRootNode={true}
+            preSelectPaths={[
+              "resourcepacks",
+              "shaderpacks",
+              "options.txt",
+              "NoRiskClientLauncher",
+              "config",
+              "custom_mods",
+              "mods",
+            ]}
+            selectChildrenWithParent={true}
+            defaultRootCollapsed={false}
+            className="text-[12px]"
+          />
+        </div>
+      </SettingsSection>
+
+      {/* Progress indicator during export (shown in both contexts) */}
+      {progressBlock}
+
+      {!isInModalContext && ( // Internal controls only if NOT in modal context
+        <div className="flex justify-end pt-4 border-t border-line">
+          <Button
+            variant="default"
+            onClick={handleExport}
+            disabled={
+              isExporting || !exportFilename.trim() || isLoadingDirectory
+            }
+            icon={<Upload size={15} strokeWidth={1.75} />}
+            size="md"
+          >
+            {isExporting ? t('export.exporting') : t('export.export_profile')}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

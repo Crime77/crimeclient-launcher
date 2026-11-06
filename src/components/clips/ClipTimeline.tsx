@@ -49,7 +49,7 @@ export function Waveform({ peaks, gain, muted }: WaveformProps) {
       preserveAspectRatio="none"
       className={cn(
         "pointer-events-none absolute inset-0 h-full w-full transition-opacity",
-        muted ? "opacity-20" : "opacity-70",
+        muted ? "opacity-25" : "opacity-80",
       )}
       aria-hidden="true"
     >
@@ -86,10 +86,10 @@ export function TrackLevelControl({ track, name, volume, onChange, disabled, t }
         aria-pressed={muted}
         disabled={disabled}
         onClick={() => onChange(muted ? 100 : 0)}
-        className={cn("shrink-0", muted && "text-white/40 enabled:hover:text-white/70")}
+        className={cn("shrink-0", muted && "text-fg-4 enabled:hover:text-fg-2")}
       />
 
-      <span className="w-16 shrink-0 truncate font-minecraft text-xs text-white/80">{name}</span>
+      <span className="w-16 shrink-0 truncate text-xs text-fg-2">{name}</span>
 
       <div className="flex-1 min-w-0">
         <RangeSlider
@@ -108,8 +108,8 @@ export function TrackLevelControl({ track, name, volume, onChange, disabled, t }
 
       <span
         className={cn(
-          "w-10 shrink-0 text-right font-minecraft text-xs tabular-nums",
-          volume === 100 ? "text-white/50" : "text-white",
+          "w-10 shrink-0 text-right font-mono text-[11px] tabular-nums",
+          volume === 100 ? "text-fg-3" : "text-fg",
         )}
       >
         {volume}%

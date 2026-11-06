@@ -21,7 +21,7 @@ import { Button } from "../../ui/buttons/Button";
 import { EmptyState } from "../../ui/EmptyState";
 import { StatusMessage } from "../../ui/StatusMessage";
 import { isMacOS, supportsClips } from "../../../utils/platform";
-import { useThemeStore } from "../../../store/useThemeStore";
+import { Check, Film, FolderInput, FolderOpen, Loader2, RotateCcw, Upload } from "lucide-react";
 import { useSettingsConfig, useSettingsKeywords } from "./settings-context";
 
 import { HotkeyInput } from "../../ui/HotkeyInput";
@@ -253,7 +253,7 @@ export function ClipsTab() {
             "programm",
           )}
         >
-          <span className="font-minecraft text-sm text-white/60">
+          <span className="text-[13px] text-fg-2">
             {clips.other_screen?.name ?? clips.other_game?.name ?? t("settings.clips.games.none")}
           </span>
         </SettingRow>}
@@ -376,7 +376,7 @@ export function ClipsTab() {
         </div>
 
         {preset === "custom" && (
-          <div className="space-y-1 rounded-lg border border-white/10 bg-white/[0.02] px-4 py-2">
+          <div className="space-y-1 rounded-md border border-line bg-s1 px-4 py-2">
             <SettingRow
               label={t("settings.clips.quality.resolution")}
               searchKeywords={kw("settings.clips.quality.resolution", "aufloesung", "resolution", "1080p")}
@@ -766,7 +766,7 @@ export function ClipsTab() {
                 size="sm"
                 onClick={() => patch({ output_dir: null })}
                 disabled={saving}
-                icon={<Icon icon="solar:restart-bold" className="w-4 h-4" />}
+                icon={<RotateCcw size={14} strokeWidth={1.75} />}
               >
                 {t("settings.clips.storage.reset")}
               </Button>
@@ -775,7 +775,7 @@ export function ClipsTab() {
               variant="flat"
               size="sm"
               disabled={saving}
-              icon={<Icon icon="solar:folder-open-bold" className="w-4 h-4" />}
+              icon={<FolderInput size={14} strokeWidth={1.75} />}
               onClick={() =>
                 void open({
                   directory: true,
@@ -793,7 +793,7 @@ export function ClipsTab() {
             <Button
               variant="flat"
               size="sm"
-              icon={<Icon icon="solar:folder-with-files-bold" className="w-4 h-4" />}
+              icon={<FolderOpen size={14} strokeWidth={1.75} />}
               onClick={() =>
                 void openClipFolder().catch((e) => toast.error(parseErrorMessage(e)))
               }
@@ -852,7 +852,7 @@ export function ClipsTab() {
           <Button
             variant="flat"
             size="sm"
-            icon={<Icon icon="solar:video-library-bold" className="w-4 h-4" />}
+            icon={<Film size={14} strokeWidth={1.75} />}
             onClick={toLibrary}
             disabled={!clips.enabled}
           >
@@ -1000,10 +1000,11 @@ function ShareCaptureLog({
       variant="flat"
       size="sm"
       icon={
-        <Icon
-          icon={uploading ? "svg-spinners:ring-resize" : "solar:upload-bold"}
-          className="w-4 h-4"
-        />
+        uploading ? (
+          <Loader2 size={14} strokeWidth={1.75} className="animate-spin" />
+        ) : (
+          <Upload size={14} strokeWidth={1.75} />
+        )
       }
       onClick={() => void share()}
       disabled={uploading}
@@ -1051,13 +1052,13 @@ function PresetCard({
   return (
     <ChoiceCard selected={selected} disabled={disabled} onSelect={onSelect} className="p-4">
       <span className="flex items-center justify-between gap-2">
-        <span className="font-minecraft text-base text-white">
+        <span className="text-[13px] font-[560] text-fg">
           {t(`settings.clips.quality.preset.${preset}`)}
         </span>
         {selected && <SelectedMark />}
       </span>
 
-      <span className="font-minecraft text-xs leading-snug text-white/50">
+      <span className="text-xs leading-snug text-fg-3">
         {t(`settings.clips.quality.preset.${preset}.description`)}
       </span>
 
@@ -1069,7 +1070,7 @@ function PresetCard({
             <Chip>{values.bitrateKbps / 1000} Mbps</Chip>
           </span>
 
-          <span className="mt-1 font-minecraft text-xs text-white/40">
+          <span className="mt-1 text-[11.5px] text-fg-4">
             {t("settings.clips.quality.preset.size_estimate", {
               mb: estimatedClipMb(values.bitrateKbps, clipSeconds),
               seconds: clipSeconds,
@@ -1077,7 +1078,7 @@ function PresetCard({
           </span>
         </>
       ) : (
-        <span className="mt-1.5 font-minecraft text-xs text-white/50">
+        <span className="mt-1.5 text-xs text-fg-3">
           {t("settings.clips.quality.preset.custom.hint")}
         </span>
       )}
@@ -1098,8 +1099,6 @@ function ChoiceCard({
   className?: string;
   children: React.ReactNode;
 }) {
-  const accentColor = useThemeStore((state) => state.accentColor);
-
   return (
     <button
       type="button"
@@ -1107,16 +1106,13 @@ function ChoiceCard({
       disabled={disabled}
       aria-pressed={selected}
       className={cn(
-        "flex flex-col gap-1.5 rounded-lg border text-left transition-all duration-200",
-        "bg-black/20 border-white/10 hover:border-white/20 hover:bg-black/30",
-        disabled && "cursor-not-allowed opacity-40 hover:border-white/10 hover:bg-black/20",
+        "flex flex-col gap-1.5 rounded-md border text-left transition-colors duration-fast",
+        selected
+          ? "border-line-3 bg-s3"
+          : "border-line bg-s1 hover:border-line-2 hover:bg-s2",
+        disabled && "cursor-not-allowed opacity-40 hover:border-line hover:bg-s1",
         className,
       )}
-      style={
-        selected
-          ? { backgroundColor: `${accentColor.value}20`, borderColor: `${accentColor.value}80` }
-          : undefined
-      }
     >
       {children}
     </button>
@@ -1124,19 +1120,16 @@ function ChoiceCard({
 }
 
 function SelectedMark() {
-  const accentColor = useThemeStore((state) => state.accentColor);
   return (
-    <Icon
-      icon="solar:check-circle-bold"
-      className="h-4 w-4 shrink-0"
-      style={{ color: accentColor.value }}
-    />
+    <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-fg text-bg">
+      <Check size={11} strokeWidth={2.5} />
+    </span>
   );
 }
 
 function Chip({ children }: { children: React.ReactNode }) {
   return (
-    <span className="rounded border border-white/10 bg-black/30 px-1.5 py-0.5 font-minecraft text-xs text-white/70">
+    <span className="rounded-sm border border-line-2 bg-s2 px-1.5 font-mono text-[11px] leading-[18px] text-fg-2">
       {children}
     </span>
   );
@@ -1174,7 +1167,7 @@ function CodecCard({
       className="p-4"
     >
       <span className="flex items-center gap-2">
-        <span className="font-minecraft text-base text-white">
+        <span className="text-[13px] font-[560] text-fg">
           {t(`settings.clips.quality.codec.${codec}`)}
         </span>
         {!unavailable && hardware && <Chip>{t("settings.clips.quality.encoder.gpu")}</Chip>}
@@ -1184,7 +1177,7 @@ function CodecCard({
           </span>
         )}
       </span>
-      <span className="font-minecraft text-xs leading-snug text-white/50">
+      <span className="text-xs leading-snug text-fg-3">
         {unavailable
           ? t("settings.clips.quality.codec.unavailable")
           : t(`settings.clips.quality.codec.${codec}.note`)}
@@ -1337,14 +1330,14 @@ function StorageLimitInput({
           if (event.key === "Enter") event.currentTarget.blur();
         }}
         className={cn(
-          "h-10 w-24 rounded-lg border border-white/10 bg-black/30 px-3",
-          "text-right font-minecraft text-sm text-white",
-          "transition-colors hover:border-white/20 focus:border-white/30 focus:outline-none",
+          "h-8 w-24 rounded-md border border-line bg-s2 px-2.5",
+          "text-right font-mono text-[13px] text-fg",
+          "transition-colors duration-fast hover:border-line-2 focus:border-line-3 focus:outline-none",
           "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
         )}
         aria-label={t("settings.clips.storage.limit")}
       />
-      <span className="font-minecraft text-sm text-white/60">
+      <span className="text-[13px] text-fg-3">
         {t("settings.clips.storage.limit_unit")}
       </span>
     </div>

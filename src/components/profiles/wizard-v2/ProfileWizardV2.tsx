@@ -1,15 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Icon } from "@iconify/react";
+import { ArrowLeft, ArrowRight, FlaskConical, Loader2, Search, Star } from "lucide-react";
 import type { MinecraftVersion, VersionManifest } from "../../../types/minecraft";
 import type { ModLoader } from "../../../types/profile";
 import { invoke } from "@tauri-apps/api/core";
 import { Modal } from "../../ui/Modal";
 import { Button } from "../../ui/buttons/Button";
 import { StatusMessage } from "../../ui/StatusMessage";
-import { useThemeStore } from "../../../store/useThemeStore";
-import { Card } from "../../ui/Card";
 import { SearchWithFilters } from "../../ui/SearchWithFilters";
 import { ProfileWizardV2Step2 } from "./ProfileWizardV2Step2";
 import { ProfileWizardV2Step3 } from "./ProfileWizardV2Step3";
@@ -35,18 +33,15 @@ import {
 } from "../../../utils/launcher-instance-import";
 import { DEFAULT_IMPORT_SELECTION, type ExternalInstanceRef } from "../../../types/launcherImport";
 import { useNavigate } from "react-router-dom";
+import { cn } from "../../../lib/utils";
+import { WizardSteps, Segmented, choiceCardClasses } from "./WizardParts";
 
 function NrcCompatibleTooltipContent() {
   const { t } = useTranslation();
   return (
-    <div className="space-y-2">
-      <div className="text-sm text-white">{t('profiles.wizard.nrcCompatible')}</div>
-      <div className="flex items-start gap-2">
-        <Icon icon="solar:lightbulb-bold" className="text-yellow-400 text-base flex-shrink-0" />
-        <div className="text-gray-300 text-xs italic">
-          {t('profiles.wizard.nrcFeaturesAvailable')}
-        </div>
-      </div>
+    <div className="space-y-1 max-w-[220px]">
+      <div className="text-[12.5px] font-medium text-fg">{t('profiles.wizard.nrcCompatible')}</div>
+      <div className="text-[12px] text-fg-3">{t('profiles.wizard.nrcFeaturesAvailable')}</div>
     </div>
   );
 }
@@ -72,7 +67,6 @@ export function ProfileWizardV2({
 }: ProfileWizardV2Props) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const accentColor = useThemeStore((state) => state.accentColor);
   const [currentStep, setCurrentStep] = useState<WizardStep>(startAtSource && onSource ? 0 : 1);
   const [launcherTarget, setLauncherTarget] = useState<ExternalInstanceRef | null>(null);
   const [importing, setImporting] = useState(false);
@@ -247,9 +241,9 @@ export function ProfileWizardV2({
   const renderContent = () => {
     if (showLoadingIndicator) {
       return (
-        <div className="flex flex-col items-center justify-center h-64">
-          <Icon icon="svg-spinners:ring-resize" className="w-12 h-12 text-white mb-4" />
-          <p className="text-sm font-smallcaps text-white">{t('profiles.wizard.loadingVersions')}</p>
+        <div className="flex flex-col items-center justify-center gap-3 h-64 text-fg-3">
+          <Loader2 size={20} strokeWidth={1.75} className="animate-spin" />
+          <p className="text-[12.5px]">{t('profiles.wizard.loadingVersions')}</p>
         </div>
       );
     }
@@ -259,82 +253,69 @@ export function ProfileWizardV2({
     }
 
     return (
-      <div className="space-y-6">
-        {/* Search and Filters */}
-        <div className="flex gap-4 items-center">
+      <div className="space-y-4">
+        {/* Search and type */}
+        <div className="flex gap-3 items-center">
           <SearchWithFilters
             searchValue={searchQuery}
             onSearchChange={setSearchQuery}
             placeholder={t('profiles.wizard.searchVersions')}
             showSort={false}
             showFilter={false}
-            className="flex-1"
+            className="flex-1 min-w-0"
           />
 
-          <div className="flex gap-2">
-            {[
-              { key: "release", label: t('profiles.wizard.release'), icon: "solar:star-bold" },
-              { key: "snapshot", label: t('profiles.wizard.snapshot'), icon: "solar:test-tube-bold" }
-            ].map(type => (
-              <Button
-                key={type.key}
-                variant={selectedVersionType === type.key ? "flat" : "ghost"}
-                size="sm"
-                onClick={() => setSelectedVersionType(type.key as any)}
-                icon={<Icon icon={type.icon} className="w-4 h-4" />}
-              >
-                {type.label}
-              </Button>
-            ))}
-          </div>
+          <Segmented<"release" | "snapshot">
+            value={selectedVersionType}
+            onChange={setSelectedVersionType}
+            options={[
+              { value: "release", label: t('profiles.wizard.release') },
+              { value: "snapshot", label: t('profiles.wizard.snapshot'), icon: <FlaskConical size={13} strokeWidth={1.75} /> },
+            ]}
+          />
         </div>
 
-        {/* Version List */}
-        <div className="max-h-96 overflow-y-auto overflow-x-hidden scrollbar-hide grid grid-cols-3 gap-3">
+        {/* Version grid: dense cells, mono ids */}
+        <div className="max-h-[392px] overflow-y-auto overflow-x-hidden custom-scrollbar pr-1 grid grid-cols-4 gap-1.5 content-start">
           {filteredVersions.map(version => {
             const isNrcCompatible = nrcCompatibility?.compatibleVersions.has(version.id);
+            const isSelected = selectedVersion === version.id;
+            // In the release list only the old alpha/beta builds name their type
+            const typeLabel = version.type !== "release" && version.type !== "snapshot"
+              ? version.type.replace(/^old_/, "")
+              : null;
 
             return (
-              <div
+              <button
                 key={version.id}
-                className={`relative p-4 cursor-pointer transition-all duration-200 border-2 rounded-lg ${
-                  selectedVersion === version.id
-                    ? "border-current bg-current/10 hover:bg-current/15"
-                    : "border-transparent bg-black/20 hover:bg-black/30"
-                }`}
-                style={selectedVersion === version.id ? {
-                  borderColor: accentColor.value,
-                  color: accentColor.value
-                } : {}}
+                type="button"
+                aria-pressed={isSelected}
+                className={cn("h-10 px-3 flex items-center gap-2", choiceCardClasses(isSelected))}
+                style={{ borderRadius: "var(--r-md)" }}
                 onClick={() => setSelectedVersion(version.id)}
               >
-                {/* NRC Compatibility Star */}
-                {isNrcCompatible && (
-                  <div className="absolute top-2 right-2 z-10">
-                    <Tooltip content={<NrcCompatibleTooltipContent />}>
-                      <div className="flex items-center justify-center w-6 h-6 rounded-full">
-                        <Icon icon="solar:star-bold" className="w-4 h-4 text-yellow-400" />
-                      </div>
-                    </Tooltip>
-                  </div>
+                <span className={cn("cc-num text-[13px] truncate", isSelected ? "text-fg" : "text-fg-2")}>
+                  {version.id}
+                </span>
+                {typeLabel && (
+                  <span className="text-[11px] text-fg-4 capitalize">{typeLabel}</span>
                 )}
-                <div className="flex flex-col items-center text-center">
-                  <h4 className="font-smallcaps text-lg text-white">
-                    {version.id}
-                  </h4>
-                  <p className="text-xs text-white/60 font-minecraft capitalize mt-1">
-                    {version.type}
-                  </p>
-                </div>
-              </div>
+                {isNrcCompatible && (
+                  <span className="ml-auto flex-shrink-0">
+                    <Tooltip content={<NrcCompatibleTooltipContent />}>
+                      <Star size={12} strokeWidth={1.75} className="text-fg-3" />
+                    </Tooltip>
+                  </span>
+                )}
+              </button>
             );
           })}
         </div>
 
         {filteredVersions.length === 0 && !loading && (
-          <div className="col-span-3 text-center py-8">
-            <Icon icon="solar:magnifer-bold" className="w-12 h-12 text-white/50 mx-auto mb-2" />
-            <p className="text-xs font-smallcaps text-white/70">{t('profiles.wizard.noVersionsFound')}</p>
+          <div className="flex flex-col items-center gap-2 py-10 text-fg-3">
+            <Search size={18} strokeWidth={1.75} />
+            <p className="text-[12.5px]">{t('profiles.wizard.noVersionsFound')}</p>
           </div>
         )}
       </div>
@@ -347,8 +328,8 @@ export function ProfileWizardV2({
         <Button
           variant="ghost"
           onClick={() => setCurrentStep(0)}
-          size="md"
-          icon={<Icon icon="solar:arrow-left-bold" className="w-5 h-5" />}
+          size="sm"
+          icon={<ArrowLeft size={15} strokeWidth={1.75} />}
         >
           {t('profiles.wizard.back')}
         </Button>
@@ -357,9 +338,9 @@ export function ProfileWizardV2({
         variant="default"
         onClick={handleStep1Next}
         disabled={loading || !selectedVersion}
-        size="md"
-        className="min-w-[120px] text-sm"
-        icon={<Icon icon="solar:arrow-right-bold" className="w-5 h-5" />}
+        size="sm"
+        className="min-w-[96px]"
+        icon={<ArrowRight size={15} strokeWidth={1.75} />}
         iconPosition="right"
       >
         {t('profiles.wizard.next')}
@@ -398,7 +379,7 @@ export function ProfileWizardV2({
 
   if (currentStep === 0 && onSource) {
     return (
-      <Modal title={t('profiles.wizard.sourceTitle')} onClose={onClose} width="md">
+      <Modal title={t('profiles.newProfile')} onClose={onClose} width="md">
         <ProfileSourceChooser
           onChoose={(source) => {
             if (source === "blank") setCurrentStep(1);
@@ -468,12 +449,13 @@ export function ProfileWizardV2({
   // Default: Show Step 1
   return (
     <Modal
-      title={t('profiles.wizard.step1Title')}
+      title={t('profiles.newProfile')}
       onClose={onClose}
       width="lg"
       footer={renderFooter()}
     >
-      <div className="min-h-[500px] p-6">
+      <WizardSteps current={1} />
+      <div className="min-h-[460px] px-5 py-4">
         {renderContent()}
       </div>
     </Modal>

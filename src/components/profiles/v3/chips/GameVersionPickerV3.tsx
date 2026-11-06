@@ -10,9 +10,8 @@
  */
 
 import { useMemo, useState } from "react";
-import { Icon } from "@iconify/react";
+import { Check, Loader2, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useThemeStore } from "../../../../store/useThemeStore";
 import type { MinecraftVersion } from "../../../../types/minecraft";
 
 interface GameVersionPickerV3Props {
@@ -31,7 +30,6 @@ export function GameVersionPickerV3({
   const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [showSnapshots, setShowSnapshots] = useState(false);
-  const accent = useThemeStore((s) => s.accentColor);
 
   const filtered = useMemo(() => {
     if (!versions) return [];
@@ -46,39 +44,33 @@ export function GameVersionPickerV3({
 
   return (
     <div className="flex flex-col">
-      {/* Search — same recipe as LocalContentTabV3 toolbar */}
-      <div className="p-2">
+      <div className="p-1">
         <div className="relative">
-          <Icon icon="solar:magnifer-linear" className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/40 pointer-events-none" />
+          <Search size={13} strokeWidth={1.75} className="absolute left-2 top-1/2 -translate-y-1/2 text-fg-4 pointer-events-none" />
           <input
             autoFocus
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t("profiles.v3.chips.gameVersion.search")}
-            className="w-full h-7 pl-7 pr-2 rounded bg-white/5 border border-white/10 focus:border-white/25 outline-none text-xs text-white placeholder:text-white/30 font-minecraft"
+            className="w-full h-7 pl-7 pr-2 bg-s1 border border-line focus:border-line-3 outline-none text-[12px] text-fg placeholder:text-fg-4 transition-colors duration-fast"
+            style={{ borderRadius: "var(--r-sm)" }}
           />
         </div>
       </div>
 
-      {/* Segmented: Releases / Snapshots */}
-      <div className="flex items-center gap-0.5 px-2 pb-2">
+      <div className="flex items-center gap-0.5 mx-1 mb-1 p-0.5 bg-s1 border border-line" style={{ borderRadius: "var(--r-sm)" }}>
         {(["release", "snapshot"] as const).map((seg) => {
           const active = seg === "release" ? !showSnapshots : showSnapshots;
           return (
             <button
+              type="button"
               key={seg}
               onClick={() => setShowSnapshots(seg === "snapshot")}
-              style={active ? { backgroundColor: `${accent.value}33`, color: accent.light } : undefined}
-              onMouseEnter={(e) => {
-                if (!active) e.currentTarget.style.backgroundColor = `${accent.value}1a`;
-              }}
-              onMouseLeave={(e) => {
-                if (!active) e.currentTarget.style.backgroundColor = "transparent";
-              }}
-              className={`flex-1 h-6 rounded text-[10px] uppercase tracking-wider font-minecraft transition-colors ${
-                active ? "" : "text-white/50"
+              className={`flex-1 h-6 text-[12px] font-[520] transition-colors duration-fast ${
+                active ? "bg-s3 text-fg" : "text-fg-3 hover:text-fg-2"
               }`}
+              style={{ borderRadius: "calc(var(--r-sm) - 1px)" }}
             >
               {seg === "release"
                 ? t("profiles.v3.chips.gameVersion.releases")
@@ -88,17 +80,16 @@ export function GameVersionPickerV3({
         })}
       </div>
 
-      <div className="border-t border-white/10" />
+      <div className="h-px bg-line -mx-1" />
 
-      {/* List */}
-      <div className="max-h-[220px] overflow-y-auto py-1 custom-scrollbar">
+      <div className="max-h-[220px] overflow-y-auto pt-1 custom-scrollbar">
         {isLoading ? (
-          <div className="flex items-center justify-center gap-2 px-3 py-6 text-xs text-white/40 font-minecraft">
-            <Icon icon="svg-spinners:ring-resize" className="w-3.5 h-3.5" />
+          <div className="flex items-center justify-center gap-2 px-2 py-6 text-[12px] text-fg-3">
+            <Loader2 size={14} className="animate-spin" />
             {t("profiles.v3.chips.gameVersion.loading")}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="px-3 py-6 text-center text-xs text-white/30 font-minecraft">
+          <div className="px-2 py-6 text-center text-[12px] text-fg-3">
             {t("profiles.v3.chips.gameVersion.empty")}
           </div>
         ) : (
@@ -106,27 +97,16 @@ export function GameVersionPickerV3({
             const isCurrent = v.id === currentVersion;
             return (
               <button
+                type="button"
                 key={v.id}
                 onClick={() => onSelect(v.id)}
-                style={isCurrent ? { backgroundColor: `${accent.value}33` } : undefined}
-                onMouseEnter={(e) => {
-                  if (!isCurrent) e.currentTarget.style.backgroundColor = `${accent.value}40`;
-                }}
-                onMouseLeave={(e) => {
-                  if (!isCurrent) e.currentTarget.style.backgroundColor = "transparent";
-                }}
-                className="w-full flex items-center gap-2 px-3 py-1.5 text-left transition-colors"
+                className={`w-full h-7 flex items-center gap-2 px-2 text-left transition-colors duration-fast ${
+                  isCurrent ? "bg-s3 text-fg" : "text-fg-2 hover:bg-s3 hover:text-fg"
+                }`}
+                style={{ borderRadius: "var(--r-sm)" }}
               >
-                <span className={`flex-1 text-xs font-minecraft ${isCurrent ? "text-white" : "text-white/80"}`}>
-                  {v.id}
-                </span>
-                {isCurrent && (
-                  <Icon
-                    icon="solar:check-circle-bold"
-                    className="w-3.5 h-3.5 flex-shrink-0"
-                    style={{ color: accent.light }}
-                  />
-                )}
+                <span className="flex-1 cc-num text-[12px]">{v.id}</span>
+                {isCurrent && <Check size={14} strokeWidth={2} className="flex-shrink-0 text-fg-2" />}
               </button>
             );
           })

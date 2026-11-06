@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Icon } from "@iconify/react";
+import { useTranslation } from "react-i18next";
+import { Check, Lock } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useLauncherTheme } from "../hooks/useLauncherTheme";
 import { LAUNCHER_THEMES } from "../store/launcher-theme-store";
@@ -12,7 +13,9 @@ interface ThemeSelectorProps {
   disabled?: boolean;
 }
 
+/** Launcher themes as compact options: colour chip, name, a lock while it is not unlocked. */
 export function ThemeSelector({ disabled }: ThemeSelectorProps) {
+  const { t } = useTranslation();
   const [debugFlag, setDebugFlag] = useState(false);
   const { selectedThemeId, toggleTheme, isThemeUnlocked } = useLauncherTheme();
   const themes = Object.values(LAUNCHER_THEMES);
@@ -34,80 +37,53 @@ export function ThemeSelector({ disabled }: ThemeSelectorProps) {
   }, []);
 
   return (
-    <div className="flex flex-wrap gap-3">
+    <div className="flex flex-wrap justify-end gap-2">
       {themes.map((theme) => {
         const isUnlocked = debugFlag || isThemeUnlocked(theme.id);
         const isSelected = selectedThemeId === theme.id;
+        const locked = !debugFlag && !isThemeUnlocked(theme.id);
 
         const button = (
           <button
             key={theme.id}
+            type="button"
             onClick={() => {
               if (!disabled && isUnlocked) {
                 toggleTheme(theme.id);
               }
             }}
-            disabled={disabled || (!debugFlag && !isThemeUnlocked(theme.id))}
+            disabled={disabled || locked}
+            aria-pressed={isSelected}
             className={cn(
-              "relative flex items-center gap-3 px-4 py-3 rounded-lg border-2 transition-all duration-200",
-              isSelected
-                ? "border-white/60 bg-white/10"
-                : "border-[#ffffff20] bg-black/20",
-              (!debugFlag && !isThemeUnlocked(theme.id))
-                ? "opacity-40 cursor-not-allowed grayscale"
+              "h-8 flex items-center gap-2 pl-2 pr-2.5 border text-[13px] transition-colors duration-fast ease-out",
+              isSelected ? "border-line-3 bg-s3 text-fg" : "border-line-2 text-fg-2",
+              locked
+                ? "opacity-50 cursor-not-allowed"
                 : disabled
                   ? "opacity-40 cursor-not-allowed"
-                  : "hover:border-[#ffffff40] hover:bg-white/5 cursor-pointer"
+                  : "hover:bg-s3 hover:text-fg cursor-pointer",
             )}
+            style={{ borderRadius: "var(--r-md)" }}
           >
-            <div
-              className={cn(
-                "w-8 h-8 rounded-md border-2 shadow-lg transition-transform",
-                (!debugFlag && !isThemeUnlocked(theme.id)) ? "border-white/10" : "border-white/20",
-                isSelected && "scale-105"
-              )}
-              style={{
-                backgroundColor: theme.accentColor.value,
-                boxShadow: isSelected ? `0 0 12px ${theme.accentColor.value}50` : undefined,
-              }}
+            <span
+              className="w-3.5 h-3.5 flex-shrink-0 border border-white/[0.14]"
+              style={{ backgroundColor: theme.accentColor.value, borderRadius: 3 }}
             />
-            <div className="flex flex-col items-start">
-              <span
-                className={cn(
-                  "font-minecraft text-base transition-colors",
-                  isSelected ? "text-white" : "text-white/80"
-                )}
-              >
-                {theme.name}
-              </span>
-              {(!debugFlag && !isThemeUnlocked(theme.id)) && theme.unlockRequirement && (
-                <span className="text-xs text-white/40 font-minecraft">
-                  {theme.unlockRequirement.type === "advent-door" && (
-                    <>Unlock: Open door {theme.unlockRequirement.day}</>
-                  )}
-                </span>
-              )}
-            </div>
-            {(!debugFlag && !isThemeUnlocked(theme.id)) && (
-              <Icon
-                icon="solar:lock-keyhole-bold"
-                className="w-4 h-4 text-white/40 absolute top-2 right-2"
-              />
-            )}
-            {isSelected && (
-              <Icon
-                icon="solar:check-circle-bold"
-                className="w-5 h-5 text-white absolute top-2 right-2"
-              />
-            )}
+            <span className="whitespace-nowrap">{theme.name}</span>
+            {locked && <Lock size={13} strokeWidth={1.75} className="text-fg-3" />}
+            {isSelected && <Check size={13} strokeWidth={2} className="text-fg" />}
           </button>
         );
 
-        if (!debugFlag && !isThemeUnlocked(theme.id)) {
+        if (locked) {
           return (
             <SimpleTooltip
               key={theme.id}
-              content={`Open advent calendar door ${theme.unlockRequirement?.day} to unlock this theme`}
+              content={
+                theme.unlockRequirement?.type === "advent-door"
+                  ? t("settings.theme.unlock_advent", { day: theme.unlockRequirement.day })
+                  : t("settings.theme.locked")
+              }
             >
               {button}
             </SimpleTooltip>
@@ -119,4 +95,3 @@ export function ThemeSelector({ disabled }: ThemeSelectorProps) {
     </div>
   );
 }
-

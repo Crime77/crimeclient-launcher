@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Icon } from "@iconify/react";
+import { Play, Server, Square } from "lucide-react";
 import { useServerPingStore } from "../../store/server-ping-store";
 import { parseMotdToHtml } from "../../utils/motd-utils";
 import { useProfileLaunch } from "../../hooks/useProfileLaunch";
@@ -54,12 +54,7 @@ interface ServerLaunchCardProps {
   launchOverrides?: LaunchOverrides;
 }
 
-function pingBars(latency: number | null) {
-  if (latency === null) return "unknown";
-  return latency < 80 ? "5" : latency < 100 ? "4" : latency < 150 ? "3" : latency < 300 ? "2" : "1";
-}
-
-/** Server status (online, players, MOTD, ping; pinged every 60 s) with a button that starts the game straight onto it. */
+/** Server status in one line (online, players, ping, MOTD; pinged every 60 s) with a button that joins it directly. */
 export function ServerLaunchCard({
   serverAddress,
   serverName,
@@ -103,101 +98,90 @@ export function ServerLaunchCard({
         ? parseMotdToHtml(serverInfo.description)
         : null;
   const isDisabled = !profileId;
-
-  let footer: React.ReactNode = null;
-  if (isLaunching && statusMessage) {
-    footer = <span className="text-xs text-white/70 truncate">{statusMessage}</span>;
-  } else if (launchState === LaunchState.ERROR && statusMessage) {
-    footer = <span className="text-xs text-red-300 truncate">{statusMessage}</span>;
-  } else if (online) {
-    footer = (
-      <>
-        <span className="flex items-center gap-1.5 text-xs text-white/60">
-          <Icon icon="solar:users-group-rounded-bold" className="w-3.5 h-3.5" />
-          {serverInfo.players_online ?? "?"}/{serverInfo.players_max ?? "?"} {t("server.players")}
-        </span>
-        <span className="flex items-center gap-1.5 text-xs text-white/60">
-          <img
-            src={`/minecraft/ping_${pingBars(serverInfo.latency_ms)}.png`}
-            alt=""
-            className="h-3"
-            style={{ imageRendering: "pixelated" }}
-          />
-          {serverInfo.latency_ms !== null && `${serverInfo.latency_ms} ms`}
-        </span>
-      </>
-    );
-  }
+  const failed = launchState === LaunchState.ERROR && !!statusMessage;
 
   return (
-    <section className={cn("flex flex-col gap-3 p-5", className)} style={style}>
-      <div className="flex items-center gap-3">
-        <div className="w-11 h-11 flex-shrink-0 grid place-items-center overflow-hidden bg-white/[0.06]" style={{ borderRadius: 12 }}>
-          {online && serverInfo.favicon_base64 ? (
-            <img
-              src={`data:image/png;base64,${serverInfo.favicon_base64}`}
-              alt={serverName}
-              className="w-full h-full object-cover"
-              style={{ imageRendering: "pixelated" }}
-            />
-          ) : (
-            <Icon icon="solar:server-square-bold" className="w-6 h-6 text-white/60" />
-          )}
-        </div>
-        <div className="flex-1 min-w-0">
-          <h2 className="font-display text-lg font-bold text-white leading-tight truncate">{serverName}</h2>
-          <p className="text-xs text-white/40 truncate">{serverAddress}</p>
-        </div>
+    <section className={cn("flex items-center gap-4 min-w-0", className)} style={style}>
+      <div className="w-7 h-7 flex-shrink-0 grid place-items-center overflow-hidden bg-s3 border border-line" style={{ borderRadius: "var(--r-sm)" }}>
+        {online && serverInfo.favicon_base64 ? (
+          <img
+            src={`data:image/png;base64,${serverInfo.favicon_base64}`}
+            alt={serverName}
+            className="w-full h-full object-cover"
+            style={{ imageRendering: "pixelated" }}
+          />
+        ) : (
+          <Server size={14} strokeWidth={1.75} className="text-fg-3" />
+        )}
+      </div>
+
+      <div className="flex items-baseline gap-3 min-w-0">
+        <h2 className="text-[13px] font-[620] text-fg leading-none whitespace-nowrap">{serverName}</h2>
+        <span className="cc-num text-[11.5px] text-fg-3 truncate">{serverAddress}</span>
+      </div>
+
+      <div className="flex items-center gap-1.5 flex-shrink-0">
         <span
           className={cn(
-            "flex items-center gap-1.5 text-[11px] font-semibold px-2 py-1 rounded-full",
-            online ? "bg-emerald-400/15 text-emerald-300" : offline ? "bg-red-400/15 text-red-300" : "bg-white/[0.06] text-white/50",
+            "w-1.5 h-1.5 rounded-full",
+            online ? "bg-ok" : offline ? "bg-err" : "bg-fg-3 animate-pulse",
           )}
-        >
-          <span
-            className={cn(
-              "w-1.5 h-1.5 rounded-full",
-              online ? "bg-emerald-400" : offline ? "bg-red-400" : "bg-white/40 animate-pulse",
-            )}
-          />
+        />
+        <span className={cn("text-xs", online ? "text-fg-2" : offline ? "text-err" : "text-fg-3")}>
           {online ? t("server.online") : offline ? t("server.offline") : t("server.pinging")}
         </span>
       </div>
 
+      {online && (
+        <div className="flex items-center gap-4 flex-shrink-0 text-xs text-fg-3">
+          <span>
+            <span className="cc-num text-fg-2">
+              {serverInfo.players_online ?? "?"}/{serverInfo.players_max ?? "?"}
+            </span>{" "}
+            {t("server.players")}
+          </span>
+          {serverInfo.latency_ms !== null && (
+            <span>
+              <span className="cc-num text-fg-2">{serverInfo.latency_ms}</span> ms
+            </span>
+          )}
+        </div>
+      )}
+
       <div
-        className="min-h-[34px] text-xs leading-snug font-minecraft whitespace-pre-wrap break-words overflow-hidden line-clamp-2 px-3 py-2 rounded-xl bg-black/25"
+        className="flex-1 min-w-0 text-xs leading-none font-minecraft truncate text-fg-3 hidden xl:block"
         title={serverInfo?.description || serverAddress}
       >
-        {motdHtml ? (
-          <span dangerouslySetInnerHTML={{ __html: motdHtml }} />
-        ) : (
-          <span className="italic text-white/45">{offline ? t("server.offline_hint") : t("server.pinging")}</span>
-        )}
+        {isLaunching && statusMessage ? (
+          <span className="text-fg-2">{statusMessage}</span>
+        ) : failed ? (
+          <span className="text-err">{statusMessage}</span>
+        ) : motdHtml ? (
+          <span className="opacity-80" dangerouslySetInnerHTML={{ __html: motdHtml.replace(/<br\s*\/?>/gi, " ") }} />
+        ) : null}
       </div>
+      <div className="flex-1 xl:hidden" />
 
-      <div className="flex items-center gap-3">
-        <div className="flex-1 min-w-0 flex items-center gap-3">{footer}</div>
+      <div className="flex items-center gap-1.5 flex-shrink-0">
         {onMods && (
           <button
+            type="button"
             onClick={onMods}
             disabled={isDisabled || isLaunching}
-            className="h-9 px-3 flex items-center gap-1.5 rounded-xl text-xs font-semibold text-white bg-white/[0.08] hover:bg-white/[0.14] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="h-8 px-3 text-[13px] font-[540] text-fg-2 hover:text-fg bg-transparent hover:bg-s3 border border-line-2 transition-colors duration-fast disabled:opacity-45 disabled:cursor-not-allowed"
+            style={{ borderRadius: "var(--r-md)" }}
           >
-            <Icon icon="solar:box-bold" className="w-4 h-4" />
             {t("server.mods")}
           </button>
         )}
         <button
+          type="button"
           onClick={() => !isDisabled && handleQuickPlayLaunch(undefined, serverAddress, launchOverrides)}
           disabled={isDisabled}
-          className="h-9 px-4 flex items-center gap-2 rounded-xl text-sm font-bold text-white transition-[filter,transform] hover:brightness-110 active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{
-            background: isLaunching
-              ? "linear-gradient(135deg, #ef4444, #dc2626)"
-              : "linear-gradient(135deg, var(--accent), var(--accent-hover))",
-          }}
+          className="h-8 pl-2.5 pr-3 flex items-center gap-2 text-[13px] font-[560] text-fg bg-s3 hover:bg-s4 border border-line-2 transition-colors duration-fast active:scale-[0.98] disabled:opacity-45 disabled:cursor-not-allowed"
+          style={{ borderRadius: "var(--r-md)" }}
         >
-          <Icon icon={isLaunching ? "solar:stop-bold" : "solar:play-bold"} className="w-4 h-4" />
+          {isLaunching ? <Square size={12} fill="currentColor" /> : <Play size={13} fill="currentColor" />}
           {isLaunching ? t("server.stop") : t("server.join")}
         </button>
       </div>

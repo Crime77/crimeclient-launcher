@@ -3,7 +3,7 @@
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Icon } from "@iconify/react";
+import { Clock, FileText, Monitor, Square, X } from "lucide-react";
 import { cn } from "../../lib/utils";
 import * as ProcessService from "../../services/process-service";
 import type { ProcessMetadata } from "../../types/processState";
@@ -14,7 +14,6 @@ import { Label } from "../ui/./Label";
 import { Dropdown } from "../ui/./dropdown/Dropdown";
 import { DropdownHeader } from "../ui/./dropdown/DropdownHeader";
 import { DropdownFooter } from "../ui/./dropdown/DropdownFooter";
-import { useThemeStore } from "../../store/useThemeStore";
 import { invoke } from "@tauri-apps/api/core";
 
 interface RunningInstancesIndicatorProps {
@@ -35,7 +34,6 @@ export function RunningInstancesIndicator({
     new Set(),
   );
   const buttonRef = useRef<HTMLDivElement>(null);
-  const accentColor = useThemeStore((state) => state.accentColor);
 
   const fetchProcesses = useCallback(async () => {
     setError(null);
@@ -138,10 +136,16 @@ export function RunningInstancesIndicator({
   const instanceCount = processes.length;
   const hasInstances = instanceCount > 0;
 
+  const ring = (
+    <span className="block w-3.5 h-3.5 rounded-full border-[1.5px] border-line-2 border-t-fg-2 animate-spin" />
+  );
+
   return (
     <div className={cn("relative", className)}>
       <div ref={buttonRef} className="relative">
+        {/* 28 px title-bar item: the icon alone, or a green dot and the count while games run */}
         <button
+          type="button"
           onClick={handleOpenLogWindow}
           title={
             isLoading && instanceCount === 0
@@ -151,18 +155,16 @@ export function RunningInstancesIndicator({
                 : `${instanceCount} ${t('common.instance', { count: instanceCount })}`
           }
           className={cn(
-            "cc-free relative flex items-center gap-1.5 h-9 transition-colors",
+            "cc-free relative flex items-center h-7 transition-colors duration-fast",
             hasInstances
-              ? "px-3 bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25"
-              : "w-9 justify-center text-white/60 hover:text-white hover:bg-white/[0.08]",
+              ? "gap-1.5 pl-2 pr-2.5 bg-s2 border border-line-2 text-fg hover:bg-s3"
+              : "w-7 justify-center text-fg-3 hover:text-fg hover:bg-s3",
           )}
-          style={{ borderRadius: 9999 }}
+          style={{ borderRadius: "var(--r-sm)" }}
         >
-          <Icon icon="solar:monitor-bold" className="w-[18px] h-[18px]" />
-          {hasInstances && <span className="text-[13px] font-semibold">{instanceCount}</span>}
-          {hasInstances && (
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          )}
+          {hasInstances && <span className="w-1.5 h-1.5 rounded-full bg-ok flex-shrink-0" />}
+          <Monitor size={15} strokeWidth={1.75} className={hasInstances ? "text-fg-2" : undefined} />
+          {hasInstances && <span className="cc-num text-xs font-[560]">{instanceCount}</span>}
         </button>
       </div>
 
@@ -170,154 +172,106 @@ export function RunningInstancesIndicator({
         isOpen={isDropdownOpen}
         onClose={handleCloseDropdown}
         triggerRef={buttonRef}
-        width={350}
+        width={340}
+        offset={6}
       >
         <DropdownHeader title={t('instances.running_instances')}>
           <button
+            type="button"
             onClick={handleCloseDropdown}
-            className="text-white/70 hover:text-white transition-colors"
+            className="cc-icon-btn w-6 h-6 -mr-1.5"
           >
-            <Icon icon="solar:close-circle-bold" className="w-5 h-5" />
+            <X size={14} strokeWidth={1.75} />
           </button>
         </DropdownHeader>
 
         <div className="max-h-[60vh] overflow-y-auto custom-scrollbar">
           {isLoading && processes.length === 0 ? (
-            <div className="p-6 text-center">
-              <Icon
-                icon="svg-spinners:ring-resize"
-                className="w-6 h-6 mx-auto text-white/70 mb-2"
-              />
-              <p className="text-white/70 font-smallcaps text-sm">
+            <div className="px-4 py-6 flex flex-col items-center gap-2.5 text-center">
+              {ring}
+              <p className="text-fg-3 text-xs">
                 {t('instances.loading_instances')}
               </p>
             </div>
           ) : error ? (
-            <div className="p-6 text-center">
-              <Icon
-                icon="solar:danger-triangle-bold"
-                className="w-6 h-6 mx-auto text-red-400 mb-2"
-              />
-              <p className="text-red-400 font-smallcaps text-sm">
+            <div className="px-4 py-6 text-center">
+              <p className="text-err text-xs">
                 Error: {error}
               </p>
             </div>
           ) : processes.length === 0 ? (
-            <div className="p-6 text-center">
-              <Icon
-                icon="solar:monitor-bold"
-                className="w-8 h-8 mx-auto text-white/50 mb-3"
-              />
-              <p className="text-white/60 font-smallcaps text-sm">
+            <div className="px-4 py-6 text-center">
+              <p className="text-fg-2 text-[13px] font-[520]">
                 {t('instances.no_running')}
               </p>
-              <p className="text-white/40 font-smallcaps text-xs mt-2">
+              <p className="text-fg-3 text-xs mt-1">
                 {t('instances.launch_to_start')}
               </p>
             </div>
           ) : (
-            <div className="py-2">
+            <div className="py-1 divide-y divide-line">
               {processes.map((process) => (
                 <div
                   key={process.id}
-                  className="px-4 py-3 hover:bg-white/10 transition-colors duration-200"
+                  className="px-3 py-2 hover:bg-s3 transition-colors duration-fast"
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-12 h-12 rounded-md flex items-center justify-center flex-shrink-0 overflow-hidden"
-                          style={
-                            {
-                              // backgroundColor: `${accentColor.value}30`, // Removed background
-                              // borderWidth: "2px", // Removed border
-                              // borderStyle: "solid", // Removed border
-                              // borderColor: `${accentColor.value}60`, // Removed border
-                            }
-                          }
+                    <div className="min-w-0 flex-1 flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-sm flex items-center justify-center flex-shrink-0 overflow-hidden bg-s3">
+                        {process.profile_image_url &&
+                        !imageLoadErrors.has(process.id) ? (
+                          <img
+                            src={process.profile_image_url}
+                            alt={process.profile_name || "Profile Icon"}
+                            className="w-full h-full object-cover"
+                            onError={() => {
+                              setImageLoadErrors((prev) =>
+                                new Set(prev).add(process.id),
+                              );
+                            }}
+                          />
+                        ) : (
+                          <img
+                            src="/icons/minecraft.png"
+                            alt="Minecraft Default Icon"
+                            className="w-5 h-5"
+                          />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex flex-col gap-1">
+                        <p
+                          className="text-[13px] font-[520] text-fg truncate leading-none"
+                          title={process.profile_name || process.profile_id}
                         >
-                          {process.profile_image_url &&
-                          !imageLoadErrors.has(process.id) ? (
-                            <img
-                              src={process.profile_image_url}
-                              alt={process.profile_name || "Profile Icon"}
-                              className="w-full h-full object-cover"
-                              onError={() => {
-                                setImageLoadErrors((prev) =>
-                                  new Set(prev).add(process.id),
-                                );
-                              }}
-                            />
-                          ) : (
-                            <img
-                              src="/icons/minecraft.png"
-                              alt="Minecraft Default Icon"
-                              className="w-8 h-8"
-                            />
-                          )}
-                        </div>
-                        <div className="h-12 flex flex-col justify-center">
-                          <p
-                            className="text-sm font-smallcaps text-white truncate mb-0 leading-none"
-                            title={process.profile_name || process.profile_id}
-                          >
-                            {process.profile_name ||
-                              `Profile ${process.profile_id.substring(0, 6)}...`}
-                          </p>
-                          <div className="flex items-center text-xs text-white/60 font-smallcaps leading-none">
-                            <Icon
-                              icon="solar:clock-circle-bold"
-                              className="w-3.5 h-3.5 mr-1.5"
-                            />
-                            <span
-                              className="font-minecraft"
-                              style={{ fontSize: "8px" }}
-                            >
-                              {timeAgo(new Date(process.start_time).getTime())}
-                            </span>
-                            {typeof process.state === "object" &&
-                              "Crashed" in process.state && (
-                                <Label
-                                  variant="destructive"
-                                  size="xs"
-                                  className="ml-2 h-5 text-base mt-0.5"
-                                >
-                                  {t('instances.crashed')}
-                                </Label>
-                              )}
-                            {typeof process.state === "string" &&
-                              process.state !== "Running" && (
-                                <Label
-                                  variant="warning"
-                                  size="xs"
-                                  className="ml-2 h-5 text-base mt-0.5"
-                                >
-                                  {process.state}
-                                </Label>
-                              )}
-                          </div>
+                          {process.profile_name ||
+                            `Profile ${process.profile_id.substring(0, 6)}...`}
+                        </p>
+                        <div className="flex items-center gap-1.5 text-fg-3 leading-none">
+                          <Clock size={11} strokeWidth={1.75} />
+                          <span className="cc-num text-[11px]">
+                            {timeAgo(new Date(process.start_time).getTime())}
+                          </span>
+                          {typeof process.state === "object" &&
+                            "Crashed" in process.state && (
+                              <Label variant="destructive" size="xs" className="ml-1 h-4">
+                                {t('instances.crashed')}
+                              </Label>
+                            )}
+                          {typeof process.state === "string" &&
+                            process.state !== "Running" && (
+                              <Label variant="warning" size="xs" className="ml-1 h-4">
+                                {process.state}
+                              </Label>
+                            )}
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center gap-0.5 flex-shrink-0">
                       {process.id && (
                         <IconButton
                           onClick={(e) => handleViewLogs(process.id, e)}
                           size="xs"
-                          className="h-8 w-8 p-1.5 bg-white/10 text-sky-400 hover:bg-white/20 hover:text-sky-300 focus:ring-2 focus:ring-white/60"
-                          icon={
-                            viewingLogsId === process.id ? (
-                              <Icon
-                                icon="svg-spinners:ring-resize"
-                                className="w-4 h-4"
-                              />
-                            ) : (
-                              <Icon
-                                icon="solar:document-bold"
-                                className="w-4 h-4"
-                              />
-                            )
-                          }
+                          icon={viewingLogsId === process.id ? ring : <FileText size={14} strokeWidth={1.75} />}
                           aria-label={t('instances.view_logs')}
                         />
                       )}
@@ -326,17 +280,8 @@ export function RunningInstancesIndicator({
                         disabled={stoppingId === process.id}
                         variant="destructive"
                         size="xs"
-                        className="h-8 w-8 p-1.5 bg-white/10 hover:bg-white/20 hover:text-red-400 ring-1 ring-red-500 focus:ring-2 focus:ring-red-500/50"
-                        icon={
-                          stoppingId === process.id ? (
-                            <Icon
-                              icon="svg-spinners:ring-resize"
-                              className="w-4 h-4"
-                            />
-                          ) : (
-                            <Icon icon="solar:stop-bold" className="w-4 h-4" />
-                          )
-                        }
+                        className="border-transparent"
+                        icon={stoppingId === process.id ? ring : <Square size={12} strokeWidth={2} className="fill-current" />}
                         aria-label={t('instances.stop_process')}
                       />
                     </div>
@@ -348,30 +293,23 @@ export function RunningInstancesIndicator({
         </div>
 
         <DropdownFooter>
-          <div className="flex items-center justify-between w-full">
+          <div className="flex items-center justify-between w-full gap-2">
             {processes.length > 0 ? (
-              <Label
-                variant="success"
-                size="xs"
-                icon={
-                  <Icon icon="solar:play-circle-bold" className="w-4 h-4" />
-                }
-              >
+              <span className="flex items-center gap-1.5 pl-1 text-xs text-fg-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-ok" />
                 {t('instances.count_running', { count: processes.length })}
-              </Label>
+              </span>
             ) : (
-              <span className="text-white/40 text-xs font-smallcaps">
+              <span className="pl-1 text-fg-3 text-xs">
                 {t('instances.none')}
               </span>
             )}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <Button
-                variant="flat"
+                variant="ghost"
                 size="xs"
                 onClick={handleOpenLogWindow}
-                icon={
-                  <Icon icon="solar:monitor-bold" className="w-4 h-4" />
-                }
+                icon={<Monitor size={14} strokeWidth={1.75} />}
               >
                 {t('instances.logs')}
               </Button>
@@ -380,9 +318,7 @@ export function RunningInstancesIndicator({
                   variant="destructive"
                   size="xs"
                   onClick={handleStopAll}
-                  icon={
-                    <Icon icon="solar:stop-circle-bold" className="w-4 h-4" />
-                  }
+                  icon={<Square size={11} strokeWidth={2} className="fill-current" />}
                 >
                   {t('instances.stop_all')}
                 </Button>

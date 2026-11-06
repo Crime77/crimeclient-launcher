@@ -1,28 +1,23 @@
 "use client";
 
 /**
- * EditableChipV3 — Inline-edit chip built on top of `ThemedDropdown` so it
- * inherits the V3 accent-tinted popover recipe used everywhere else
- * (Filter/Sort/NoriskPack/Version dropdowns in LocalContentTabV3).
+ * EditableChipV3 — an inline-editable meta value in the profile header (version, loader version,
+ * group, account). Quiet by default: plain text that gets an s2 surface and a pen on hover; the
+ * editor opens in a `ThemedDropdown` popover.
  *
- * Visually identical to the local `Chip` atom in ProfileDetailViewV3 plus:
- *  · hover pen-icon + subtle white/10 bg when active
- *  · click → ThemedDropdown panel (accent-blur shell)
- *  · optional Save/Cancel footer for text-editors (disable for list-pickers
- *    that commit on click)
- *  · `onOpen` fires once when the popover opens — used for lazy-fetching
- *    picker data on demand instead of on mount
+ *  · optional Save/Cancel footer for text editors (off for list pickers that commit on click)
+ *  · `onOpen` fires once when the popover opens, used to fetch picker data on demand
  */
 
 import { useEffect, useRef, useState } from "react";
 import type React from "react";
 import { useTranslation } from "react-i18next";
-import { Icon } from "@iconify/react";
-import { useThemeStore } from "../../../../store/useThemeStore";
+import { Lock, PenLine, type LucideIcon } from "lucide-react";
+import { Button } from "../../../ui/buttons/Button";
 import { ThemedDropdown } from "../shared/ThemedDropdown";
 
 interface EditableChipV3Props {
-  icon?: string;
+  icon?: LucideIcon;
   children: React.ReactNode;
   renderEditor: (ctx: { close: () => void; commit: () => void }) => React.ReactNode;
   onSave?: () => void;
@@ -34,10 +29,14 @@ interface EditableChipV3Props {
   withSaveCancel?: boolean;
   /** Tailwind width class understood by `ThemedDropdown` (w-48 … w-72). */
   width?: string;
+  /** Mono numerals for version-like values. */
+  mono?: boolean;
+  /** Tooltip for the trigger. */
+  title?: string;
 }
 
 export function EditableChipV3({
-  icon,
+  icon: Glyph,
   children,
   renderEditor,
   onSave,
@@ -47,11 +46,12 @@ export function EditableChipV3({
   disabledReason,
   withSaveCancel = true,
   width = "w-56",
+  mono = false,
+  title,
 }: EditableChipV3Props) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const accent = useThemeStore((s) => s.accentColor);
 
   // Fire onOpen exactly when the popover transitions closed → open
   useEffect(() => {
@@ -76,23 +76,28 @@ export function EditableChipV3({
         type="button"
         disabled={disabled}
         onClick={() => !disabled && setOpen((v) => !v)}
-        title={disabled ? disabledReason : undefined}
-        className={`group inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm font-minecraft transition-colors
-          ${disabled
-            ? "bg-black/20 border-white/5 text-white/30 cursor-not-allowed"
+        title={disabled ? disabledReason : title}
+        className={`group inline-flex items-center gap-1.5 h-6 px-1.5 -mx-0.5 text-[12px] transition-colors duration-fast ${
+          mono ? "cc-num" : ""
+        } ${
+          disabled
+            ? "text-fg-3 cursor-default"
             : open
-              ? "bg-black/40 border-white/25 text-white cursor-pointer"
-              : "bg-black/30 border-white/10 text-white/75 hover:bg-black/40 hover:border-white/20 hover:text-white cursor-pointer"}`}
+              ? "bg-s3 text-fg"
+              : "text-fg-2 hover:bg-s2 hover:text-fg"
+        }`}
+        style={{ borderRadius: "var(--r-sm)" }}
       >
-        {icon && <Icon icon={icon} className="w-4 h-4 flex-shrink-0" />}
-        <span>{children}</span>
+        {Glyph && <Glyph size={13} strokeWidth={1.75} className="flex-shrink-0 text-fg-3" />}
+        <span className="truncate max-w-[220px]">{children}</span>
         {disabled ? (
-          <Icon icon="solar:lock-keyhole-minimalistic-bold" className="w-3.5 h-3.5 text-white/30 ml-0.5 flex-shrink-0" />
+          <Lock size={11} strokeWidth={1.75} className="flex-shrink-0 text-fg-4" />
         ) : (
-          <Icon
-            icon="solar:pen-linear"
-            className={`w-3.5 h-3.5 ml-0.5 flex-shrink-0 transition-opacity ${
-              open ? "opacity-80" : "opacity-40 group-hover:opacity-80"
+          <PenLine
+            size={11}
+            strokeWidth={1.75}
+            className={`flex-shrink-0 text-fg-3 transition-opacity duration-fast ${
+              open ? "opacity-100" : "opacity-0 group-hover:opacity-100"
             }`}
           />
         )}
@@ -108,27 +113,14 @@ export function EditableChipV3({
         {renderEditor({ close, commit })}
         {withSaveCancel && (
           <>
-            <div className="my-1 border-t border-white/10" />
-            <div className="flex items-center justify-end gap-1 px-2 py-1">
-              <button
-                onClick={close}
-                className="px-2.5 py-1 rounded text-[10px] uppercase tracking-wider font-minecraft text-white/60 hover:text-white hover:bg-white/10 transition-colors"
-              >
+            <div className="h-px bg-line my-1 -mx-1" />
+            <div className="flex items-center justify-end gap-1 p-1">
+              <Button variant="ghost" size="xs" onClick={close}>
                 {t("profiles.v3.chips.cancel")}
-              </button>
-              <button
-                onClick={commit}
-                style={{
-                  backgroundColor: `${accent.value}40`,
-                  borderColor: `${accent.value}80`,
-                  color: accent.light,
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = `${accent.value}66`; }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = `${accent.value}40`; }}
-                className="px-2.5 py-1 rounded border text-[10px] uppercase tracking-wider font-minecraft transition-colors"
-              >
+              </Button>
+              <Button variant="secondary" size="xs" onClick={commit}>
                 {t("profiles.v3.chips.save")}
-              </button>
+              </Button>
             </div>
           </>
         )}

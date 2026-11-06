@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Icon } from "@iconify/react";
-import { useThemeStore } from "../../store/useThemeStore";
+import { Check, ChevronDown } from "lucide-react";
+import { cn } from "../../lib/utils";
 import { MENU_PANEL_CLASSES, menuItemClasses, menuSeparatorClasses } from "./design-system";
 
 export interface DropdownOption {
@@ -34,9 +35,10 @@ export function CustomDropdown({
   const isSm = size === 'sm';
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const accentColor = useThemeStore((state) => state.accentColor);
 
   const selectedOption = options.find(opt => opt.value === value) || options[0];
+  // With a label (or the search variant) the trigger is a full field; without, a quiet toolbar trigger
+  const isField = variant === 'search' || !!label;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -58,97 +60,78 @@ export function CustomDropdown({
     <div className={`relative ${className}`} ref={dropdownRef}>
       {/* Label above (only if provided) */}
       {label && (
-        <label className="block text-white font-smallcaps text-lg mb-2">
+        <label className="block text-xs font-[520] text-fg-2 mb-1.5">
           {label}
         </label>
       )}
 
       {/* Dropdown Button */}
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center gap-2 transition-all duration-200 focus:outline-none focus:ring-0 focus:border-transparent ${
-          variant === 'search'
-            ? `w-full justify-between bg-black/50 rounded-lg px-4 py-3 border border-white/10 hover:border-white/20 text-white font-minecraft ${isSm ? 'text-sm' : 'text-xl'}`
-            : label
-            ? `w-full justify-between bg-transparent rounded-md px-2 py-1 border border-white/10 hover:border-white/20 bg-black/50 hover:bg-black/60 px-4 py-3 text-white font-minecraft ${isSm ? 'text-sm' : 'text-xl'}`
-            : `bg-transparent rounded-md px-2 py-1 text-white font-minecraft ${isSm ? 'text-sm' : 'text-xl'}`
-        }`}
-        style={{
-          boxShadow: isOpen ? `0 0 0 1px ${accentColor.value}40` : 'none',
-          outline: 'none',
-          border: label ? undefined : 'none',
-        }}
-        onMouseEnter={(e) => {
-          if (!label) {
-            e.currentTarget.style.backgroundColor = `${accentColor.value}15`;
-          } else if (variant === 'search') {
-            // Search variant hover effect - border color change
-            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-          }
-        }}
-        onMouseLeave={(e) => {
-          if (!label) {
-            e.currentTarget.style.backgroundColor = 'transparent';
-          } else if (variant === 'search') {
-            // Reset search variant border
-            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-          }
-        }}
+        className={cn(
+          "flex items-center gap-1.5 focus:outline-none transition-colors duration-fast ease-out",
+          isField
+            ? cn(
+                "w-full justify-between px-3 bg-s2 border text-fg",
+                isSm ? "h-8 text-xs" : "h-9 text-[13px]",
+                isOpen ? "border-line-3" : "border-line hover:border-line-2",
+              )
+            : cn(
+                "px-2 text-fg-2 hover:text-fg hover:bg-s3",
+                isSm ? "h-7 text-xs" : "h-8 text-[13px]",
+                isOpen && "bg-s3 text-fg",
+              ),
+        )}
+        style={{ borderRadius: isField ? "var(--r-md)" : "var(--r-sm)" }}
         title={selectedOption?.label}
       >
-        <div className="flex items-center gap-2">
-          {selectedOption?.icon && (
-            <Icon icon={selectedOption.icon} className="w-4 h-4 text-white/70" />
+        <span className="flex items-center gap-2 min-w-0">
+          {selectedOption?.icon && isField && (
+            <Icon icon={selectedOption.icon} className="w-4 h-4 text-fg-3 flex-shrink-0" />
           )}
-          {label && <span>{selectedOption?.label}</span>}
-        </div>
-        {label && (
-          <Icon 
-            icon="solar:alt-arrow-down-bold" 
-            className={`w-4 h-4 text-white/50 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-          />
-        )}
+          <span className={cn("truncate font-[520]", !isField && "max-w-[160px]")}>{selectedOption?.label}</span>
+        </span>
+        <ChevronDown
+          size={isSm ? 13 : 14}
+          strokeWidth={1.75}
+          className={cn(
+            "flex-shrink-0 text-fg-3 transition-transform duration-med ease-out",
+            isOpen && "rotate-180",
+          )}
+        />
       </button>
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className={`absolute top-full mt-2 ${MENU_PANEL_CLASSES} ${
-          variant === 'search' ? 'left-0 right-0' : label ? 'left-0 right-0' : 'left-0 w-56'
-        }`}>
-          <div className="py-2">
-            {options.map((option, index) => (
+        <div className={cn(
+          "cc-pop absolute top-full mt-1.5 min-w-[180px]",
+          MENU_PANEL_CLASSES,
+          isField ? 'left-0 right-0' : 'right-0 w-56',
+        )}>
+          {options.map((option, index) => {
+            const selected = option.value === value;
+            return (
               <div key={option.value}>
                 {option.separator && index > 0 && (
                   <div className={menuSeparatorClasses(isSm)} />
                 )}
                 <button
+                  type="button"
                   onClick={() => handleOptionClick(option.value)}
-                  className={`${menuItemClasses(isSm)} ${
-                    option.value === value
-                      ? 'bg-white/10 text-white'
-                      : 'text-white/80 hover:bg-white/5 hover:text-white'
-                  }`}
-                  style={{
-                    backgroundColor: option.value === value ? `${accentColor.value}20` : undefined,
-                  }}
+                  className={cn(menuItemClasses(isSm), selected && 'bg-s3 text-fg')}
                 >
                   {option.icon && (
-                    <Icon icon={option.icon} className="w-4 h-4 text-white/70 flex-shrink-0" />
+                    <Icon icon={option.icon} className={cn("w-4 h-4 flex-shrink-0", selected ? "text-fg-2" : "text-fg-3")} />
                   )}
-                  <span className="flex-1">{option.label}</span>
-                  <div className="w-4 h-4 flex items-center justify-center flex-shrink-0">
-                    {option.value === value && (
-                      <Icon
-                        icon="solar:check-circle-bold"
-                        className="w-4 h-4"
-                        style={{ color: accentColor.value }}
-                      />
-                    )}
-                  </div>
+                  <span className="flex-1 truncate">{option.label}</span>
+                  <span className="w-4 h-4 flex items-center justify-center flex-shrink-0">
+                    {selected && <Check size={14} strokeWidth={2} className="text-fg" />}
+                  </span>
                 </button>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
       )}
     </div>

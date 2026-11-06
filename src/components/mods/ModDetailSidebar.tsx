@@ -1,15 +1,17 @@
 "use client";
 
 import React from "react";
-import { Icon } from "@iconify/react";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
+import { ArrowUpRight, Package, User } from "lucide-react";
 import i18n from "../../i18n/i18n";
 import { useNavigate } from "react-router-dom";
 import type { UnifiedProjectDetails } from "../../types/unified";
 import { UnifiedDependencyType } from "../../types/unified";
 import type { AccentColor } from "../../store/useThemeStore";
 import { openExternalUrl } from "../../services/tauri-service";
+import { cn } from "../../lib/utils";
+import { formatIsoDate } from "../modrinth/v2/format";
 
 interface ModDetailSidebarProps {
   project: UnifiedProjectDetails;
@@ -17,12 +19,20 @@ interface ModDetailSidebarProps {
 }
 
 interface LinkItemProps {
-  icon: string;
   label: string;
   url: string | null;
 }
 
-function LinkItem({ icon, label, url }: LinkItemProps) {
+// "github.com" from a full URL, shown in mono next to the link label
+function hostOf(url: string): string {
+  try {
+    return new URL(url).host.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+}
+
+function LinkItem({ label, url }: LinkItemProps) {
   if (!url) return null;
 
   const handleClick = async () => {
@@ -36,64 +46,31 @@ function LinkItem({ icon, label, url }: LinkItemProps) {
 
   return (
     <button
+      type="button"
       onClick={handleClick}
-      className="flex items-center gap-2 w-full px-3 py-2 rounded-lg bg-black/20 hover:bg-white/10 border border-white/10 hover:border-white/20 transition-all text-left group"
+      className="group w-full h-7 flex items-center gap-2 px-1.5 -mx-1.5 text-left hover:bg-s2 transition-colors duration-fast"
+      style={{ borderRadius: "var(--r-sm)", width: "calc(100% + 12px)" }}
+      title={url}
     >
-      <Icon icon={icon} className="w-4 h-4 text-white/70 group-hover:text-white" />
-      <span className="text-sm font-minecraft text-white/70 group-hover:text-white truncate">
-        {label}
-      </span>
-      <Icon
-        icon="solar:arrow-right-up-bold"
-        className="w-3 h-3 text-white/30 group-hover:text-white/70 ml-auto flex-shrink-0"
-      />
+      <span className="text-[12.5px] text-fg-2 group-hover:text-fg truncate">{label}</span>
+      <span className="flex-1" />
+      <span className="cc-num text-[11px] text-fg-4 truncate max-w-[110px]">{hostOf(url)}</span>
+      <ArrowUpRight size={12} strokeWidth={1.75} className="text-fg-4 group-hover:text-fg-2 flex-shrink-0" />
     </button>
   );
-}
-
-// Helper to format dates nicely
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
-
-// Helper to get platform icon for donation
-function getDonationIcon(platform: string): string {
-  const lower = platform.toLowerCase();
-  if (lower.includes("patreon")) return "simple-icons:patreon";
-  if (lower.includes("ko-fi") || lower.includes("kofi")) return "simple-icons:kofi";
-  if (lower.includes("paypal")) return "simple-icons:paypal";
-  if (lower.includes("github")) return "simple-icons:github";
-  if (lower.includes("bmac") || lower.includes("buymeacoffee")) return "simple-icons:buymeacoffee";
-  if (lower.includes("opencollective")) return "simple-icons:opencollective";
-  return "solar:heart-bold";
-}
-
-
-// Helper to get loader icon
-function getLoaderIcon(loader: string): string {
-  const lower = loader.toLowerCase();
-  if (lower === "forge") return "simple-icons:curseforge"; // No dedicated forge icon, use curseforge
-  if (lower === "neoforge") return "simple-icons:curseforge";
-  return "solar:cpu-bolt-bold"; // simple-icons has no fabric or quilt brand
-
 }
 
 // Helper to format environment support
 function formatSideSupport(side: string | null): { label: string; color: string } {
   switch (side) {
     case "required":
-      return { label: i18n.t('mod_detail.support.required'), color: "text-green-400" };
+      return { label: i18n.t('mod_detail.support.required'), color: "text-fg" };
     case "optional":
-      return { label: i18n.t('mod_detail.support.optional'), color: "text-yellow-400" };
+      return { label: i18n.t('mod_detail.support.optional'), color: "text-fg-2" };
     case "unsupported":
-      return { label: i18n.t('mod_detail.support.unsupported'), color: "text-red-400" };
+      return { label: i18n.t('mod_detail.support.unsupported'), color: "text-fg-4" };
     default:
-      return { label: i18n.t('mod_detail.support.unknown'), color: "text-white/50" };
+      return { label: i18n.t('mod_detail.support.unknown'), color: "text-fg-4" };
   }
 }
 
@@ -145,6 +122,31 @@ function formatGameVersions(versions: string[]): string[] {
   return formatted;
 }
 
+/** One block of the fact column: eyebrow heading (optional mono count), rows below. */
+function Section({ title, count, children }: { title: string; count?: number; children: React.ReactNode }) {
+  return (
+    <section className="py-4 border-b border-line first:pt-0 last:border-b-0">
+      <h3 className="flex items-baseline gap-2 mb-2 normal-case tracking-normal">
+        <span className="cc-eyebrow">{title}</span>
+        {count !== undefined && <span className="cc-num text-[11px] text-fg-4">{count}</span>}
+      </h3>
+      {children}
+    </section>
+  );
+}
+
+/** Key on the left in fg-3, value on the right in mono. */
+function Fact({ label, children, mono = true }: { label: string; children: React.ReactNode; mono?: boolean }) {
+  return (
+    <div className="flex items-start justify-between gap-3 py-[3px] text-[12px] leading-[18px]">
+      <span className="text-fg-3 flex-shrink-0">{label}</span>
+      <span className={cn("text-right min-w-0 [overflow-wrap:anywhere] text-fg-2", mono && "cc-num text-[11.5px]")}>
+        {children}
+      </span>
+    </div>
+  );
+}
+
 export function ModDetailSidebar({ project, accentColor }: ModDetailSidebarProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -177,289 +179,166 @@ export function ModDetailSidebar({ project, accentColor }: ModDetailSidebarProps
   const formattedVersions = formatGameVersions(project.game_versions);
 
   return (
-    <div className="space-y-4">
+    <div>
       {/* Compatibility Section */}
       {hasCompatibilityInfo && (
-        <div className="bg-black/20 rounded-lg p-4 border border-white/10">
-          <h3 className="text-sm font-minecraft text-white/70 mb-3 uppercase flex items-center gap-2">
-            <Icon icon="solar:check-circle-bold" className="w-4 h-4" />
-            {t('mod_detail.compatibility')}
-          </h3>
+        <Section title={t('mod_detail.compatibility')}>
+          {/* Minecraft Versions */}
+          {formattedVersions.length > 0 && (
+            <Fact label={t('mods.detail.minecraft')}>
+              {formattedVersions.slice(0, 8).join(", ")}
+              {formattedVersions.length > 8 && (
+                <span className="text-fg-4"> +{formattedVersions.length - 8}</span>
+              )}
+            </Fact>
+          )}
 
-          <div className="space-y-3 text-xs font-minecraft">
-            {/* Minecraft Versions */}
-            {formattedVersions.length > 0 && (
-              <div>
-                <span className="text-white/50 mb-2 block">
-                  {t('mod_detail.minecraft_java')}
-                </span>
-                <div className="flex flex-wrap gap-1">
-                  {formattedVersions.slice(0, 8).map((version) => (
-                    <span
-                      key={version}
-                      className="px-2 py-0.5 bg-white/10 rounded text-white/80 text-[10px]"
-                    >
-                      {version}
-                    </span>
-                  ))}
-                  {formattedVersions.length > 8 && (
-                    <span className="px-2 py-0.5 text-white/50 text-[10px]">
-                      +{formattedVersions.length - 8} {t('common.more')}
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
+          {/* Platforms/Loaders */}
+          {project.loaders.length > 0 && (
+            <Fact label={t('mod_detail.platforms')} mono={false}>
+              <span className="capitalize">{project.loaders.join(" · ")}</span>
+            </Fact>
+          )}
 
-            {/* Platforms/Loaders */}
-            {project.loaders.length > 0 && (
-              <div>
-                <span className="text-white/50 mb-2 block">
-                  {t('mod_detail.platforms')}
+          {/* Environment Support */}
+          {hasEnvironmentInfo && (
+            <>
+              <Fact label={t('content.filters.client')}>
+                <span className={formatSideSupport(project.client_side).color}>
+                  {formatSideSupport(project.client_side).label}
                 </span>
-                <div className="flex flex-wrap gap-1">
-                  {project.loaders.map((loader) => (
-                    <span
-                      key={loader}
-                      className="px-2 py-0.5 bg-white/10 rounded text-white/80 text-[10px] capitalize flex items-center gap-1"
-                    >
-                      <Icon icon={getLoaderIcon(loader)} className="w-3 h-3" />
-                      {loader}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Environment Support */}
-            {hasEnvironmentInfo && (
-              <div>
-                <span className="text-white/50 mb-2 block">
-                  {t('mod_detail.supported_environments')}
+              </Fact>
+              <Fact label={t('content.filters.server')}>
+                <span className={formatSideSupport(project.server_side).color}>
+                  {formatSideSupport(project.server_side).label}
                 </span>
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-white/70 flex items-center gap-1">
-                      <Icon icon="solar:monitor-bold" className="w-3 h-3" />
-                      {t('content.filters.client')}
-                    </span>
-                    <span className={formatSideSupport(project.client_side).color}>
-                      {formatSideSupport(project.client_side).label}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-white/70 flex items-center gap-1">
-                      <Icon icon="solar:server-bold" className="w-3 h-3" />
-                      {t('content.filters.server')}
-                    </span>
-                    <span className={formatSideSupport(project.server_side).color}>
-                      {formatSideSupport(project.server_side).label}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+              </Fact>
+            </>
+          )}
+        </Section>
       )}
 
       {/* Dependencies Section */}
       {hasDependencies && (
-        <div className="bg-black/20 rounded-lg p-4 border border-white/10">
-          <h3 className="text-sm font-minecraft text-white/70 mb-3 uppercase flex items-center gap-2">
-            <Icon icon="solar:widget-add-bold" className="w-4 h-4" />
-            Dependencies ({project.dependencies.length})
-          </h3>
-
-          <div className="space-y-2">
-            {project.dependencies.map((dep) => (
-              <button
-                key={dep.project_id}
-                onClick={() => navigate(`/mods/${dep.source.toLowerCase()}/${dep.project_id}`)}
-                className="flex items-center gap-2 w-full text-left hover:bg-white/5 rounded-md p-1.5 -mx-1.5 transition-colors group"
+        <Section title={t('mods.detail.dependencies')} count={project.dependencies.length}>
+          {project.dependencies.map((dep) => (
+            <button
+              key={dep.project_id}
+              type="button"
+              onClick={() => navigate(`/mods/${dep.source.toLowerCase()}/${dep.project_id}`)}
+              className="group flex items-center gap-2 h-8 px-1.5 -mx-1.5 text-left hover:bg-s2 transition-colors duration-fast"
+              style={{ borderRadius: "var(--r-sm)", width: "calc(100% + 12px)" }}
+            >
+              <span
+                className="w-6 h-6 flex-shrink-0 overflow-hidden bg-s3 border border-line grid place-items-center"
+                style={{ borderRadius: "var(--r-sm)" }}
               >
                 {dep.icon_url ? (
-                  <img
-                    src={dep.icon_url}
-                    alt={dep.title}
-                    className="w-8 h-8 rounded object-cover flex-shrink-0"
-                  />
+                  <img src={dep.icon_url} alt="" className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-8 h-8 rounded bg-white/10 flex items-center justify-center flex-shrink-0">
-                    <Icon icon="solar:box-bold" className="w-4 h-4 text-white/50" />
-                  </div>
+                  <Package size={12} strokeWidth={1.75} className="text-fg-4" />
                 )}
-                <div className="min-w-0 flex-1">
-                  <span className="text-xs font-minecraft text-white truncate group-hover:text-accent transition-colors block">
-                    {dep.title}
-                  </span>
-                  <span className={`text-[10px] font-minecraft ${
-                    dep.dependency_type === UnifiedDependencyType.Required
-                      ? 'text-red-400/80'
-                      : 'text-yellow-400/80'
-                  }`}>
-                    {dep.dependency_type === UnifiedDependencyType.Required ? 'Required' : 'Optional'}
-                  </span>
-                </div>
-                <Icon
-                  icon="solar:arrow-right-bold"
-                  className="w-3 h-3 text-white/0 group-hover:text-white/50 flex-shrink-0 transition-colors"
-                />
-              </button>
-            ))}
-          </div>
-        </div>
+              </span>
+              <span className="min-w-0 flex-1 text-[12.5px] text-fg-2 group-hover:text-fg truncate">
+                {dep.title}
+              </span>
+              <span
+                className={cn(
+                  "cc-num text-[11px] flex-shrink-0",
+                  dep.dependency_type === UnifiedDependencyType.Required ? "text-fg-3" : "text-fg-4",
+                )}
+              >
+                {dep.dependency_type === UnifiedDependencyType.Required
+                  ? t('mod_detail.support.required')
+                  : t('mod_detail.support.optional')}
+              </span>
+            </button>
+          ))}
+        </Section>
       )}
 
       {/* Team Members Section */}
       {project.team_members.length > 0 && (
-        <div className="bg-black/20 rounded-lg p-4 border border-white/10">
-          <h3 className="text-sm font-minecraft text-white/70 mb-3 uppercase flex items-center gap-2">
-            <Icon icon="solar:users-group-rounded-bold" className="w-4 h-4" />
-            Team ({project.team_members.length})
-          </h3>
-
-          <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+        <Section title={t('mods.detail.team')} count={project.team_members.length}>
+          <div className="max-h-64 overflow-y-auto scrollbar-hover">
             {project.team_members.map((member, index) => (
               <button
                 key={index}
+                type="button"
                 onClick={() => openExternalUrl(member.profile_url)}
-                className="flex items-center gap-2 w-full text-left hover:bg-white/5 rounded-md p-1 -m-1 transition-colors group"
+                className="group flex items-center gap-2 h-8 px-1.5 -mx-1.5 text-left hover:bg-s2 transition-colors duration-fast"
+                style={{ borderRadius: "var(--r-sm)", width: "calc(100% + 12px)" }}
               >
-                {member.avatar_url ? (
-                  <img
-                    src={member.avatar_url}
-                    alt={member.username}
-                    className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                  />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
-                    <Icon icon="solar:user-bold" className="w-4 h-4 text-white/50" />
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-minecraft text-white truncate group-hover:text-accent transition-colors">{member.username}</p>
-                  <p className="text-[10px] text-white/50 font-minecraft truncate">{member.role}</p>
-                </div>
-                <Icon
-                  icon="solar:arrow-right-up-bold"
-                  className="w-3 h-3 text-white/0 group-hover:text-white/50 flex-shrink-0 transition-colors"
-                />
+                <span className="w-6 h-6 rounded-full flex-shrink-0 overflow-hidden bg-s3 grid place-items-center">
+                  {member.avatar_url ? (
+                    <img src={member.avatar_url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <User size={12} strokeWidth={1.75} className="text-fg-4" />
+                  )}
+                </span>
+                <span className="min-w-0 flex-1 text-[12.5px] text-fg-2 group-hover:text-fg truncate">
+                  {member.username}
+                </span>
+                <span className="cc-num text-[11px] text-fg-4 truncate max-w-[90px] flex-shrink-0">{member.role}</span>
               </button>
             ))}
           </div>
-        </div>
+        </Section>
       )}
 
       {/* Donate Section */}
       {hasDonations && (
-        <div className="bg-black/20 rounded-lg p-4 border border-white/10">
-          <h3 className="text-sm font-minecraft text-white/70 mb-3 uppercase flex items-center gap-2">
-            <Icon icon="solar:heart-bold" className="w-4 h-4 text-red-400" />
-            {t('mod_detail.support')}
-          </h3>
-
-          <div className="space-y-2">
-            {project.donation_urls.map((donation, index) => (
-              <LinkItem
-                key={index}
-                icon={getDonationIcon(donation.platform)}
-                label={donation.platform}
-                url={donation.url}
-              />
-            ))}
-          </div>
-        </div>
+        <Section title={t('mod_detail.support')}>
+          {project.donation_urls.map((donation, index) => (
+            <LinkItem
+              key={index}
+              label={donation.platform}
+              url={donation.url}
+            />
+          ))}
+        </Section>
       )}
 
       {/* Links Section */}
       {hasLinks && (
-        <div className="bg-black/20 rounded-lg p-4 border border-white/10">
-          <h3 className="text-sm font-minecraft text-white/70 mb-3 uppercase flex items-center gap-2">
-            <Icon icon="solar:link-bold" className="w-4 h-4" />
-            {t('mod_detail.links_title')}
-          </h3>
-
-          <div className="space-y-2">
-            <LinkItem
-              icon="solar:global-bold"
-              label={t('mod_detail.links.website')}
-              url={project.links.website}
-            />
-            <LinkItem
-              icon="solar:code-bold"
-              label={t('mod_detail.links.source_code')}
-              url={project.links.source}
-            />
-            <LinkItem
-              icon="solar:bug-bold"
-              label={t('mod_detail.links.issue_tracker')}
-              url={project.links.issues}
-            />
-            <LinkItem
-              icon="solar:book-bold"
-              label={t('mod_detail.links.wiki')}
-              url={project.links.wiki}
-            />
-            <LinkItem
-              icon="ic:baseline-discord"
-              label={t('mod_detail.links.discord')}
-              url={project.links.discord}
-            />
-          </div>
-        </div>
+        <Section title={t('mod_detail.links_title')}>
+          <LinkItem label={t('mod_detail.links.website')} url={project.links.website} />
+          <LinkItem label={t('mod_detail.links.source_code')} url={project.links.source} />
+          <LinkItem label={t('mod_detail.links.issue_tracker')} url={project.links.issues} />
+          <LinkItem label={t('mod_detail.links.wiki')} url={project.links.wiki} />
+          <LinkItem label={t('mod_detail.links.discord')} url={project.links.discord} />
+        </Section>
       )}
 
       {/* Details Section */}
-      <div className="bg-black/20 rounded-lg p-4 border border-white/10">
-        <h3 className="text-sm font-minecraft text-white/70 mb-3 uppercase flex items-center gap-2">
-          <Icon icon="solar:info-circle-bold" className="w-4 h-4" />
-          {t('mod_detail.details')}
-        </h3>
+      <Section title={t('mod_detail.details')}>
+        {/* License */}
+        {project.license && (
+          <Fact label={t('mod_detail.license')}>
+            {project.license.url ? (
+              <button
+                type="button"
+                onClick={handleOpenLicense}
+                className="text-fg-2 underline decoration-line-3 underline-offset-2 hover:text-fg hover:decoration-fg transition-colors duration-fast text-right"
+              >
+                {project.license.id || project.license.name}
+              </button>
+            ) : (
+              <span title={project.license.name}>{project.license.id || project.license.name}</span>
+            )}
+          </Fact>
+        )}
 
-        <div className="space-y-3 text-xs font-minecraft">
-          {/* License */}
-          {project.license && (
-            <div className="flex justify-between items-start gap-3">
-              <span className="text-white/50 shrink-0">{t('mod_detail.license')}</span>
-              {project.license.url ? (
-                <button
-                  onClick={handleOpenLicense}
-                  className="text-accent hover:text-accent/80 transition-colors text-left [overflow-wrap:anywhere] min-w-0"
-                >
-                  {project.license.name}
-                </button>
-              ) : (
-                <span className="text-white/90 text-left [overflow-wrap:anywhere] min-w-0">
-                  {project.license.name}
-                </span>
-              )}
-            </div>
-          )}
+        {/* Dates */}
+        <Fact label={t('mod_detail.created')}>{formatIsoDate(project.date_created)}</Fact>
+        <Fact label={t('mod_detail.updated')}>{formatIsoDate(project.date_modified)}</Fact>
 
-          {/* Dates */}
-          <div className="flex justify-between">
-            <span className="text-white/50">{t('mod_detail.created')}</span>
-            <span className="text-white/90">{formatDate(project.date_created)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-white/50">{t('mod_detail.updated')}</span>
-            <span className="text-white/90">{formatDate(project.date_modified)}</span>
-          </div>
-
-          {/* Project Info */}
-          <div className="border-t border-white/10 pt-3 mt-3">
-            <div className="flex justify-between">
-              <span className="text-white/50">{t('mod_detail.project_id')}</span>
-              <span className="text-white/70 font-mono text-[10px]">{project.id}</span>
-            </div>
-            <div className="flex justify-between mt-2">
-              <span className="text-white/50">{t('mod_detail.type')}</span>
-              <span className="text-white/90 capitalize">{project.project_type}</span>
-            </div>
-          </div>
-        </div>
-      </div>
+        {/* Project Info */}
+        <Fact label={t('mod_detail.project_id')}>{project.id}</Fact>
+        <Fact label={t('mod_detail.type')} mono={false}>
+          {t(`mods.kind.${project.project_type}`, { defaultValue: project.project_type })}
+        </Fact>
+      </Section>
     </div>
   );
 }

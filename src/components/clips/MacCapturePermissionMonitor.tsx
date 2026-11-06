@@ -43,14 +43,14 @@ export function MacCapturePermissionMonitor() {
           </Button>
         }
       >
-        <div className="p-6 space-y-4 font-minecraft text-sm text-white/80">
+        <div className="space-y-3 p-5 text-[13px] leading-5 text-fg-2">
           <p>{t(`settings.clips.permissions.${notice.reason}.description`)}</p>
-          <ul className="list-disc pl-5 space-y-2">
+          <ul className="list-disc space-y-1 pl-5 marker:text-fg-4">
             {notice.permissions.map((key) => (
               <li key={key}>{t(`settings.clips.permissions.${key}`)}</li>
             ))}
           </ul>
-          <p className="text-white/60">
+          <p className="text-fg-3">
             {t("settings.clips.permissions.blocked")}
           </p>
         </div>

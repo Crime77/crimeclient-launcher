@@ -1,9 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { Icon } from "@iconify/react";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
+import {
+  AlertTriangle,
+  ArrowUpRight,
+  ChevronDown,
+  FolderOpen,
+  Lock,
+  LockOpen,
+  X,
+} from "lucide-react";
+import { cn } from "../../../lib/utils";
 import { Button } from "../../ui/buttons/Button";
 import { SettingsSection } from "../../ui/settings/SettingsSection";
 import { SettingRow } from "../../ui/settings/SettingRow";
@@ -11,7 +20,15 @@ import { ToggleSwitch } from "../../ui/ToggleSwitch";
 import { useConfirmDialog } from "../../../hooks/useConfirmDialog";
 import { openExternalUrl } from "../../../services/tauri-service";
 import { LEGAL_DOCUMENT_URLS } from "../../../config/legal";
+import type { LauncherConfig } from "../../../types/launcherConfig";
 import { useSettingsConfig, useSettingsKeywords } from "./settings-context";
+
+/** text fields of this tab: s2 with a hairline, mono because they hold paths and commands */
+const FIELD =
+  "w-full h-8 px-2.5 bg-s2 border border-line text-fg font-mono text-xs placeholder:text-fg-4 " +
+  "outline-none focus:border-line-3 transition-colors duration-fast disabled:opacity-50 disabled:cursor-not-allowed";
+
+type HookKey = "pre_launch" | "wrapper" | "post_exit";
 
 export function AdvancedTab() {
   const { t } = useTranslation();
@@ -24,9 +41,15 @@ export function AdvancedTab() {
   const [isWrapperEditEnabled, setIsWrapperEditEnabled] = useState(false);
   const [isPostExitEditEnabled, setIsPostExitEditEnabled] = useState(false);
 
+  const hooks: { key: HookKey; enabled: boolean; setEnabled: (on: boolean) => void }[] = [
+    { key: "pre_launch", enabled: isPreLaunchEditEnabled, setEnabled: setIsPreLaunchEditEnabled },
+    { key: "wrapper", enabled: isWrapperEditEnabled, setEnabled: setIsWrapperEditEnabled },
+    { key: "post_exit", enabled: isPostExitEditEnabled, setEnabled: setIsPostExitEditEnabled },
+  ];
+
   return (
-    <div className="space-y-6">
-      <SettingsSection id="settings-section-login_cache" title={t("settings.sections.login_cache")} icon="solar:login-3-bold" keywords={kw("settings.sections.login_cache", "login", "cache", "anmeldung")}>
+    <div className="space-y-8">
+      <SettingsSection id="settings-section-login_cache" title={t("settings.sections.login_cache")} keywords={kw("settings.sections.login_cache", "login", "cache", "anmeldung")}>
         <SettingRow
           label={t("settings.browser_login")}
           description={t("settings.browser_login.tooltip")}
@@ -58,23 +81,25 @@ export function AdvancedTab() {
       <SettingsSection
         id="settings-section-gamedir"
         title={t("settings.game_data_dir.title")}
-        icon="solar:folder-bold"
         keywords={kw("settings.game_data_dir.title", "game", "data", "directory", "ordner", "verzeichnis", "pfad", "path", "folder")}
         description={t("settings.game_data_dir.description")}
       >
-        <div className="flex gap-3 py-3">
+        <div className="flex items-center gap-2 py-3">
           <input
             type="text"
             value={tempConfig?.custom_game_directory || ""}
             placeholder={t("settings.game_data_dir.placeholder")}
-            className="flex-1 p-3 rounded-md bg-black/40 border border-[#ffffff20] text-white placeholder-white/40 font-minecraft focus:outline-none focus:ring-2 focus:ring-white/30"
+            className={cn(FIELD, "flex-1")}
+            style={{ borderRadius: "var(--r-md)" }}
             disabled={saving}
             readOnly
+            title={tempConfig?.custom_game_directory || undefined}
           />
           {tempConfig?.custom_game_directory && (
             <Button
               variant="ghost"
-              className="px-4 py-3 border border-[#ffffff20] hover:bg-red-500/20 hover:border-red-500/30 transition-colors"
+              size="sm"
+              className="!px-2 hover:!text-err"
               disabled={saving}
               onClick={() => {
                 if (tempConfig) {
@@ -85,13 +110,13 @@ export function AdvancedTab() {
                 }
               }}
               title={t("settings.game_data_dir.reset_tooltip")}
-            >
-              <Icon icon="solar:close-circle-bold" className="w-5 h-5 text-red-400" />
-            </Button>
+              aria-label={t("settings.game_data_dir.reset_tooltip")}
+              icon={<X size={14} strokeWidth={1.75} />}
+            />
           )}
           <Button
-            variant="ghost"
-            className="px-4 py-3 border border-[#ffffff20] hover:bg-white/5 transition-colors"
+            variant="secondary"
+            size="sm"
             disabled={saving}
             onClick={async () => {
               try {
@@ -112,8 +137,9 @@ export function AdvancedTab() {
               }
             }}
             title={t("settings.game_data_dir.select_tooltip")}
+            icon={<FolderOpen size={14} strokeWidth={1.75} />}
           >
-            <Icon icon="solar:folder-open-bold" className="w-5 h-5" />
+            {t("settings.game_data_dir.select")}
           </Button>
         </div>
       </SettingsSection>
@@ -121,18 +147,19 @@ export function AdvancedTab() {
       <SettingsSection
         id="settings-section-hooks"
         title={t("settings.hooks.title")}
-        icon="solar:code-bold"
         keywords={kw("settings.hooks.title", "hook", "hooks", "script", "skript", "command", "befehl", "wrapper")}
         description={t("settings.hooks.description")}
         headerActions={
           <Button
             variant="ghost"
-            size="sm"
+            size="xs"
             onClick={() => setIsHooksExpanded((v) => !v)}
+            iconPosition="right"
             icon={
-              <Icon
-                icon={isHooksExpanded ? "solar:alt-arrow-up-bold" : "solar:alt-arrow-down-bold"}
-                className="w-5 h-5"
+              <ChevronDown
+                size={14}
+                strokeWidth={1.75}
+                className={cn("transition-transform duration-med", isHooksExpanded && "rotate-180")}
               />
             }
           >
@@ -141,221 +168,59 @@ export function AdvancedTab() {
         }
       >
         {isHooksExpanded && (
-          <div className="space-y-6 py-3">
-            <div className="p-4 rounded-lg border border-[#ffffff20] hover:bg-black/30 transition-colors">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <Icon icon="solar:play-circle-bold" className="w-5 h-5 text-white" />
-                  <h5 className="font-smallcaps text-base text-white">{t("settings.hooks.pre_launch.title")}</h5>
-                </div>
-                <Button
-                  variant={isPreLaunchEditEnabled ? "secondary" : "ghost"}
-                  size="sm"
-                  onClick={async () => {
-                    if (isPreLaunchEditEnabled) {
-                      setIsPreLaunchEditEnabled(false);
+          <div className="pt-1">
+            <div className="divide-y divide-line">
+              {hooks.map(({ key, enabled, setEnabled }) => (
+                <HookField
+                  key={key}
+                  hookKey={key}
+                  editEnabled={enabled}
+                  saving={saving}
+                  tempConfig={tempConfig}
+                  setTempConfig={setTempConfig}
+                  onToggleEdit={async () => {
+                    if (enabled) {
+                      setEnabled(false);
                       return;
                     }
                     const confirmed = await confirm({
-                      title: t("settings.hooks.pre_launch.confirm_title"),
-                      message:
-                        t("settings.hooks.pre_launch.confirm_message"),
+                      title: t(`settings.hooks.${key}.confirm_title`),
+                      message: t(`settings.hooks.${key}.confirm_message`),
                       confirmText: t("common.enable"),
                       cancelText: t("common.cancel"),
                       type: "warning",
                       fullscreen: true,
                     });
                     if (confirmed) {
-                      setIsPreLaunchEditEnabled(true);
-                      toast.success(t("settings.hooks.pre_launch.enabled"));
+                      setEnabled(true);
+                      toast.success(t(`settings.hooks.${key}.enabled`));
                     }
                   }}
-                  icon={
-                    <Icon
-                      icon={isPreLaunchEditEnabled ? "solar:lock-unlocked-bold" : "solar:lock-keyhole-bold"}
-                      className="w-4 h-4"
-                    />
-                  }
-                >
-                  {isPreLaunchEditEnabled ? t("settings.hooks.disable_editing") : t("settings.hooks.enable_editing")}
-                </Button>
-              </div>
-              <p className="text-sm text-white/60 font-minecraft mb-4">
-                {t("settings.hooks.pre_launch.description")}
+                />
+              ))}
+            </div>
+
+            <div
+              className="mt-3 flex items-start gap-2.5 border border-warn/30 bg-warn/[0.06] px-3 py-2.5"
+              style={{ borderRadius: "var(--r-md)" }}
+            >
+              <AlertTriangle size={14} strokeWidth={1.75} className="text-warn flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-fg-2 leading-relaxed">
+                <span className="font-[560] text-warn">{t("settings.hooks.warning.title")}. </span>
+                {t("settings.hooks.warning.description")}
               </p>
-              <input
-                type="text"
-                value={tempConfig?.hooks?.pre_launch || ""}
-                onChange={(e) => {
-                  if (tempConfig) {
-                    setTempConfig({
-                      ...tempConfig,
-                      hooks: {
-                        ...tempConfig.hooks,
-                        pre_launch: e.target.value || null,
-                      },
-                    });
-                  }
-                }}
-                placeholder={t("settings.hooks.pre_launch.placeholder")}
-                className="w-full p-3 rounded-md bg-black/40 border border-[#ffffff20] text-white placeholder-white/40 font-minecraft focus:outline-none focus:ring-2 focus:ring-white/30"
-                disabled={saving || !isPreLaunchEditEnabled}
-                title={!isPreLaunchEditEnabled ? t("settings.hooks.pre_launch.disabled_tooltip") : undefined}
-              />
             </div>
 
-            <div className="p-4 rounded-lg border border-[#ffffff20] hover:bg-black/30 transition-colors">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <Icon icon="solar:shield-bold" className="w-5 h-5 text-white" />
-                  <h5 className="font-smallcaps text-base text-white">{t("settings.hooks.wrapper.title")}</h5>
-                </div>
-                <Button
-                  variant={isWrapperEditEnabled ? "secondary" : "ghost"}
-                  size="sm"
-                  onClick={async () => {
-                    if (isWrapperEditEnabled) {
-                      setIsWrapperEditEnabled(false);
-                      return;
-                    }
-                    const confirmed = await confirm({
-                      title: t("settings.hooks.wrapper.confirm_title"),
-                      message:
-                        t("settings.hooks.wrapper.confirm_message"),
-                      confirmText: t("common.enable"),
-                      cancelText: t("common.cancel"),
-                      type: "warning",
-                      fullscreen: true,
-                    });
-                    if (confirmed) {
-                      setIsWrapperEditEnabled(true);
-                      toast.success(t("settings.hooks.wrapper.enabled"));
-                    }
-                  }}
-                  icon={
-                    <Icon
-                      icon={isWrapperEditEnabled ? "solar:lock-unlocked-bold" : "solar:lock-keyhole-bold"}
-                      className="w-4 h-4"
-                    />
-                  }
-                >
-                  {isWrapperEditEnabled ? t("settings.hooks.disable_editing") : t("settings.hooks.enable_editing")}
-                </Button>
-              </div>
-              <p className="text-sm text-white/60 font-minecraft mb-4">
-                {t("settings.hooks.wrapper.description")}
-              </p>
-              <input
-                type="text"
-                value={tempConfig?.hooks?.wrapper || ""}
-                onChange={(e) => {
-                  if (tempConfig) {
-                    setTempConfig({
-                      ...tempConfig,
-                      hooks: {
-                        ...tempConfig.hooks,
-                        wrapper: e.target.value || null,
-                      },
-                    });
-                  }
-                }}
-                placeholder={t("settings.hooks.wrapper.placeholder")}
-                className="w-full p-3 rounded-md bg-black/40 border border-[#ffffff20] text-white placeholder-white/40 font-minecraft focus:outline-none focus:ring-2 focus:ring-white/30"
-                disabled={saving || !isWrapperEditEnabled}
-                title={!isWrapperEditEnabled ? t("settings.hooks.wrapper.disabled_tooltip") : undefined}
-              />
-            </div>
-
-            <div className="p-4 rounded-lg border border-[#ffffff20] hover:bg-black/30 transition-colors">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <Icon icon="solar:stop-circle-bold" className="w-5 h-5 text-white" />
-                  <h5 className="font-smallcaps text-base text-white">{t("settings.hooks.post_exit.title")}</h5>
-                </div>
-                <Button
-                  variant={isPostExitEditEnabled ? "secondary" : "ghost"}
-                  size="sm"
-                  onClick={async () => {
-                    if (isPostExitEditEnabled) {
-                      setIsPostExitEditEnabled(false);
-                      return;
-                    }
-                    const confirmed = await confirm({
-                      title: t("settings.hooks.post_exit.confirm_title"),
-                      message:
-                        t("settings.hooks.post_exit.confirm_message"),
-                      confirmText: t("common.enable"),
-                      cancelText: t("common.cancel"),
-                      type: "warning",
-                      fullscreen: true,
-                    });
-                    if (confirmed) {
-                      setIsPostExitEditEnabled(true);
-                      toast.success(t("settings.hooks.post_exit.enabled"));
-                    }
-                  }}
-                  icon={
-                    <Icon
-                      icon={isPostExitEditEnabled ? "solar:lock-unlocked-bold" : "solar:lock-keyhole-bold"}
-                      className="w-4 h-4"
-                    />
-                  }
-                >
-                  {isPostExitEditEnabled ? t("settings.hooks.disable_editing") : t("settings.hooks.enable_editing")}
-                </Button>
-              </div>
-              <p className="text-sm text-white/60 font-minecraft mb-4">
-                {t("settings.hooks.post_exit.description")}
-              </p>
-              <input
-                type="text"
-                value={tempConfig?.hooks?.post_exit || ""}
-                onChange={(e) => {
-                  if (tempConfig) {
-                    setTempConfig({
-                      ...tempConfig,
-                      hooks: {
-                        ...tempConfig.hooks,
-                        post_exit: e.target.value || null,
-                      },
-                    });
-                  }
-                }}
-                placeholder={t("settings.hooks.post_exit.placeholder")}
-                className="w-full p-3 rounded-md bg-black/40 border border-[#ffffff20] text-white placeholder-white/40 font-minecraft focus:outline-none focus:ring-2 focus:ring-white/30"
-                disabled={saving || !isPostExitEditEnabled}
-                title={!isPostExitEditEnabled ? t("settings.hooks.post_exit.disabled_tooltip") : undefined}
-              />
-            </div>
-
-            <div className="mt-6 p-4 rounded-lg border border-orange-500/30 bg-orange-900/20">
-              <div className="flex items-start gap-3">
-                <Icon icon="solar:danger-triangle-bold" className="w-6 h-6 text-orange-400 flex-shrink-0 mt-1" />
-                <div>
-                  <h4 className="text-sm font-smallcaps text-orange-300 mb-2">
-                    {t("settings.hooks.warning.title")}
-                  </h4>
-                  <p className="text-sm text-orange-200/80 font-minecraft">
-                    {t("settings.hooks.warning.description")}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6 p-4 rounded-lg border border-[#ffffff20] bg-black/10">
-              <div className="flex items-start gap-3">
-                <Icon icon="solar:info-circle-bold" className="w-6 h-6 text-blue-400 flex-shrink-0 mt-1" />
-                <div>
-                  <h4 className="text-sm font-smallcaps text-blue-300 mb-2">
-                    {t("settings.hooks.examples.title")}
-                  </h4>
-                  <div className="space-y-2 text-sm text-blue-200/80 font-minecraft">
-                    <p><strong>Pre-Launch:</strong> <code>echo "Starting game..."</code></p>
-                    <p><strong>Wrapper:</strong> <code>firejail</code> or <code>gamemoderun</code></p>
-                    <p><strong>Post-Exit:</strong> <code>notify-send "Game finished"</code></p>
-                  </div>
-                </div>
-              </div>
+            <div className="mt-3 border border-line px-3 py-2.5" style={{ borderRadius: "var(--r-md)" }}>
+              <div className="cc-eyebrow mb-2">{t("settings.hooks.examples.title")}</div>
+              <dl className="grid grid-cols-[96px_1fr] gap-x-3 gap-y-1.5 text-xs">
+                <dt className="text-fg-3">Pre-Launch</dt>
+                <dd className="font-mono text-fg-2">echo "Starting game..."</dd>
+                <dt className="text-fg-3">Wrapper</dt>
+                <dd className="font-mono text-fg-2">firejail <span className="text-fg-4 font-sans">/</span> gamemoderun</dd>
+                <dt className="text-fg-3">Post-Exit</dt>
+                <dd className="font-mono text-fg-2">notify-send "Game finished"</dd>
+              </dl>
             </div>
           </div>
         )}
@@ -364,27 +229,86 @@ export function AdvancedTab() {
       <SettingsSection
         id="settings-section-licenses"
         title={t("settings.licenses.title")}
-        icon="solar:document-text-bold"
         keywords={kw("settings.licenses.title", "license", "licenses", "lizenz", "lizenzen", "credits")}
-        description={t("settings.licenses.description")}
-        headerActions={
+      >
+        <SettingRow
+          label={t("settings.licenses.row")}
+          description={t("settings.licenses.description")}
+          searchKeywords={kw("settings.licenses.title", "license", "lizenz", "gpl")}
+        >
           <Button
-            variant="ghost"
+            variant="secondary"
             size="sm"
             onClick={() => {
               // GPL-3.0; the README credits the NoRisk launcher this is forked from
               openExternalUrl(LEGAL_DOCUMENT_URLS.licenses)
             }}
-            icon={<Icon icon="solar:arrow-right-up-bold" className="w-5 h-5" />}
+            iconPosition="right"
+            icon={<ArrowUpRight size={14} strokeWidth={1.75} />}
           >
             {t("settings.licenses.view")}
           </Button>
-        }
-      >
-        <div className="py-1" />
+        </SettingRow>
       </SettingsSection>
 
       {confirmDialog}
+    </div>
+  );
+}
+
+/** One game hook: title and what it does, the lock that guards editing, the command field. */
+function HookField({
+  hookKey,
+  editEnabled,
+  saving,
+  tempConfig,
+  setTempConfig,
+  onToggleEdit,
+}: {
+  hookKey: HookKey;
+  editEnabled: boolean;
+  saving: boolean;
+  tempConfig: LauncherConfig | null;
+  setTempConfig: (config: LauncherConfig) => void;
+  onToggleEdit: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div className="py-3.5">
+      <div className="flex items-start justify-between gap-4 mb-2.5">
+        <div className="min-w-0">
+          <div className="text-[13px] font-[560] text-fg">{t(`settings.hooks.${hookKey}.title`)}</div>
+          <p className="text-xs text-fg-3 mt-0.5 leading-relaxed">{t(`settings.hooks.${hookKey}.description`)}</p>
+        </div>
+        <Button
+          variant={editEnabled ? "secondary" : "ghost"}
+          size="xs"
+          onClick={onToggleEdit}
+          icon={editEnabled ? <LockOpen size={13} strokeWidth={1.75} /> : <Lock size={13} strokeWidth={1.75} />}
+        >
+          {editEnabled ? t("settings.hooks.disable_editing") : t("settings.hooks.enable_editing")}
+        </Button>
+      </div>
+      <input
+        type="text"
+        value={tempConfig?.hooks?.[hookKey] || ""}
+        onChange={(e) => {
+          if (tempConfig) {
+            setTempConfig({
+              ...tempConfig,
+              hooks: {
+                ...tempConfig.hooks,
+                [hookKey]: e.target.value || null,
+              },
+            });
+          }
+        }}
+        placeholder={t(`settings.hooks.${hookKey}.placeholder`)}
+        className={FIELD}
+        style={{ borderRadius: "var(--r-md)" }}
+        disabled={saving || !editEnabled}
+        title={!editEnabled ? t(`settings.hooks.${hookKey}.disabled_tooltip`) : undefined}
+      />
     </div>
   );
 }

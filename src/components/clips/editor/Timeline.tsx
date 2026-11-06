@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { Icon } from "@iconify/react";
+import { RotateCcw } from "lucide-react";
 
 import type { ClipAudioTrack, ClipOverlay, Span } from "../../../services/clip-service";
 import { Waveform } from "../ClipTimeline";
@@ -86,19 +87,19 @@ export function Ruler({
         holdPointer(event);
         onScrub(event.clientX);
       }}
-      className="relative h-6 min-w-0 flex-1 cursor-ew-resize overflow-hidden border-b border-white/10"
+      className="relative h-6 min-w-0 flex-1 cursor-ew-resize overflow-hidden border-b border-line"
     >
       <span
         ref={probe}
         aria-hidden="true"
-        className="invisible absolute left-0 top-0 whitespace-nowrap border-l pl-1 font-minecraft text-[10px]"
+        className="invisible absolute left-0 top-0 whitespace-nowrap border-l pl-1 font-mono text-[10px]"
       >
         {widest}
       </span>
       {ticks.minors.map((at) => (
         <span
           key={`minor-${at}`}
-          className="absolute bottom-0 h-1.5 w-px bg-white/15"
+          className="absolute bottom-0 h-1.5 w-px bg-line-2"
           style={{ left: `${percent(at)}%` }}
         />
       ))}
@@ -106,7 +107,7 @@ export function Ruler({
         <span
           key={`major-${at}`}
           className={cn(
-            "absolute bottom-0 top-0 whitespace-nowrap border-white/25 font-minecraft text-[10px] leading-4 text-white/50",
+            "absolute bottom-0 top-0 whitespace-nowrap border-line-3 font-mono text-[10px] leading-4 text-fg-3",
             marks[index].end ? "border-r pr-1 text-right" : "border-l pl-1",
           )}
           style={marks[index].end ? { right: `${100 - percent(at)}%` } : { left: `${percent(at)}%` }}
@@ -143,12 +144,11 @@ export function Lane({
 }) {
   const head = (
     <>
-      <span className="h-4 w-1 shrink-0 rounded-full" style={{ backgroundColor: tint }} />
-      <Icon icon={icon} className={cn("h-3.5 w-3.5 shrink-0", active ? "text-white" : "text-white/50")} />
+      <Icon icon={icon} className={cn("h-3.5 w-3.5 shrink-0", active ? "text-fg" : "text-fg-3")} />
       <span
         className={cn(
-          "min-w-0 flex-1 truncate text-left font-minecraft text-xs uppercase tracking-wide",
-          active ? "text-white" : "text-white/60",
+          "min-w-0 flex-1 truncate text-left text-[11px] font-[520] uppercase tracking-[0.06em]",
+          active ? "text-fg" : "text-fg-3",
         )}
       >
         {name}
@@ -160,8 +160,8 @@ export function Lane({
     <div className="flex">
       <div
         className={cn(
-          "flex w-[9.5rem] shrink-0 flex-col justify-center gap-1 rounded-l border-y border-l px-2 transition-colors",
-          active ? "border-white/20 bg-white/10" : "border-white/10 bg-black/30",
+          "flex w-[9.5rem] shrink-0 flex-col justify-center gap-1 rounded-l-sm border-y border-l px-2.5 transition-colors duration-fast",
+          active ? "border-line-3 bg-s3" : "border-line bg-s2",
           height,
         )}
       >
@@ -190,14 +190,11 @@ export function Lane({
             : undefined
         }
         className={cn(
-          "relative min-w-0 flex-1 overflow-hidden rounded-r border border-white/10 bg-black/30",
+          "relative min-w-0 flex-1 overflow-hidden rounded-r-sm border bg-s2 text-fg-3",
+          active ? "border-line-3" : "border-line",
           height,
           onScrub && "cursor-ew-resize",
         )}
-        style={{
-          color: tone,
-          ...(active ? { borderColor: tint, boxShadow: `inset 0 0 0 1px ${tint}` } : {}),
-        }}
       >
         {children}
       </div>
@@ -219,7 +216,7 @@ export function TrackLink({
   t: Translate;
 }) {
   return (
-    <div className="flex shrink-0 items-center gap-0.5 rounded border border-white/10 bg-black/30 p-0.5">
+    <div className="flex h-7 shrink-0 items-center gap-px rounded-md border border-line bg-s2 p-0.5">
       {LINK_MODES.map((mode) => {
         const on = separate === mode.separate;
         return (
@@ -230,18 +227,14 @@ export function TrackLink({
             aria-pressed={on}
             onClick={() => onChange(mode.separate)}
             className={cn(
-              "flex items-center gap-1.5 rounded border px-2 py-0.5 font-minecraft text-xs transition-colors",
-              on ? "border-white/20 bg-white/10 text-white" : "border-transparent text-white/60",
+              "flex h-full items-center gap-1.5 rounded-sm px-2 text-xs transition-colors duration-fast",
+              on ? "bg-s3 text-fg" : "text-fg-3",
               disabled
                 ? "cursor-not-allowed opacity-40"
-                : !on && "hover:bg-white/5 hover:text-white",
+                : !on && "hover:text-fg",
             )}
           >
-            <Icon
-              icon={mode.icon}
-              className="h-3.5 w-3.5 shrink-0"
-              style={on ? { color } : undefined}
-            />
+            <Icon icon={mode.icon} className="h-3.5 w-3.5 shrink-0" />
             {t(mode.label)}
           </button>
         );
@@ -316,8 +309,8 @@ export function AudioLane({
           <div className="flex items-center justify-end gap-1">
             <span
               className={cn(
-                "w-9 text-right font-minecraft text-[11px] tabular-nums",
-                volume === 100 ? "text-white/50" : "text-white",
+                "w-9 text-right font-mono text-[11px] tabular-nums",
+                volume === 100 ? "text-fg-3" : "text-fg",
               )}
             >
               {volume}%
@@ -329,7 +322,7 @@ export function AudioLane({
               aria-pressed={muted}
               disabled={disabled}
               onClick={() => onChange(muted ? 100 : 0)}
-              className={cn("h-7 w-7", muted && "text-white/40 enabled:hover:text-white/70")}
+              className={cn("h-6 w-6", muted && "text-fg-4 enabled:hover:text-fg-2")}
             />
           </div>
         ) : undefined
@@ -344,14 +337,14 @@ export function AudioLane({
       {trimmable && (
         <div className="pointer-events-none absolute inset-0 z-10">
           <div
-            className="absolute inset-y-0 bg-black/70"
+            className="absolute inset-y-0 bg-bg/75"
             style={{
               left: `${at(clipFrom)}%`,
               width: `${Math.max(0, at(from) - at(clipFrom))}%`,
             }}
           />
           <div
-            className="absolute inset-y-0 bg-black/70"
+            className="absolute inset-y-0 bg-bg/75"
             style={{ left: `${at(to)}%`, width: `${Math.max(0, at(clipTo) - at(to))}%` }}
           />
           <Handle
@@ -386,7 +379,7 @@ export function AudioLane({
             aria-label={t("clips.editor.audio.trim_reset")}
             onPointerDown={(event) => event.stopPropagation()}
             onClick={onTrimReset}
-            className="rounded border border-white/20 bg-black/80 px-1.5 py-0.5 font-minecraft text-[11px] tabular-nums text-white transition-colors hover:border-white/60"
+            className="rounded-sm border border-line-2 bg-bg/90 px-1.5 py-px font-mono text-[11px] tabular-nums text-fg transition-colors duration-fast hover:border-line-3"
           >
             {`${(to - from).toFixed(1)} s`}
           </button>
@@ -445,18 +438,17 @@ export function OverlayLane({
           onPick();
         }}
         className={cn(
-          "absolute inset-y-1 flex items-center justify-center rounded border focus:outline-none",
+          "absolute inset-y-1 flex items-center justify-center gap-1.5 rounded-sm border focus:outline-none",
+          active ? "border-fg/70 bg-s4" : "border-line-3 bg-s3",
           disabled ? "cursor-not-allowed" : "cursor-grab",
         )}
         style={{
           left: `${left}%`,
           width: `${width}%`,
-          borderColor: tint,
-          backgroundColor: `${tint}${active ? "60" : "30"}`,
-          boxShadow: active ? `0 0 10px ${tint}80` : undefined,
         }}
       >
-        <span className="pointer-events-none truncate px-3 font-minecraft text-xs text-white">
+        <span className="pointer-events-none h-2 w-2 shrink-0 rounded-[2px]" style={{ backgroundColor: tint }} />
+        <span className="pointer-events-none truncate pr-2 text-xs text-fg">
           {name}
         </span>
         <span
@@ -468,7 +460,7 @@ export function OverlayLane({
             holdPointer(event);
             onGrab("start", event);
           }}
-          className={cn("absolute inset-y-0 left-0 w-2 rounded-l bg-white/30", !disabled && "cursor-ew-resize hover:bg-white/60")}
+          className={cn("absolute inset-y-0 left-0 w-1.5 rounded-l-sm bg-fg/25", !disabled && "cursor-ew-resize hover:bg-fg/60")}
         />
         <span
           role="presentation"
@@ -479,7 +471,7 @@ export function OverlayLane({
             holdPointer(event);
             onGrab("end", event);
           }}
-          className={cn("absolute inset-y-0 right-0 w-2 rounded-r bg-white/30", !disabled && "cursor-ew-resize hover:bg-white/60")}
+          className={cn("absolute inset-y-0 right-0 w-1.5 rounded-r-sm bg-fg/25", !disabled && "cursor-ew-resize hover:bg-fg/60")}
         />
       </div>
     </Lane>
@@ -489,13 +481,13 @@ export function OverlayLane({
 export function Readout({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
     <div className="flex shrink-0 items-baseline gap-1.5 leading-none">
-      <span className="font-minecraft text-[10px] uppercase tracking-wider text-white/50">
+      <span className="text-[10.5px] font-[520] uppercase tracking-[0.06em] text-fg-3">
         {label}
       </span>
       <span
         className={cn(
-          "font-minecraft tabular-nums",
-          strong ? "text-sm text-white" : "text-xs text-white/80",
+          "font-mono tabular-nums",
+          strong ? "text-[13px] text-fg" : "text-xs text-fg-2",
         )}
       >
         {value}
@@ -549,14 +541,14 @@ export function Handle({
     >
       <span
         className={cn(
-          "absolute inset-y-0 left-1/2 w-1.5 -translate-x-1/2 rounded-full transition-all",
+          "absolute inset-y-0 left-1/2 w-1 -translate-x-1/2 rounded-full transition-opacity duration-fast",
           active ? "opacity-100" : "opacity-80 group-hover:opacity-100 group-focus-visible:opacity-100",
         )}
-        style={{ backgroundColor: color, boxShadow: active ? `0 0 8px ${color}` : undefined }}
+        style={{ backgroundColor: color }}
       />
       <span
         className={cn(
-          "pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 rounded border border-white/10 bg-black/80 px-1.5 py-0.5 font-minecraft text-xs text-white transition-opacity",
+          "pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 rounded-sm border border-line-2 bg-bg/90 px-1.5 py-px font-mono text-[11px] text-fg transition-opacity duration-fast",
           active ? "opacity-100" : "opacity-0 group-hover:opacity-100",
         )}
       >
@@ -581,11 +573,11 @@ export function ClipMasks({
   return (
     <>
       <div
-        className="absolute inset-y-0 left-0 bg-black/70"
+        className="absolute inset-y-0 left-0 bg-bg/75"
         style={{ width: `${percent(from)}%` }}
       />
       <div
-        className="absolute inset-y-0 right-0 bg-black/70"
+        className="absolute inset-y-0 right-0 bg-bg/75"
         style={{ width: `${100 - percent(to)}%` }}
       />
       <div
@@ -647,6 +639,8 @@ export function ClipHandles({
   );
 }
 
+const CUT_COLOR = "rgb(var(--err-ch) / 0.85)";
+
 export function CutRange({
   span,
   color,
@@ -683,19 +677,15 @@ export function CutRange({
           onGrab("move", event.clientX);
         }}
         className={cn(
-          "pointer-events-auto absolute inset-y-0 flex items-center justify-center overflow-hidden rounded border-2",
+          "pointer-events-auto absolute inset-y-0 flex items-center justify-center overflow-hidden rounded-sm border border-err/70 bg-err/15",
           dragging === "move" ? "cursor-grabbing" : "cursor-grab",
         )}
         style={{
           left: `${left}%`,
           width: `${right - left}%`,
-          borderColor: color,
-          backgroundColor: `${color}40`,
-          backgroundImage: `repeating-linear-gradient(135deg, ${color}33 0 6px, transparent 6px 12px)`,
-          boxShadow: `0 0 12px ${color}80`,
         }}
       >
-        <span className="pointer-events-none truncate px-3 font-minecraft text-[11px] text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.9)]">
+        <span className="pointer-events-none truncate rounded-sm bg-bg/80 px-1.5 text-[11px] text-fg">
           {label}
         </span>
       </div>
@@ -704,7 +694,7 @@ export function CutRange({
         active={dragging === "start"}
         time={formatTime(view.toView(span.startSeconds))}
         label={startLabel}
-        color={color}
+        color={CUT_COLOR}
         onGrab={() => onGrab("start", 0)}
         onNudge={(by) => onNudge("start", by)}
       />
@@ -713,7 +703,7 @@ export function CutRange({
         active={dragging === "end"}
         time={formatTime(view.toView(span.endSeconds))}
         label={endLabel}
-        color={color}
+        color={CUT_COLOR}
         onGrab={() => onGrab("end", 0)}
         onNudge={(by) => onNudge("end", by)}
       />
@@ -734,9 +724,9 @@ function RestoreButton({ disabled, onRestore, t }: { disabled: boolean; onRestor
         disabled={disabled}
         onPointerDown={(event) => event.stopPropagation()}
         onClick={onRestore}
-        className="flex h-4 w-4 items-center justify-center rounded-full border border-white/20 bg-black/80 text-white/60 transition-colors hover:text-white"
+        className="flex h-4 w-4 items-center justify-center rounded-sm border border-line-2 bg-bg text-fg-3 transition-colors duration-fast hover:text-fg"
       >
-        <Icon icon="solar:restart-bold" className="h-3 w-3" />
+        <RotateCcw size={10} strokeWidth={2} />
       </button>
     </Tooltip>
   );
@@ -758,7 +748,7 @@ export function GapBlock({
   const left = view.percent(span.startSeconds);
   return (
     <div
-      className="absolute inset-y-0 border-x border-dashed border-white/30 bg-[#08080b]/90"
+      className="absolute inset-y-0 border-x border-dashed border-line-3 bg-bg/90"
       style={{ left: `${left}%`, width: `${view.percent(span.endSeconds) - left}%` }}
     >
       <RestoreButton disabled={disabled} onRestore={onRestore} t={t} />
@@ -784,7 +774,7 @@ export function JoinMark({
   return (
     <div
       className="absolute bottom-0 top-[1.875rem] w-0.5 -translate-x-1/2"
-      style={{ left: `${view.percent(span.startSeconds)}%`, backgroundColor: color, boxShadow: `0 0 6px ${color}` }}
+      style={{ left: `${view.percent(span.startSeconds)}%`, backgroundColor: "var(--fg-3)" }}
     >
       <RestoreButton disabled={disabled} onRestore={onRestore} t={t} />
     </div>

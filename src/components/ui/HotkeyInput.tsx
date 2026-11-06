@@ -1,11 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Icon } from "@iconify/react";
 import { useTranslation } from "react-i18next";
 import { isMacOS } from "../../utils/platform";
 import { cn } from "../../lib/utils";
-import { useThemeStore } from "../../store/useThemeStore";
 
 interface HotkeyInputProps {
   value: string;
@@ -42,7 +40,6 @@ export function HotkeyInput({
   className,
 }: HotkeyInputProps) {
   const { t } = useTranslation();
-  const accentColor = useThemeStore((state) => state.accentColor);
   const [recording, setRecording] = useState(false);
   const [preview, setPreview] = useState<string[]>([]);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -130,40 +127,35 @@ export function HotkeyInput({
         onClick={recording ? stop : start}
         disabled={disabled}
         className={cn(
-          "flex h-10 min-w-[11rem] items-center justify-center gap-2 rounded-lg border px-4 font-minecraft text-sm transition-all duration-200",
+          "flex h-8 min-w-[11rem] items-center justify-center gap-2 rounded-md border px-3 text-xs transition-colors duration-fast",
           recording
-            ? "text-white"
-            : "border-white/10 bg-black/30 text-white/80 hover:border-white/20 hover:bg-black/40 hover:text-white",
-          conflict && !recording && "border-red-500/40 bg-red-600/20",
-          disabled && "cursor-not-allowed opacity-40 hover:border-white/10 hover:bg-black/30",
+            ? "border-line-3 bg-s3 text-fg"
+            : "border-line bg-s2 text-fg hover:border-line-2 hover:bg-s3",
+          conflict && !recording && "border-err/50 text-err hover:border-err/60",
+          disabled && "cursor-not-allowed opacity-40 hover:border-line hover:bg-s2",
         )}
-        style={
-          recording
-            ? { borderColor: accentColor.value, backgroundColor: `${accentColor.value}20` }
-            : undefined
-        }
       >
         {recording ? (
           <>
-            <Icon icon="svg-spinners:pulse-rings-3" className="h-4 w-4" style={{ color: accentColor.value }} />
-            <span>
+            <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
+            <span className="cc-num">
               {preview.length > 0
                 ? `${preview.map(labelFor).join(" + ")} + …`
                 : t("hotkey.press")}
             </span>
           </>
         ) : value ? (
-          <span className="tracking-wide">{formatShortcut(value)}</span>
+          <span className="cc-num">{formatShortcut(value)}</span>
         ) : (
-          <span className="text-white/40">{t("hotkey.none")}</span>
+          <span className="text-fg-4">{t("hotkey.none")}</span>
         )}
       </button>
 
-      <p className="text-right font-minecraft text-xs text-white/50">
+      <p className="text-right text-[11px] text-fg-3">
         {recording
           ? t("hotkey.hint_recording")
           : conflict
-            ? <span className="text-red-300">{t("hotkey.conflict")}</span>
+            ? <span className="text-err">{t("hotkey.conflict")}</span>
             : t("hotkey.hint_idle")}
       </p>
     </div>

@@ -9,10 +9,9 @@ import type {
 import type { UnifiedVersion } from "../../../types/unified";
 import type { AccentColor } from "../../../store/useThemeStore";
 import type { ContentInstallStatus } from "../../../types/profile";
-import { Icon } from "@iconify/react";
-import { ActionButton } from "../../ui/ActionButton";
-import { TagBadge } from "../../ui/TagBadge";
-import { gsap } from "gsap";
+import { AlertTriangle, Check, Download, Loader2, Power, Trash2 } from "lucide-react";
+import { Button } from "../../ui/buttons/Button";
+import { formatCompact, formatIsoDate } from "./format";
 import { useIsFirstRender } from "../../../hooks/useIsFirstRender";
 import { Tooltip } from "../../ui/Tooltip";
 
@@ -260,6 +259,10 @@ export const ModrinthVersionItemV2 = React.memo<ModrinthVersionItemV2Props>(
       selectedProfileId &&
       (versionStatus?.is_installed ||
         versionStatus?.is_included_in_norisk_pack);
+    const busy = isInstalling || isInstallingModpackVersion;
+    const warned = noRiskStatus === 'blocked' || noRiskStatus === 'warning' || (!noRiskStatus && isBlocked);
+    const shownGameVersions = version.game_versions.slice(0, 3);
+    const moreGameVersions = version.game_versions.length - shownGameVersions.length;
 
     return (
       <div
@@ -268,194 +271,145 @@ export const ModrinthVersionItemV2 = React.memo<ModrinthVersionItemV2Props>(
         onMouseEnter={handleMouseEnterLocal}
         onMouseLeave={handleMouseLeaveLocal}
         className={cn(
-          "relative overflow-hidden transition-colors duration-150 rounded-md backdrop-blur-sm",
-          "border",
-          showInstallBorder &&
-            versionStatus?.is_installed &&
-            "border-l-green-500 border-l-4",
-          showInstallBorder &&
-            !versionStatus?.is_installed &&
-            versionStatus?.is_included_in_norisk_pack &&
-            "border-l-blue-500 border-l-4",
+          VERSION_GRID,
+          "relative px-2 py-1.5 border-b border-line last:border-b-0 transition-colors duration-fast hover:bg-s2",
+          isHovered && "bg-s2",
         )}
-        style={{
-          backgroundColor: `${accentColor.value}08`,
-          borderColor: `${accentColor.value}20`,
-        }}
       >
-        <div className="relative z-10 p-2.5">
-          <div className="flex flex-col space-y-2">
-            <div className="flex justify-between items-baseline gap-2">
-              <div className="flex-shrink min-w-0 flex items-center gap-2">
-                {noRiskStatus === 'blocked' && (
-                  <Tooltip content={t('modrinth.blocked_mod_tooltip')}>
-                    <Icon
-                      icon="solar:danger-triangle-bold"
-                      className="w-4 h-4 text-red-500 flex-shrink-0"
-                    />
-                  </Tooltip>
-                )}
-                {noRiskStatus === 'warning' && (
-                  <Tooltip content={t('modrinth.warning_mod_tooltip')}>
-                    <Icon
-                      icon="solar:danger-triangle-bold"
-                      className="w-4 h-4 text-yellow-500 flex-shrink-0"
-                    />
-                  </Tooltip>
-                )}
-                {/* Fallback for deprecated isBlocked prop */}
-                {!noRiskStatus && isBlocked && (
-                  <Tooltip content={t('modrinth.blocked_mod_tooltip')}>
-                    <Icon
-                      icon="solar:danger-triangle-bold"
-                      className="w-4 h-4 text-red-500 flex-shrink-0"
-                    />
-                  </Tooltip>
-                )}
-                <div className="min-w-0">
-                  <h5 className="text-gray-100 text-sm font-minecraft normal-case truncate">
-                    {version.name}
-                  </h5>
-                  <p className="text-gray-400 text-xs font-minecraft normal-case truncate">
-                    {version.version_number}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2 text-[10px] text-gray-400 font-minecraft flex-shrink-0">
-                {" "}
-                <span className="flex items-center">
-                  <Icon
-                    icon="solar:download-minimalistic-bold"
-                    className="w-3 h-3 mr-0.5"
-                  />
-                  {version.downloads.toLocaleString()}
+        {/* Name, version number, state in this profile */}
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5 min-w-0">
+            {warned && (
+              <Tooltip content={noRiskStatus === 'warning' ? t('modrinth.warning_mod_tooltip') : t('modrinth.blocked_mod_tooltip')}>
+                <span className={cn("flex flex-shrink-0", noRiskStatus === 'warning' ? "text-warn" : "text-err")}>
+                  <AlertTriangle size={12} strokeWidth={1.75} />
                 </span>
-                <span className="flex items-center">
-                  <Icon
-                    icon="solar:calendar-mark-bold"
-                    className="w-3 h-3 mr-0.5"
-                  />
-                  {new Date(version.date_published).toLocaleDateString()}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center gap-2">
-              <div className="flex flex-wrap items-center gap-1 flex-grow min-w-0">
-                {selectedProfileId &&
-                  versionStatus?.is_installed &&
-                  versionStatus?.is_enabled !== false && (
-                    <TagBadge variant="success" className="flex-shrink-0">
-                      <Icon
-                        icon="solar:check-circle-bold"
-                        className="w-3 h-3 mr-0.5"
-                      />
-                      {t('common.installed')}
-                    </TagBadge>
-                  )}
-                {selectedProfileId &&
-                  versionStatus?.is_installed &&
-                  versionStatus?.is_enabled === false && (
-                    <TagBadge variant="inactive" className="flex-shrink-0">
-                      <Icon
-                        icon="solar:close-circle-bold"
-                        className="w-3 h-3 mr-0.5"
-                      />
-                      {t('common.disabled')}
-                    </TagBadge>
-                  )}
-                {selectedProfileId &&
-                  versionStatus?.is_included_in_norisk_pack && (
-                    <TagBadge
-                      variant={versionStatus?.is_enabled ? "info" : "inactive"}
-                      className="flex-shrink-0"
-                    >
-                      <Icon
-                        icon="solar:bolt-circle-bold"
-                        className="w-3 h-3 mr-0.5"
-                      />
-                      {t('modrinth.in_norisk_pack')}
-                    </TagBadge>
-                  )}
-                <TagBadge className="flex-shrink-0">
-                  {version.release_type}
-                </TagBadge>
-                {version.game_versions.length > 0 &&
-                  version.game_versions.slice(0, 5).map((gv) => (
-                    <TagBadge key={`gv-${version.id}-${gv}`} variant="default">
-                      {gv}
-                    </TagBadge>
-                  ))}
-                {version.game_versions.length > 5 && (
-                  <TagBadge variant="default">...</TagBadge>
-                )}
-                {version.loaders.length > 0 &&
-                  version.loaders.map((loader) => (
-                    <TagBadge
-                      key={`loader-${version.id}-${loader}`}
-                      variant="default"
-                    >
-                      {loader}
-                    </TagBadge>
-                  ))}
-              </div>
-              <div className="flex gap-1 flex-shrink-0">
-                {" "}
-                {selectedProfileId &&
-                  ((versionStatus?.is_installed &&
-                    !isModpack &&
-                    typeof versionStatus.is_enabled === "boolean" &&
-                    onToggleEnableClick) ||
-                    (versionStatus?.is_included_in_norisk_pack &&
-                      versionStatus?.norisk_pack_item_details &&
-                      onToggleEnableClick)) && (
-                    <ActionButton
-                      onClick={handleToggleEnableButtonClick}
-                      size="sm"
-                      variant={
-                        versionStatus.is_enabled ? "highlight" : "secondary"
-                      }
-                      label={versionStatus.is_enabled ? t('common.active') : t('common.disabled')}
-                      className="min-w-[80px]"
-                      icon="solar:settings-bold"
-                    />
-                  )}
-                {selectedProfileId &&
-                  versionStatus?.is_installed &&
-                  !isModpack &&
-                  onDeleteClick && (
-                    <ActionButton
-                      onClick={handleDeleteButtonClick}
-                      size="sm"
-                      variant="destructive"
-                      label={t('common.delete')}
-                      className="min-w-[80px]"
-                      icon="solar:trash-bin-minimalistic-bold"
-                    />
-                  )}
-                {(!selectedProfileId || !versionStatus?.is_installed) && (
-                  <ActionButton
-                    onClick={handleButtonClick}
-                    size="sm"
-                    variant={buttonVariant}
-                    disabled={buttonDisabled || isInstalling}
-                    className="min-w-[80px]"
-                    icon={
-                      isInstalling || isInstallingModpackVersion 
-                        ? "solar:refresh-bold" 
-                        : (noRiskStatus === 'blocked' || noRiskStatus === 'warning')
-                          ? "solar:danger-triangle-bold"
-                          : "solar:download-minimalistic-bold"
-                    }
-                    iconClassName={(isInstalling || isInstallingModpackVersion) ? "animate-spin-slow" : ""}
-                    label={buttonText}
-                  />
-                )}
-              </div>
-            </div>
+              </Tooltip>
+            )}
+            <span className="text-[13px] font-[520] text-fg truncate" title={version.name}>
+              {version.name}
+            </span>
           </div>
+          <div className="flex items-center gap-2 min-w-0 mt-px">
+            <span className="cc-num text-[11px] text-fg-3 truncate" title={version.version_number}>
+              {version.version_number}
+            </span>
+            {showInstallBorder && versionStatus?.is_installed && versionStatus?.is_enabled !== false && (
+              <span className="inline-flex items-center gap-1 text-[11px] text-ok flex-shrink-0">
+                <Check size={11} strokeWidth={2.25} />
+                {t('common.installed')}
+              </span>
+            )}
+            {showInstallBorder && versionStatus?.is_installed && versionStatus?.is_enabled === false && (
+              <span className="text-[11px] text-fg-4 flex-shrink-0">{t('common.disabled')}</span>
+            )}
+            {showInstallBorder && versionStatus?.is_included_in_norisk_pack && (
+              <span className={cn("text-[11px] flex-shrink-0", versionStatus?.is_enabled ? "text-info" : "text-fg-4")}>
+                {t('modrinth.in_norisk_pack')}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Release type */}
+        <span
+          className={cn(
+            "cc-num text-[11px]",
+            version.release_type === "beta" ? "text-warn" : version.release_type === "alpha" ? "text-err" : "text-fg-3",
+          )}
+        >
+          {version.release_type}
+        </span>
+
+        {/* Game versions and loaders */}
+        <div className="min-w-0">
+          <div className="cc-num text-[11.5px] text-fg-2 truncate" title={version.game_versions.join(", ")}>
+            {shownGameVersions.join(", ")}
+            {moreGameVersions > 0 && <span className="text-fg-4"> +{moreGameVersions}</span>}
+          </div>
+          <div className="text-[11px] text-fg-3 truncate capitalize mt-px">{version.loaders.join(" · ")}</div>
+        </div>
+
+        {/* Downloads and date */}
+        <div className="min-w-0 text-right">
+          <div className="cc-num text-[11.5px] text-fg-2" title={version.downloads.toLocaleString()}>
+            {formatCompact(version.downloads)}
+          </div>
+          <div className="cc-num text-[11px] text-fg-4 mt-px">{formatIsoDate(version.date_published)}</div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center justify-end gap-1">
+          {selectedProfileId &&
+            ((versionStatus?.is_installed &&
+              !isModpack &&
+              typeof versionStatus.is_enabled === "boolean" &&
+              onToggleEnableClick) ||
+              (versionStatus?.is_included_in_norisk_pack &&
+                versionStatus?.norisk_pack_item_details &&
+                onToggleEnableClick)) && (
+              <Button
+                onClick={handleToggleEnableButtonClick}
+                size="xs"
+                variant="ghost"
+                className={cn("px-2", !versionStatus.is_enabled && "text-fg-3")}
+                icon={<Power size={13} strokeWidth={1.75} className={versionStatus.is_enabled ? "text-ok" : "text-fg-4"} />}
+              >
+                {versionStatus.is_enabled ? t('common.active') : t('common.disabled')}
+              </Button>
+            )}
+          {selectedProfileId &&
+            versionStatus?.is_installed &&
+            !isModpack &&
+            onDeleteClick && (
+              <button
+                type="button"
+                onClick={handleDeleteButtonClick}
+                className="cc-icon-btn hover:text-err"
+                title={t('common.delete')}
+                aria-label={t('common.delete')}
+              >
+                <Trash2 size={14} strokeWidth={1.75} />
+              </button>
+            )}
+          {(!selectedProfileId || !versionStatus?.is_installed) && (
+            <Button
+              onClick={handleButtonClick}
+              size="xs"
+              variant="secondary"
+              disabled={buttonDisabled || isInstalling}
+              className="min-w-[84px]"
+              icon={
+                busy
+                  ? <Loader2 size={13} className="animate-spin" />
+                  : (noRiskStatus === 'blocked' || noRiskStatus === 'warning')
+                    ? <AlertTriangle size={13} strokeWidth={1.75} className="text-warn" />
+                    : <Download size={13} strokeWidth={1.75} />
+              }
+            >
+              {buttonText}
+            </Button>
+          )}
         </div>
       </div>
     );
   },
 );
+
+/** Shared column template of the version table (search rows and detail page). */
+export const VERSION_GRID =
+  "grid grid-cols-[minmax(0,1.5fr)_52px_minmax(0,1fr)_76px_132px] gap-x-3 items-center";
+
+/** Column heads above the version rows. */
+export function ModrinthVersionTableHeader({ className }: { className?: string }) {
+  const { t } = useTranslation();
+  return (
+    <div className={cn(VERSION_GRID, "h-7 px-2 border-b border-line", className)}>
+      <span className="cc-eyebrow">{t('mods.versions.col.version')}</span>
+      <span className="cc-eyebrow">{t('mod_detail.type')}</span>
+      <span className="cc-eyebrow truncate">{t('mods.versions.col.game')}</span>
+      <span className="cc-eyebrow text-right">{t('mods.versions.col.downloads')}</span>
+      <span />
+    </div>
+  );
+}

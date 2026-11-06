@@ -1,11 +1,11 @@
 "use client";
 
 import type React from "react";
-import { Icon } from "@iconify/react";
 import { useTranslation } from "react-i18next";
+import { Loader2, X, type LucideIcon } from "lucide-react";
 
 export interface FABActionConfig {
-  icon: string;
+  icon: LucideIcon;
   label: string;
   onClick: () => void;
   disabled?: boolean;
@@ -16,7 +16,8 @@ interface FloatingActionBarProps {
   visible: boolean;
   count: number;
   totalCount: number;
-  accent: string;
+  /** kept for callers; the bar is neutral, only the progress count uses the accent (via CSS) */
+  accent?: string;
   allSelected: boolean;
   onSelectAll: () => void;
   onClear: () => void;
@@ -24,46 +25,41 @@ interface FloatingActionBarProps {
   batchProgress?: { current: number; total: number } | null;
 }
 
+/** The selection bar at the bottom of a list: flat s2 with a line and the pop shadow. */
 export function FloatingActionBar({
-  visible, count, totalCount, accent, allSelected,
+  visible, count, totalCount, allSelected,
   onSelectAll, onClear, actions, batchProgress,
 }: FloatingActionBarProps) {
   const { t } = useTranslation();
   return (
     <div
-      className={`absolute left-1/2 -translate-x-1/2 z-30 transition-[bottom] duration-200 ease-out ${
-        visible ? "bottom-5 pointer-events-auto" : "bottom-1 pointer-events-none"
+      className={`absolute left-1/2 -translate-x-1/2 z-30 transition-[bottom,opacity] duration-med ease-out ${
+        visible ? "bottom-4 opacity-100 pointer-events-auto" : "bottom-1 opacity-0 pointer-events-none"
       }`}
     >
       <div
-        style={{
-          backgroundColor: `${accent}1f`,
-          borderColor: `${accent}66`,
-          backdropFilter: "blur(16px)",
-          WebkitBackdropFilter: "blur(16px)",
-          boxShadow: `0 12px 32px -10px rgba(0,0,0,0.5)`,
-        }}
-        className={`flex items-center h-11 rounded-xl border overflow-hidden whitespace-nowrap transition-opacity duration-200 ease-out ${
-          visible ? "opacity-100" : "opacity-0"
-        }`}
+        className="flex items-center h-10 pl-3 pr-1 gap-1 bg-s2 border border-line-2 shadow-pop whitespace-nowrap"
+        style={{ borderRadius: "var(--r-md)" }}
       >
-        <div className="flex items-center gap-2 pl-3.5 pr-2 whitespace-nowrap">
+        <div className="flex items-center gap-2 pr-2">
           {batchProgress ? (
-            <span className="flex items-center gap-1.5 text-xs font-minecraft text-white tabular-nums whitespace-nowrap">
-              <Icon icon="svg-spinners:ring-resize" className="w-3 h-3" style={{ color: accent }} />
-              <span style={{ color: accent }}>{batchProgress.current}</span>
-              <span className="text-white/40">/ {batchProgress.total}</span>
+            <span className="flex items-center gap-1.5 cc-num text-[12px]">
+              <Loader2 size={12} className="animate-spin text-accent" />
+              <span className="text-fg">{batchProgress.current}</span>
+              <span className="text-fg-3">/ {batchProgress.total}</span>
             </span>
           ) : (
             <>
-              <span className="text-xs font-minecraft text-white tabular-nums whitespace-nowrap">
-                <span style={{ color: accent }}>{count}</span>
-                <span className="text-white/40"> / {totalCount}</span>
+              <span className="cc-num text-[12px]">
+                <span className="text-fg">{count}</span>
+                <span className="text-fg-3"> / {totalCount}</span>
               </span>
               {!allSelected && (
                 <button
+                  type="button"
                   onClick={onSelectAll}
-                  className="h-7 px-2 rounded-md text-[10px] font-minecraft uppercase tracking-wider text-white/55 hover:text-white hover:bg-white/10 transition-colors"
+                  className="h-6 px-1.5 text-[12px] text-fg-3 hover:text-fg hover:bg-s3 transition-colors duration-fast"
+                  style={{ borderRadius: "var(--r-sm)" }}
                 >
                   {t("profiles.v3.fab.all")}
                 </button>
@@ -72,37 +68,41 @@ export function FloatingActionBar({
           )}
         </div>
 
-        <div className="w-px h-5" style={{ backgroundColor: `${accent}33` }} />
+        <div className="w-px h-5 bg-line-2" />
 
         {actions.map((action, i) => (
           <FabButton key={`${action.label}-${i}`} {...action} />
         ))}
 
-        <div className="w-px h-5" style={{ backgroundColor: `${accent}33` }} />
+        <div className="w-px h-5 bg-line-2" />
 
         <button
+          type="button"
           onClick={onClear}
-          className="h-11 w-11 hover:bg-white/5 text-white/55 hover:text-white flex items-center justify-center transition-colors"
+          className="cc-icon-btn"
           title={t("profiles.v3.fab.clearSelection")}
         >
-          <Icon icon="solar:close-circle-linear" className="w-4 h-4" />
+          <X size={15} strokeWidth={1.75} />
         </button>
       </div>
     </div>
   );
 }
 
-const FabButton: React.FC<FABActionConfig> = ({ icon, label, tone, onClick, disabled }) => {
+const FabButton: React.FC<FABActionConfig> = ({ icon: Glyph, label, tone, onClick, disabled }) => {
   const toneClass =
-    tone === "danger" ? "text-white/80 hover:bg-rose-500/20 hover:text-rose-100" :
-    "text-white/80 hover:bg-white/10 hover:text-white";
+    tone === "danger"
+      ? "text-fg-2 hover:bg-err/10 hover:text-err"
+      : "text-fg-2 hover:bg-s3 hover:text-fg";
   return (
     <button
+      type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`relative h-8 px-2.5 mx-0.5 rounded-md flex items-center gap-1.5 text-xs font-minecraft transition-colors disabled:opacity-50 ${toneClass}`}
+      className={`h-7 px-2 flex items-center gap-1.5 text-[12.5px] font-[520] transition-colors duration-fast disabled:opacity-45 disabled:pointer-events-none ${toneClass}`}
+      style={{ borderRadius: "var(--r-sm)" }}
     >
-      <Icon icon={icon} className="w-3.5 h-3.5" />
+      <Glyph size={14} strokeWidth={1.75} />
       <span>{label}</span>
     </button>
   );

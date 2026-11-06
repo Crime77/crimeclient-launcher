@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Icon } from "@iconify/react";
+import { Check, Image as ImageIcon, Link, Trash2, Upload } from "lucide-react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
@@ -9,7 +9,6 @@ import { toast } from "react-hot-toast";
 import { Modal } from "../ui/Modal";
 import { Button } from "../ui/buttons/Button";
 import { cn } from "../../lib/utils";
-import { useThemeStore } from "../../store/useThemeStore";
 import { BLOCK_ICONS } from "../../data/block-icons";
 import { useProfileIconLibraryStore } from "../../store/useProfileIconLibraryStore";
 
@@ -26,8 +25,8 @@ interface IconPickerProps {
 
 const GRID_STYLE: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fill, minmax(72px, 1fr))",
-  gap: "10px",
+  gridTemplateColumns: "repeat(auto-fill, minmax(56px, 1fr))",
+  gap: "6px",
 };
 
 // Tunes how an icon image renders once its real dimensions are known:
@@ -45,7 +44,6 @@ export function handleIconImgLoad(e: React.SyntheticEvent<HTMLImageElement>) {
 
 export function IconPicker({ selected, onSelect, onClose }: IconPickerProps) {
   const { t } = useTranslation();
-  const accentColor = useThemeStore((state) => state.accentColor);
   const { customIcons, addCustomFile, addCustomUrl, removeCustomIcon } =
     useProfileIconLibraryStore();
   const [showUrlInput, setShowUrlInput] = useState(false);
@@ -101,27 +99,32 @@ export function IconPicker({ selected, onSelect, onClose }: IconPickerProps) {
 
   const tileClass = (active: boolean) =>
     cn(
-      "relative aspect-square rounded-lg overflow-hidden border-2 transition-all duration-150",
-      active ? "" : "border-white/10 hover:border-white/25",
+      "relative aspect-square rounded-md overflow-hidden border transition-colors duration-fast",
+      active ? "border-fg-3 bg-s3" : "border-line bg-s2 hover:border-line-3",
     );
 
-  const activeStyle = (active: boolean): React.CSSProperties =>
-    active
-      ? { borderColor: accentColor.value, boxShadow: `0 0 0 2px ${accentColor.value}55` }
-      : {};
+  const activeStyle = (_active: boolean): React.CSSProperties => ({});
+
+  const activeMark = (active: boolean) =>
+    active ? (
+      <span className="absolute right-0.5 bottom-0.5 grid place-items-center w-4 h-4 rounded-sm bg-fg text-bg pointer-events-none">
+        <Check size={11} strokeWidth={2.5} />
+      </span>
+    ) : null;
 
   return (
     <Modal
       title={t("profiles.iconPicker.title")}
-      titleIcon={<Icon icon="solar:gallery-bold" className="w-6 h-6" />}
+      titleIcon={<ImageIcon size={16} strokeWidth={1.75} />}
       onClose={onClose}
       width="lg"
     >
-      <div className="p-6 space-y-6">
+      <div className="px-5 py-4 space-y-5">
         {/* Blocks */}
-        <section className="space-y-3">
-          <h3 className="font-smallcaps text-base text-white">
-            {t("profiles.iconPicker.blocks")}
+        <section className="space-y-2">
+          <h3 className="flex items-baseline gap-2">
+            <span className="cc-eyebrow">{t("profiles.iconPicker.blocks")}</span>
+            <span className="cc-num text-[11px] text-fg-4">{BLOCK_ICONS.length}</span>
           </h3>
           <div style={GRID_STYLE}>
             {BLOCK_ICONS.map((block) => {
@@ -131,8 +134,9 @@ export function IconPicker({ selected, onSelect, onClose }: IconPickerProps) {
                   key={block.id}
                   type="button"
                   title={block.name}
-                  className={cn(tileClass(active), "bg-black/30 hover:scale-105")}
+                  className={tileClass(active)}
                   style={activeStyle(active)}
+                  aria-pressed={active}
                   onClick={() => pick({ url: block.url })}
                 >
                   <img
@@ -142,6 +146,7 @@ export function IconPicker({ selected, onSelect, onClose }: IconPickerProps) {
                     className="w-full h-full object-cover"
                     onLoad={handleIconImgLoad}
                   />
+                  {activeMark(active)}
                 </button>
               );
             })}
@@ -149,9 +154,12 @@ export function IconPicker({ selected, onSelect, onClose }: IconPickerProps) {
         </section>
 
         {/* Custom */}
-        <section className="space-y-3">
-          <h3 className="font-smallcaps text-base text-white">
-            {t("profiles.iconPicker.custom")}
+        <section className="space-y-2 pt-4 border-t border-line">
+          <h3 className="flex items-baseline gap-2">
+            <span className="cc-eyebrow">{t("profiles.iconPicker.custom")}</span>
+            {customIcons.length > 0 && (
+              <span className="cc-num text-[11px] text-fg-4">{customIcons.length}</span>
+            )}
           </h3>
 
           {showUrlInput && (
@@ -166,9 +174,9 @@ export function IconPicker({ selected, onSelect, onClose }: IconPickerProps) {
                   if (e.key === "Escape") setShowUrlInput(false);
                 }}
                 placeholder={t("profiles.iconPicker.addUrlPlaceholder")}
-                className="flex-1 bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-white/40 font-minecraft text-sm outline-none focus:border-white/25"
+                className="flex-1 h-8 bg-s2 border border-line rounded-md px-3 text-[12.5px] text-fg placeholder:text-fg-4 outline-none transition-colors duration-fast hover:border-line-2 focus:border-line-3"
               />
-              <Button size="sm" variant="flat" onClick={handleAddUrl}>
+              <Button size="sm" variant="secondary" onClick={handleAddUrl}>
                 {t("profiles.iconPicker.add")}
               </Button>
             </div>
@@ -180,10 +188,10 @@ export function IconPicker({ selected, onSelect, onClose }: IconPickerProps) {
               type="button"
               title={t("profiles.iconPicker.uploadFile")}
               onClick={handleUpload}
-              className="relative aspect-square rounded-lg border-2 border-dashed border-white/15 hover:border-white/35 bg-black/20 flex flex-col items-center justify-center gap-1 transition-colors"
+              className="relative aspect-square rounded-md border border-line bg-s2 hover:bg-s3 hover:border-line-2 flex flex-col items-center justify-center gap-1 px-1 text-fg-3 hover:text-fg transition-colors duration-fast"
             >
-              <Icon icon="solar:upload-bold" className="w-6 h-6 text-white/60" />
-              <span className="font-minecraft text-[10px] text-white/50 lowercase">
+              <Upload size={16} strokeWidth={1.75} />
+              <span className="text-[10.5px] leading-tight text-center">
                 {t("profiles.iconPicker.uploadFile")}
               </span>
             </button>
@@ -193,10 +201,16 @@ export function IconPicker({ selected, onSelect, onClose }: IconPickerProps) {
               type="button"
               title={t("profiles.iconPicker.addUrl")}
               onClick={() => setShowUrlInput((v) => !v)}
-              className="relative aspect-square rounded-lg border-2 border-dashed border-white/15 hover:border-white/35 bg-black/20 flex flex-col items-center justify-center gap-1 transition-colors"
+              aria-pressed={showUrlInput}
+              className={cn(
+                "relative aspect-square rounded-md border flex flex-col items-center justify-center gap-1 px-1 transition-colors duration-fast",
+                showUrlInput
+                  ? "border-line-3 bg-s3 text-fg"
+                  : "border-line bg-s2 text-fg-3 hover:bg-s3 hover:border-line-2 hover:text-fg",
+              )}
             >
-              <Icon icon="solar:link-bold" className="w-6 h-6 text-white/60" />
-              <span className="font-minecraft text-[10px] text-white/50 lowercase">
+              <Link size={16} strokeWidth={1.75} />
+              <span className="text-[10.5px] leading-tight text-center">
                 {t("profiles.iconPicker.addUrl")}
               </span>
             </button>
@@ -210,7 +224,7 @@ export function IconPicker({ selected, onSelect, onClose }: IconPickerProps) {
               return (
                 <div
                   key={ci.id}
-                  className={cn(tileClass(active), "bg-black/30 group")}
+                  className={cn(tileClass(active), "group")}
                   style={activeStyle(active)}
                 >
                   <button
@@ -226,13 +240,15 @@ export function IconPicker({ selected, onSelect, onClose }: IconPickerProps) {
                       onLoad={handleIconImgLoad}
                     />
                   </button>
+                  {activeMark(active)}
                   <button
                     type="button"
                     title={t("profiles.iconPicker.remove")}
+                    aria-label={t("profiles.iconPicker.remove")}
                     onClick={() => removeCustomIcon(ci.id)}
-                    className="absolute top-0.5 right-0.5 w-5 h-5 flex items-center justify-center rounded bg-black/70 text-white/80 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute top-0.5 right-0.5 w-5 h-5 flex items-center justify-center rounded-sm bg-bg/80 text-fg-2 hover:text-err opacity-0 group-hover:opacity-100 transition-opacity duration-fast"
                   >
-                    <Icon icon="solar:trash-bin-trash-bold" className="w-3.5 h-3.5" />
+                    <Trash2 size={12} strokeWidth={1.75} />
                   </button>
                 </div>
               );

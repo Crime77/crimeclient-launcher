@@ -2,7 +2,7 @@
 
 import { useTranslation } from "react-i18next";
 
-import { useThemeStore } from "../../store/useThemeStore";
+import { cn } from "../../lib/utils";
 import type { SyncPack, SyncTargetPreset } from "../../types/syncPacks";
 import { SYNC_TARGET_PRESETS } from "../../types/syncPacks";
 import { Tooltip } from "../ui/Tooltip";
@@ -18,7 +18,7 @@ export interface SyncPackDropZoneProps {
 }
 
 const ADD_BUTTON =
-  "rounded px-2 py-1 font-minecraft text-[10px] uppercase tracking-wider transition-colors hover:bg-white/10 disabled:opacity-30";
+  "inline-flex items-center h-7 px-2.5 rounded-sm text-[12px] text-fg-3 transition-colors duration-fast hover:bg-s3 hover:text-fg disabled:opacity-30";
 
 function missingPresets(pack: SyncPack): SyncTargetPreset[] {
   const taken = new Set(pack.targets.map((target) => target.path.toLowerCase()));
@@ -38,18 +38,17 @@ export function SyncPackDropZone({
   onBrowseMods,
 }: SyncPackDropZoneProps) {
   const { t } = useTranslation();
-  const accentColor = useThemeStore((state) => state.accentColor);
   const presets = missingPresets(pack);
 
   return (
     <div
-      className="m-3 flex flex-col items-center justify-center gap-2 border border-dashed py-3 text-center transition-colors"
-      style={{
-        borderColor: isDragOver ? accentColor.value : "rgba(255,255,255,0.12)",
-        backgroundColor: isDragOver ? `${accentColor.value}12` : "transparent",
-      }}
+      className={cn(
+        "m-3 flex flex-col items-center justify-center gap-2 border py-3 text-center transition-colors duration-fast",
+        isDragOver ? "border-line-3 bg-s3" : "border-line bg-bg/30",
+      )}
+      style={{ borderRadius: "var(--r-md)" }}
     >
-      <span className="font-minecraft text-[11px] text-white/35">
+      <span className={cn("text-[12px]", isDragOver ? "text-fg" : "text-fg-4")}>
         {isDragOver ? t("syncPacks.drop.overlay") : t("syncPacks.drop.hint")}
       </span>
 
@@ -66,7 +65,8 @@ export function SyncPackDropZone({
               <button
                 onClick={() => onPickPreset(preset)}
                 disabled={showBusy}
-                className="rounded border border-white/10 bg-white/[0.04] px-2 py-0.5 font-minecraft text-xs text-white/50 transition-colors hover:border-white/25 hover:bg-white/[0.08] hover:text-white/90 disabled:opacity-30"
+                type="button"
+                className="inline-flex items-center h-6 px-2 rounded-sm border border-line bg-s2 cc-num text-[11.5px] text-fg-3 transition-colors duration-fast hover:border-line-2 hover:bg-s3 hover:text-fg disabled:opacity-30"
               >
                 + {preset.path}
               </button>
@@ -80,19 +80,21 @@ export function SyncPackDropZone({
           <button
             onClick={() => onPickPaths(true)}
             disabled={showBusy}
-            className={`${ADD_BUTTON} text-white/45 hover:text-white`}
+            type="button"
+            className={ADD_BUTTON}
           >
             + {t("syncPacks.add.folder")}
           </button>
-          <span className="text-white/15">|</span>
+          <span className="h-3 w-px bg-line-2" aria-hidden />
           <button
             onClick={() => onPickPaths(false)}
             disabled={showBusy}
-            className={`${ADD_BUTTON} text-white/45 hover:text-white`}
+            type="button"
+            className={ADD_BUTTON}
           >
             + {t("syncPacks.add.file")}
           </button>
-          <span className="text-white/15">|</span>
+          <span className="h-3 w-px bg-line-2" aria-hidden />
           <Tooltip
             content={
               canBrowse ? t("syncPacks.add.mods") : t("syncPacks.noProfile")
@@ -102,8 +104,8 @@ export function SyncPackDropZone({
             <button
               onClick={onBrowseMods}
               disabled={showBusy || !canBrowse}
-              className={ADD_BUTTON}
-              style={{ color: accentColor.value }}
+              type="button"
+              className={cn(ADD_BUTTON, "text-fg-2")}
             >
               + {t("syncPacks.add.mods")}
             </button>

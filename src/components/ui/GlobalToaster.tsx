@@ -1,14 +1,12 @@
 "use client";
 
 import type React from "react";
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { toast as hotToast, Toaster as HotToaster } from "react-hot-toast";
 import { gsap } from "gsap";
 import { useThemeStore } from "../../store/useThemeStore";
 import { usePlayerAvatar } from "../../hooks/usePlayerAvatar";
 import {
-  getBorderRadiusClass,
-  createRadiusStyle,
   getToastVariantStyles,
   getToastBaseStyles,
   TOAST_BASE_CLASSES
@@ -18,16 +16,16 @@ function PlayerToastContent({ message, uuid }: { message: string; uuid: string }
   const avatarUrl = usePlayerAvatar({ uuid, size: 32 });
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2.5">
       {avatarUrl ? (
         <img
           src={avatarUrl}
           alt=""
-          className="w-8 h-8 rounded flex-shrink-0"
+          className="w-7 h-7 rounded-sm flex-shrink-0"
           style={{ imageRendering: "pixelated" }}
         />
       ) : (
-        <div className="w-8 h-8 rounded flex-shrink-0 bg-white/20 animate-pulse" />
+        <div className="w-7 h-7 rounded-sm flex-shrink-0 bg-s3 animate-skeleton-pulse" />
       )}
       <span>{message}</span>
     </div>
@@ -65,7 +63,7 @@ export const toast = {
   },
   custom: (message: string, icon?: React.ReactNode) => {
     const id = hotToast.custom((t) => (
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2.5">
         {icon && <div className="flex-shrink-0">{icon}</div>}
         <span>{message}</span>
       </div>
@@ -85,16 +83,14 @@ function animateToast(id: string) {
       gsap.fromTo(
         toastElement,
         {
-          x: 50,
+          y: 6,
           opacity: 0,
-          scale: 0.95,
         },
         {
-          x: 0,
+          y: 0,
           opacity: 1,
-          scale: 1,
-          duration: 0.4,
-          ease: "power2.out",
+          duration: 0.26,
+          ease: "power3.out",
         },
       );
     }
@@ -104,68 +100,38 @@ function animateToast(id: string) {
 export function GlobalToaster() {
   const accentColor = useThemeStore((state) => state.accentColor);
   const borderRadius = useThemeStore((state) => state.borderRadius);
-  const isBackgroundAnimationEnabled = useThemeStore(
-    (state) => state.isBackgroundAnimationEnabled,
-  );
   const toasterRef = useRef<HTMLDivElement>(null);
 
-  const borderRadiusStyle = createRadiusStyle(borderRadius);
-  const borderRadiusClass = getBorderRadiusClass(borderRadius);
+  // flat raised toasts; the state shows only as the 2 px stripe on the left and the icon
   const baseStyles = getToastBaseStyles({ accentColor: accentColor.value, borderRadius });
-
-  useEffect(() => {
-    if (!isBackgroundAnimationEnabled) return;
-
-    const toasts = document.querySelectorAll('[id^="toast-"]');
-    toasts.forEach((toast) => {
-      gsap.to(toast, {
-        backgroundColor: `${accentColor.value}30`,
-        borderColor: `${accentColor.value}80`,
-        borderBottomColor: accentColor.value,
-        duration: 0.2,
-        ease: "power2.out",
-      });
-    });
-  }, [accentColor, isBackgroundAnimationEnabled]);
 
   return (
     <div ref={toasterRef}>
       <HotToaster
         position="bottom-right"
+        gutter={8}
         toastOptions={{
-          className: `${TOAST_BASE_CLASSES} ${borderRadiusClass}`,
+          className: TOAST_BASE_CLASSES,
           style: baseStyles,
           success: {
-            style: {
-              ...getToastVariantStyles("success", accentColor.value),
-              boxShadow: "none",
-              ...borderRadiusStyle,
-            },
+            style: getToastVariantStyles("success", accentColor.value),
             iconTheme: {
-              primary: "#059669",
-              secondary: "#d1fae5",
+              primary: "#5fb98e",
+              secondary: "#0e0e0f",
             },
           },
           error: {
-            style: {
-              ...getToastVariantStyles("error", accentColor.value),
-              boxShadow: "none",
-              ...borderRadiusStyle,
-            },
+            style: getToastVariantStyles("error", accentColor.value),
             iconTheme: {
-              primary: "#dc2626",
-              secondary: "#fee2e2",
+              primary: "#e5484d",
+              secondary: "#edebe8",
             },
           },
           loading: {
-            style: {
-              ...getToastVariantStyles("default", accentColor.value),
-              boxShadow: "none",
-              ...borderRadiusStyle,
-            },
+            style: getToastVariantStyles("loading", accentColor.value),
             iconTheme: {
               primary: accentColor.value,
-              secondary: "#ffffff",
+              secondary: "rgba(255,255,255,0.12)",
             },
             duration: Infinity,
           },

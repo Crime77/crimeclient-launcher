@@ -3,7 +3,6 @@
 import type React from "react";
 
 import { cn } from "../../../lib/utils";
-import { useThemeStore } from "../../../store/useThemeStore";
 
 interface DropdownHeaderProps {
   title: string;
@@ -11,25 +10,21 @@ interface DropdownHeaderProps {
   children?: React.ReactNode;
 }
 
+/** The top row of a menu panel: a small eyebrow title, a hairline below. */
 export function DropdownHeader({
   title,
   className,
   children,
 }: DropdownHeaderProps) {
-  const accentColor = useThemeStore((state) => state.accentColor);
-
-  return (    <div
+  return (
+    <div
       className={cn(
-        "px-4 py-3 font-smallcaps text-sm text-white border-b-2 relative",
-        "flex items-center justify-between",
+        "px-3 h-9 border-b border-line relative",
+        "flex items-center justify-between gap-2",
         className,
       )}
-      style={{
-        backgroundColor: `${accentColor.value}25`,
-        borderBottomColor: `${accentColor.value}50`,
-      }}
     >
-      <span className="text-shadow-sm">{title}</span>
+      <span className="cc-eyebrow truncate">{title}</span>
       {children}
     </div>
   );

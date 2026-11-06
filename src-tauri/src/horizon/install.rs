@@ -1,5 +1,6 @@
 //! The CrimeClient Rust release: `rust.json` of the launcher API names the zip (crimeclient-rust/tools/package.py),
-//! which is checked against its sha256 and unpacked to `<meta>/horizon/<version>`.
+//! which is checked against its sha256 and unpacked to `<meta>/horizon/<version>`. `platforms` holds one zip per
+//! system (`windows-x86_64`, `linux-x86_64`); the top-level `url` is the Windows zip, for launchers before 0.3.0.
 
 use super::progress;
 use crate::config::{ProjectDirsExt, HTTP_CLIENT, LAUNCHER_DIRECTORY};
@@ -29,6 +30,53 @@ struct Release {
     url: String,
     sha256: String,
     size: u64,
+    #[serde(default)]
+    platforms: std::collections::HashMap<String, Package>,
+}
+
+/// One system's zip of a release.
+#[derive(Deserialize, Debug, Clone)]
+struct Package {
+    url: String,
+    sha256: String,
+    size: u64,
+}
+
+/// This system's key in `rust.json` `platforms`.
+fn platform_key() -> String {
+    let os = match std::env::consts::OS {
+        "macos" => "macos",
+        other => other,
+    };
+    format!("{}-{}", os, std::env::consts::ARCH)
+}
+
+impl Release {
+    /// The zip for this system: its `platforms` entry, else the top-level one, which is the Windows zip.
+    fn for_platform(mut self, key: &str) -> Option<Release> {
+        if let Some(package) = self.platforms.get(key).cloned() {
+            self.url = package.url;
+            self.sha256 = package.sha256;
+            self.size = package.size;
+            return Some(self);
+        }
+        (key == "windows-x86_64").then_some(self)
+    }
+}
+
+/// The programs of a release; Python's zipfile (package.py on Windows) stores no Unix permissions.
+#[cfg(unix)]
+fn make_executable(dir: &Path) -> std::io::Result<()> {
+    use std::os::unix::fs::PermissionsExt;
+    for name in ["horizon-client", "horizon-prepare", "horizon-ctl"] {
+        let path = dir.join(name);
+        if path.is_file() {
+            let mut permissions = std::fs::metadata(&path)?.permissions();
+            permissions.set_mode(permissions.mode() | 0o755);
+            std::fs::set_permissions(&path, permissions)?;
+        }
+    }
+    Ok(())
 }
 
 /// A release's `crimeclient-rust.json`.
@@ -63,6 +111,10 @@ pub async fn ensure_installed(state: &State, profile_id: Uuid) -> Result<PathBuf
             });
         }
     };
+    let platform = platform_key();
+    let Some(release) = release.for_platform(&platform) else {
+        return Err(AppError::Other(format!("CrimeClient Rust is not available for this system yet ({})", platform)));
+    };
     if !valid_version(&release.version) {
         return Err(AppError::Other(format!("rust.json names an invalid version: {}", release.version)));
     }
@@ -88,7 +140,10 @@ pub async fn ensure_installed(state: &State, profile_id: Uuid) -> Result<PathBuf
             .map_err(|e| AppError::Other(format!("CrimeClient Rust zip: {}", e)))?;
         archive
             .extract(&into)
-            .map_err(|e| AppError::Other(format!("CrimeClient Rust zip: {}", e)))
+            .map_err(|e| AppError::Other(format!("CrimeClient Rust zip: {}", e)))?;
+        #[cfg(unix)]
+        make_executable(&into)?;
+        Ok(())
     })
     .await
     .map_err(|e| AppError::Other(e.to_string()))??;
@@ -219,6 +274,26 @@ mod tests {
         tokio::fs::create_dir_all(dir.join(PREPARED)).await.unwrap();
         tokio::fs::write(dir.join(PREPARED).join("horizon-resources.json"), version).await.unwrap();
         tokio::fs::write(dir.join(INSTALLED), "sha").await.unwrap();
+    }
+
+    #[test]
+    fn each_system_gets_its_own_zip() {
+        let json = serde_json::json!({
+            "version": "0.8.0", "horizon": "h", "url": "win.zip", "sha256": "w", "size": 1,
+            "platforms": {
+                "windows-x86_64": { "url": "win.zip", "sha256": "w", "size": 1 },
+                "linux-x86_64": { "url": "linux.zip", "sha256": "l", "size": 2 }
+            }
+        });
+        let release = |v: &serde_json::Value| serde_json::from_value::<Release>(v.clone()).unwrap();
+        let linux = release(&json).for_platform("linux-x86_64").unwrap();
+        assert_eq!((linux.url.as_str(), linux.sha256.as_str(), linux.size), ("linux.zip", "l", 2));
+        assert_eq!(release(&json).for_platform("windows-x86_64").unwrap().url, "win.zip");
+        assert!(release(&json).for_platform("macos-aarch64").is_none());
+        // a rust.json from before platforms: only Windows
+        let old = serde_json::json!({ "version": "0.7.0", "horizon": "h", "url": "win.zip", "sha256": "w", "size": 1 });
+        assert_eq!(release(&old).for_platform("windows-x86_64").unwrap().url, "win.zip");
+        assert!(release(&old).for_platform("linux-x86_64").is_none());
     }
 
     #[tokio::test]

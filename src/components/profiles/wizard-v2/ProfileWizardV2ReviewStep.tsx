@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Icon } from "@iconify/react";
+import { ArrowLeft, Download, Loader2, TriangleAlert } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Modal } from "../../ui/Modal";
@@ -26,6 +26,7 @@ import {
   type ImportSelection,
 } from "../../../types/launcherImport";
 import type { LauncherImportOverrides } from "../../../utils/launcher-instance-import";
+import { FieldLabel } from "./WizardParts";
 
 interface ProfileWizardV2ReviewStepProps {
   target: ExternalInstanceRef;
@@ -106,12 +107,11 @@ export function ProfileWizardV2ReviewStep({
   const renderFooter = () => (
     <div className="flex justify-between items-center">
       <Button
-        variant="secondary"
+        variant="ghost"
         onClick={onBack}
         disabled={busy}
-        size="md"
-        className="text-sm"
-        icon={<Icon icon="solar:arrow-left-bold" className="w-5 h-5" />}
+        size="sm"
+        icon={<ArrowLeft size={15} strokeWidth={1.75} />}
         iconPosition="left"
       >
         {t("profiles.wizard.back")}
@@ -128,9 +128,9 @@ export function ProfileWizardV2ReviewStep({
           })
         }
         disabled={busy || !preview || !trimmedName}
-        size="md"
-        className="min-w-[180px] text-sm"
-        icon={<Icon icon="solar:download-bold" className="w-5 h-5" />}
+        size="sm"
+        className="min-w-[128px]"
+        icon={<Download size={15} strokeWidth={1.75} />}
         iconPosition="left"
       >
         {t("profiles.import.confirm")}
@@ -156,39 +156,39 @@ export function ProfileWizardV2ReviewStep({
       width="lg"
       footer={renderFooter()}
     >
-      <div className="min-h-[500px] max-h-[65vh] overflow-y-auto custom-scrollbar p-6 space-y-5">
+      <div className="min-h-[460px] max-h-[65vh] overflow-y-auto custom-scrollbar px-5 py-5 space-y-5">
         {error && (
-          <div className="rounded-lg border border-amber-500/30 bg-amber-500/[0.07] px-4 py-3 font-minecraft text-xs text-amber-300/80">
+          <div
+            className="flex items-start gap-2 border border-warn/30 bg-warn/[0.06] px-3 py-2 text-[12px] text-fg-2"
+            style={{ borderRadius: "var(--r-md)" }}
+          >
+            <TriangleAlert size={14} strokeWidth={1.75} className="mt-px flex-shrink-0 text-warn" />
             {t("profiles.launcherImport.confirm.preview_failed", { error })}
           </div>
         )}
 
         {!preview && !error && (
-          <div className="flex items-center gap-3 text-white/70 font-minecraft tracking-wide">
-            <Icon icon="svg-spinners:ring-resize" className="w-5 h-5" />
+          <div className="flex items-center gap-2 text-[12.5px] text-fg-3">
+            <Loader2 size={15} strokeWidth={1.75} className="animate-spin" />
             <span>{t("profiles.launcherImport.confirm.reading")}</span>
           </div>
         )}
 
         {preview && (
           <>
-            <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col">
-                <label className="block text-lg font-smallcaps text-white mb-2">
-                  {t("profiles.import.field_name")}
-                </label>
+                <FieldLabel>{t("profiles.import.field_name")}</FieldLabel>
                 <SearchStyleInput
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder={t("profiles.import.field_name_placeholder")}
-                  className="text-sm w-full"
+                  className="w-full"
                 />
               </div>
 
               <div className="flex flex-col">
-                <label className="block text-lg font-smallcaps text-white mb-2">
-                  {t("profiles.import.field_group")}
-                </label>
+                <FieldLabel>{t("profiles.import.field_group")}</FieldLabel>
                 <GroupPicker value={group} onChange={setGroup} options={knownGroups} />
               </div>
             </div>
@@ -203,13 +203,17 @@ export function ProfileWizardV2ReviewStep({
               label={t("profiles.import.norisk_toggle_title")}
               checked={useNoriskPack}
               onChange={(event) => setUseNoriskPack(event.target.checked)}
-              size="lg"
+              size="md"
             />
 
             {(preview.warnings.length > 0 || preview.alreadyImportedAt) && (
-              <div className="space-y-1.5 rounded-lg border border-amber-500/30 bg-amber-500/[0.07] px-4 py-3">
+              <div
+                className="space-y-1 border border-warn/30 bg-warn/[0.06] px-3 py-2"
+                style={{ borderRadius: "var(--r-md)" }}
+              >
                 {preview.alreadyImportedAt && (
-                  <div className="font-minecraft text-xs text-amber-300/80">
+                  <div className="flex items-center gap-2 text-[12px] text-warn">
+                    <TriangleAlert size={13} strokeWidth={1.75} className="flex-shrink-0" />
                     {t("profiles.launcherImport.confirm.already_imported", {
                       time: formatRelativeTime(preview.alreadyImportedAt),
                     })}
@@ -218,7 +222,7 @@ export function ProfileWizardV2ReviewStep({
                 {preview.warnings.map((warning, index) => (
                   <div
                     key={`${warning}-${index}`}
-                    className="font-minecraft text-xs text-white/55 break-all"
+                    className="cc-num text-[11.5px] text-fg-3 break-all"
                   >
                     {describeWarning(warning, t)}
                   </div>

@@ -208,11 +208,23 @@ function shaderMock(cmd: string, args: { chosen?: Record<string, string>; on?: b
   return structuredClone(shaderPage);
 }
 
+// Extra handlers per page area (src/dev/mock/<area>.ts exporting `handle(cmd, args)`; undefined = not mine)
+type AreaHandler = (cmd: string, args: Record<string, unknown>) => unknown;
+const areaHandlers: AreaHandler[] = Object.values(
+  import.meta.glob<{ handle?: AreaHandler }>("./mock/*.ts", { eager: true }),
+)
+  .map((m) => m.handle)
+  .filter((h): h is AreaHandler => typeof h === "function");
+
 export function installTauriMock() {
   mockWindows("main");
   mockConvertFileSrc("windows");
   mockIPC((cmd, args) => {
     if (cmd.startsWith("plugin:")) return null;
+    for (const handle of areaHandlers) {
+      const result = handle(cmd, (args ?? {}) as Record<string, unknown>);
+      if (result !== undefined) return result;
+    }
     if (cmd === "crime_store_request") return storeMock(args as { method: string; path: string; body: { id?: string } | null });
     if (cmd.startsWith("crime_wardrobe_")) return wardrobeMock(cmd, args as { slot?: string; id?: string | null });
     if (cmd.startsWith("crime_shader_")) return shaderMock(cmd, args as { chosen?: Record<string, string>; on?: boolean });

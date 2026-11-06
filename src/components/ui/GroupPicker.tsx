@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Icon } from "@iconify/react";
+import { Plus, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { cn } from "../../lib/utils";
 
 import { SearchStyleInput } from "./Input";
 import { Tooltip } from "./Tooltip";
-import { useThemeStore } from "../../store/useThemeStore";
 
 interface GroupPickerProps {
   value: string;
@@ -24,22 +24,17 @@ export function GroupPicker({
   newLabel,
 }: GroupPickerProps) {
   const { t } = useTranslation();
-  const accentColor = useThemeStore((state) => state.accentColor).value;
   const [isTyping, setIsTyping] = useState(false);
   const showInput = isTyping || (value !== "" && !options.includes(value));
 
-  const chipStyle = (active: boolean) =>
-    active
-      ? {
-          borderColor: accentColor,
-          backgroundColor: `${accentColor}30`,
-          color: "#fff",
-        }
-      : {
-          borderColor: "rgba(255,255,255,0.12)",
-          backgroundColor: "rgba(255,255,255,0.04)",
-          color: "rgba(255,255,255,0.65)",
-        };
+  // selected = s3 with a brighter hairline and full-strength text; never the accent
+  const chipClass = (active: boolean) =>
+    cn(
+      "h-7 px-2.5 rounded-md border text-xs font-[520] transition-colors duration-fast",
+      active
+        ? "bg-s3 border-line-3 text-fg"
+        : "bg-s2 border-line text-fg-2 hover:text-fg hover:border-line-2",
+    );
 
   if (showInput) {
     return (
@@ -48,7 +43,7 @@ export function GroupPicker({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={t("placeholders.group_name")}
-          className="text-sm w-full"
+          className="w-full"
           autoFocus
         />
         <Tooltip content={t("common.cancel")} wrapperClassName="shrink-0">
@@ -58,9 +53,9 @@ export function GroupPicker({
               onChange("");
               setIsTyping(false);
             }}
-            className="p-2 rounded-lg border border-white/10 text-white/50 hover:text-white hover:border-white/25 transition-colors"
+            className="flex items-center justify-center w-9 h-9 rounded-md border border-line text-fg-3 hover:text-fg hover:bg-s3 hover:border-line-2 transition-colors duration-fast"
           >
-            <Icon icon="solar:close-circle-linear" className="w-5 h-5" />
+            <X size={16} strokeWidth={1.75} />
           </button>
         </Tooltip>
       </div>
@@ -68,12 +63,11 @@ export function GroupPicker({
   }
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-1.5">
       <button
         type="button"
         onClick={() => onChange("")}
-        className="px-3 py-1.5 rounded-lg border font-minecraft text-sm tracking-wide transition-colors"
-        style={chipStyle(value === "")}
+        className={chipClass(value === "")}
       >
         {noneLabel ?? t("profiles.import.group_none")}
       </button>
@@ -83,8 +77,7 @@ export function GroupPicker({
           key={option}
           type="button"
           onClick={() => onChange(option)}
-          className="px-3 py-1.5 rounded-lg border font-minecraft text-sm tracking-wide transition-colors"
-          style={chipStyle(value === option)}
+          className={chipClass(value === option)}
         >
           {option}
         </button>
@@ -96,9 +89,9 @@ export function GroupPicker({
           onChange("");
           setIsTyping(true);
         }}
-        className="px-3 py-1.5 rounded-lg border border-dashed border-white/20 text-white/50 hover:text-white hover:border-white/40 font-minecraft text-sm tracking-wide transition-colors flex items-center gap-1.5"
+        className="h-7 px-2.5 rounded-md border border-dashed border-line-2 text-fg-3 hover:text-fg hover:border-line-3 text-xs font-[520] transition-colors duration-fast flex items-center gap-1.5"
       >
-        <Icon icon="solar:add-circle-linear" className="w-4 h-4" />
+        <Plus size={13} strokeWidth={1.75} />
         {newLabel ?? t("profiles.import.group_new")}
       </button>
     </div>

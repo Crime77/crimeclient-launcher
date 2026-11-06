@@ -46,10 +46,10 @@ export function PlayerHead({
   return (
     <span
       className={cn(
-        "flex items-center justify-center text-white font-smallcaps",
+        "flex items-center justify-center bg-s3 text-fg-2 text-xs font-[600] select-none",
         className,
       )}
-      style={{ ...sizeStyle, ...style }}
+      style={{ ...sizeStyle, ...(fill ? {} : { fontSize: Math.max(10, Math.round(size * 0.42)) }), ...style }}
     >
       {username?.charAt(0)?.toUpperCase() || "?"}
     </span>

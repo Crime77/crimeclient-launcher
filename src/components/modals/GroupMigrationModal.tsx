@@ -37,31 +37,32 @@ export function GroupMigrationModal({
     <Modal
       title={t('group_migration.title')}
       onClose={onClose}
-      width="md"
-    >
-      <div className="p-6">
-        <p className="text-white/80 mb-6 text-center font-minecraft">
-          {t('group_migration.description')}
-        </p>
-
-        <div className="flex gap-4 justify-center mt-8">
+      width="sm"
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button
+            onClick={handleLaunch}
+            variant="secondary"
+            size="sm"
+          >
+            {t('group_migration.button.skip_launch')}
+          </Button>
           {onMigrate && (
             <Button
               onClick={handleMigrate}
               variant="default"
-              size="md"
+              size="sm"
             >
               {t('group_migration.button.copy_files')}
             </Button>
           )}
-          <Button
-            onClick={handleLaunch}
-            variant="flat-secondary"
-            size="md"
-          >
-            {t('group_migration.button.skip_launch')}
-          </Button>
         </div>
+      }
+    >
+      <div className="px-5 py-5">
+        <p className="text-[13px] leading-relaxed text-fg-2">
+          {t('group_migration.description')}
+        </p>
       </div>
     </Modal>
   );

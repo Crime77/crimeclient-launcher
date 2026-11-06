@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Icon } from "@iconify/react";
+import { Check, FlaskConical, FolderOpen, Loader2 } from "lucide-react";
 import type { Profile } from "../../../types/profile";
 import { Button } from "../../ui/buttons/Button";
 import { useThemeStore } from "../../../store/useThemeStore";
 import { RangeSlider } from "../../ui/RangeSlider";
 import { Input, SearchStyleTextArea } from "../../ui/Input";
-import { Checkbox } from "../../ui/Checkbox";
-import { Card } from "../../ui/Card";
+import { ToggleSwitch } from "../../ui/ToggleSwitch";
+import { SettingsRow, SettingsSection } from "./SettingsRow";
 import { gsap } from "gsap";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -52,7 +52,6 @@ export function JavaSettingsTab({
   const [useCustomArgs, setUseCustomArgs] = useState(
     (editedProfile.settings?.custom_jvm_args?.length || 0) > 0,
   );
-  const accentColor = useThemeStore((state) => state.accentColor);
   const isBackgroundAnimationEnabled = useThemeStore(
     (state) => state.isBackgroundAnimationEnabled,
   );
@@ -416,237 +415,210 @@ export function JavaSettingsTab({
   };
 
 
+  const memoryLoading =
+    (editedProfile.is_standard_version && (isLoadingGlobalMemory || !globalMemorySettings)) || !isSystemRamLoaded;
+
   return (
-    <div ref={tabRef} className="space-y-6 select-none">
-      <div ref={memoryRef} className="space-y-4">
-        <div>
-          <h3 className="text-lg font-smallcaps text-white mb-3">
-            {editedProfile.is_standard_version ? t('profiles.settings.globalMemoryAllocated') : t('profiles.settings.memoryAllocated')}
-          </h3>
-          <Card
-            variant="flat"
-            className="p-4 border border-white/10 bg-black/20"
+    <div ref={tabRef} className="space-y-8 select-none">
+      <div ref={memoryRef}>
+        <SettingsSection title={t('profiles.settings.memory')}>
+          <SettingsRow
+            stacked
+            label={editedProfile.is_standard_version ? t('profiles.settings.globalMemoryAllocated') : t('profiles.settings.memoryAllocated')}
+            description={
+              memoryLoading ? undefined : (
+                <>
+                  {t('profiles.settings.recommended')}:{" "}
+                  <span className="cc-num text-fg-2">
+                    {recommendedMaxRam} MB ({(recommendedMaxRam / 1024).toFixed(1)} GB)
+                  </span>
+                  {editedProfile.is_standard_version && (
+                    <span className="block">{t('profiles.settings.appliesToAllStandard')}</span>
+                  )}
+                </>
+              )
+            }
           >
-            {(editedProfile.is_standard_version && (isLoadingGlobalMemory || !globalMemorySettings)) || !isSystemRamLoaded ? (
-              <div className="flex items-center justify-center py-8">
-                <Icon icon="svg-spinners:ring-resize" className="w-6 h-6 text-white mr-3" />
-                <span className="text-white font-smallcaps">
-                  {t('profiles.settings.loadingSettings')}
-                </span>
+            {memoryLoading ? (
+              <div className="flex items-center gap-2 h-12 text-[12px] text-fg-3">
+                <Loader2 size={14} strokeWidth={1.75} className="animate-spin" />
+                {t('profiles.settings.loadingSettings')}
               </div>
             ) : (
-              <>
-                <RangeSlider
-                  value={tempRamMb}
-                  onChange={(value) => {
-                    setTempRamMb(value);
-                    // For standard profiles, save to global settings immediately
-                    if (editedProfile.is_standard_version) {
-                      handleMemoryChange(value);
-                    }
-                  }}
-                  min={512}
-                  max={systemRam}
-                  step={512}
-                  valueLabel={`${tempRamMb} MB (${(tempRamMb / 1024).toFixed(1)} GB)`}
-                  minLabel="512 MB"
-                  maxLabel={`${systemRam} MB`}
-                  variant="flat"
-                  recommendedRange={[4096, 8192]}
-                  unit="MB"
-                />
-                <div className="mt-3 text-xs text-white/70 tracking-wide font-minecraft">
-                  {t('profiles.settings.recommended')}: {recommendedMaxRam} MB (
-                  {(recommendedMaxRam / 1024).toFixed(1)} GB)
-                  {editedProfile.is_standard_version && (
-                    <div className="mt-1 text-accent font-minecraft">
-                      {t('profiles.settings.appliesToAllStandard')}
-                    </div>
-                  )}
-                </div>
-              </>
+              <RangeSlider
+                value={tempRamMb}
+                onChange={(value) => {
+                  setTempRamMb(value);
+                  // For standard profiles, save to global settings immediately
+                  if (editedProfile.is_standard_version) {
+                    handleMemoryChange(value);
+                  }
+                }}
+                min={512}
+                max={systemRam}
+                step={512}
+                valueLabel={`${tempRamMb} MB (${(tempRamMb / 1024).toFixed(1)} GB)`}
+                minLabel="512 MB"
+                maxLabel={`${systemRam} MB`}
+                variant="flat"
+                recommendedRange={[4096, 8192]}
+                unit="MB"
+              />
             )}
-          </Card>
-        </div>
+          </SettingsRow>
+        </SettingsSection>
       </div>
 
-      <div ref={javaInstallRef} className="space-y-4">
-        <div>
-
-          <div className="mb-3">
-            <Checkbox
-              checked={useCustomJava}
-              onChange={(e) => handleCustomJavaToggle(e.target.checked)}
-              label={t('profiles.settings.customJavaInstallation')}
-              className="text-base"
-              variant="flat"
-            />
-          </div>
-
-          {!useCustomJava && (
-            <div className="mt-3">
-              <div className="text-base text-white font-smallcaps mb-2 tracking-wide select-none">
-                {t('profiles.settings.usingDefaultJava')}
-              </div>
-              <div className="text-xs text-white/70 font-minecraft break-all lowercase tracking-wide select-none">
-                {t('profiles.settings.defaultJavaDescription')}
-              </div>
-            </div>
-          )}
+      <div ref={javaInstallRef}>
+        <SettingsSection title={t('profiles.settings.java')}>
+          <SettingsRow
+            label={t('profiles.settings.customJavaInstallation')}
+            description={useCustomJava ? undefined : t('profiles.settings.defaultJavaDescription')}
+          >
+            <ToggleSwitch checked={useCustomJava} onChange={(checked) => handleCustomJavaToggle(checked)} />
+          </SettingsRow>
 
           {useCustomJava && (
-            <div className="mt-3 space-y-4">
-              {isDetectingJava && (
-                <div className="flex items-center text-white/70 font-smallcaps">
-                  <Icon
-                    icon="svg-spinners:ring-resize"
-                    className="w-5 h-5 mr-2"
-                  />
-                  <span>{t('profiles.settings.detectingJava')}</span>
-                </div>
-              )}
-
-              <div>
-                <label
-                  htmlFor="custom-java-path-input"
-                  className="block text-xs text-white/70 font-minecraft mt-3 mb-2 tracking-wide"
-                >
-                  {t('profiles.settings.manualJavaPath')}
-                </label>
-                <div className="flex gap-3">
+            <SettingsRow stacked label={t('profiles.settings.manualJavaPath')} htmlFor="custom-java-path-input">
+              <div className="flex gap-2">
+                <div className="flex-1 min-w-0">
                   <Input
                     id="custom-java-path-input"
                     value={customJavaPathInput}
                     onChange={(e) => handleJavaPathInputChange(e.target.value)}
                     placeholder={t('placeholders.java_path')}
-                    className="flex-1 text-base py-3"
+                    className="font-mono text-[12px]"
                     variant="flat"
                   />
-                  <Button
-                    variant="secondary"
-                    size="md"
-                    onClick={browseForJavaPath}
-                    shadowDepth="short"
-                    icon={
-                      <Icon
-                        icon="solar:folder-with-files-bold"
-                        className="w-5 h-5 text-white"
-                      />
-                    }
-                    className="text-base"
-                    aria-label={t('profiles.settings.browse_java')}
-                  >
-                    {t('profiles.settings.browse')}
-                  </Button>
                 </div>
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={browseForJavaPath}
+                  icon={<FolderOpen size={15} strokeWidth={1.75} />}
+                  aria-label={t('profiles.settings.browse_java')}
+                >
+                  {t('profiles.settings.browse')}
+                </Button>
               </div>
 
+              {isDetectingJava && (
+                <div className="flex items-center gap-2 mt-3 text-[12px] text-fg-3">
+                  <Loader2 size={14} strokeWidth={1.75} className="animate-spin" />
+                  {t('profiles.settings.detectingJava')}
+                </div>
+              )}
+
               {detectedJavaInstallations.length > 0 && !isDetectingJava && (
-                <div className="space-y-2 pt-2">
-                  <h4 className="text-xs text-white/70 font-minecraft mb-2 tracking-wide">
-                    {t('profiles.settings.detectedJavaInstallations')}
-                  </h4>
-                  <div className="max-h-40 overflow-y-auto custom-scrollbar space-y-1 p-2 bg-black/10 rounded-lg">
-                    {detectedJavaInstallations.map((java) => (
-                      <button
-                        key={java.path}
-                        onClick={() => handleDetectedJavaListItemClick(java)}
-                        title={java.path}
-                        className={cn(
-                          "w-full text-left p-2 border transition-all duration-150 font-minecraft text-xs rounded-md",
-                          customJavaPathInput === java.path
-                            ? "bg-accent/30 border-accent text-white"
-                            : "bg-black/20 border-white/10 hover:bg-black/30 hover:border-white/20 text-white/80",
-                        )}
-                        style={
-                          customJavaPathInput === java.path
-                            ? {
-                                borderColor: accentColor.value,
-                                backgroundColor: `${accentColor.value}20`,
-                              }
-                            : {}
-                        }
-                      >
-                        <span className="block truncate">{java.path}</span>
-                        <span className="block text-xs opacity-70 font-minecraft truncate">
-                          (v{java.major_version} - {java.vendor} -{" "}
-                          {java.architecture})
-                        </span>
-                      </button>
-                    ))}
+                <div className="mt-4">
+                  <div className="cc-eyebrow mb-1.5">{t('profiles.settings.detectedJavaInstallations')}</div>
+                  <div
+                    className="max-h-44 overflow-y-auto custom-scrollbar border border-line divide-y divide-line bg-s1"
+                    style={{ borderRadius: "var(--r-md)" }}
+                  >
+                    {detectedJavaInstallations.map((java) => {
+                      const isSelected = customJavaPathInput === java.path;
+                      return (
+                        <button
+                          key={java.path}
+                          type="button"
+                          onClick={() => handleDetectedJavaListItemClick(java)}
+                          title={java.path}
+                          aria-pressed={isSelected}
+                          className={cn(
+                            "w-full flex items-center gap-3 px-3 h-11 text-left transition-colors duration-fast",
+                            isSelected ? "bg-s3" : "hover:bg-s2",
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "cc-num text-[11px] w-9 flex-shrink-0 text-center py-0.5 border",
+                              isSelected ? "border-line-3 text-fg" : "border-line-2 text-fg-2",
+                            )}
+                            style={{ borderRadius: "var(--r-sm)" }}
+                          >
+                            {java.major_version}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className={cn("block cc-num text-[12px] truncate", isSelected ? "text-fg" : "text-fg-2")}>
+                              {java.path}
+                            </span>
+                            <span className="block text-[11px] text-fg-3 truncate">
+                              {java.vendor} · <span className="cc-num">{java.architecture}</span>
+                            </span>
+                          </span>
+                          {isSelected && <Check size={14} strokeWidth={2} className="text-fg-2 flex-shrink-0" />}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
 
-              <Button
-                variant="default"
-                size="md"
-                onClick={() => testCustomJavaPath()}
-                disabled={isValidatingJavaPath || !customJavaPathInput}
-                icon={
-                  isValidatingJavaPath ? (
-                    <Icon
-                      icon="svg-spinners:ring-resize"
-                      className="w-5 h-5"
-                    />
-                  ) : (
-                    <Icon icon="solar:test-tube-bold" className="w-5 h-5" />
-                  )
-                }
-                className="text-base mt-2 w-full sm:w-auto"
-              >
-                {isValidatingJavaPath ? t('profiles.settings.testing') : t('profiles.settings.testAndUsePath')}
-              </Button>
-            </div>
+              <div className="mt-4">
+                <Button
+                  variant="default"
+                  size="md"
+                  onClick={() => testCustomJavaPath()}
+                  disabled={isValidatingJavaPath || !customJavaPathInput}
+                  icon={
+                    isValidatingJavaPath ? (
+                      <Loader2 size={15} strokeWidth={1.75} className="animate-spin" />
+                    ) : (
+                      <FlaskConical size={15} strokeWidth={1.75} />
+                    )
+                  }
+                >
+                  {isValidatingJavaPath ? t('profiles.settings.testing') : t('profiles.settings.testAndUsePath')}
+                </Button>
+              </div>
+            </SettingsRow>
           )}
-        </div>
+        </SettingsSection>
       </div>
 
-      <div ref={argsRef} className="space-y-4">
-        <div>
-
-        <div className="mb-3">
-          <Checkbox
-            checked={useCustomArgs}
-            onChange={(e) => handleCustomArgsToggle(e.target.checked)}
+      <div ref={argsRef}>
+        <SettingsSection>
+          <SettingsRow
             label={editedProfile.is_standard_version ? t('profiles.settings.globalCustomJavaArgs') : t('profiles.settings.customJavaArgs')}
-            className="text-base"
-            variant="flat"
-            disabled={editedProfile.is_standard_version && isLoadingGlobalJvmArgs}
-          />
-        </div>
-
-        {useCustomArgs && (
-          <div className="custom-args-textarea">
-            {editedProfile.is_standard_version && isLoadingGlobalJvmArgs ? (
-              <div className="flex items-center justify-center py-8">
-                <Icon icon="svg-spinners:ring-resize" className="w-6 h-6 text-white mr-3" />
-                <span className="text-white font-smallcaps">{t('profiles.settings.loadingSettings')}</span>
-              </div>
-            ) : (
+            description={
               <>
+                {t('profiles.settings.javaArgsHint')}
+                {editedProfile.is_standard_version && (
+                  <span className="block">{t('profiles.settings.appliesToAllStandard')}</span>
+                )}
+              </>
+            }
+          >
+            <ToggleSwitch
+              checked={useCustomArgs}
+              onChange={(checked) => handleCustomArgsToggle(checked)}
+              disabled={editedProfile.is_standard_version && isLoadingGlobalJvmArgs}
+            />
+          </SettingsRow>
+
+          {useCustomArgs && (
+            <div className="custom-args-textarea py-3.5">
+              {editedProfile.is_standard_version && isLoadingGlobalJvmArgs ? (
+                <div className="flex items-center gap-2 h-12 text-[12px] text-fg-3">
+                  <Loader2 size={14} strokeWidth={1.75} className="animate-spin" />
+                  {t('profiles.settings.loadingSettings')}
+                </div>
+              ) : (
                 <SearchStyleTextArea
                   value={editedProfile.is_standard_version
                     ? (globalJvmArgs || "")
                     : (editedProfile.settings?.custom_jvm_args || "")}
                   onChange={(e) => handleJavaArgsChange(e.target.value)}
                   placeholder={t('profiles.settings.enterJavaArgs')}
-                  minHeight="100px"
+                  className="font-mono text-[12px]"
+                  minHeight="88px"
                 />
-                <p className="mt-2 text-xs text-white/50 font-minecraft tracking-wide">
-                  {t('profiles.settings.javaArgsHint')}
-                  {editedProfile.is_standard_version && (
-                    <span className="block mt-1 text-accent">
-                      {t('profiles.settings.appliesToAllStandard')}
-                    </span>
-                  )}
-                </p>
-              </>
-            )}
-          </div>
-        )}
+              )}
+            </div>
+          )}
+        </SettingsSection>
       </div>
-    </div>
     </div>
   );
 }

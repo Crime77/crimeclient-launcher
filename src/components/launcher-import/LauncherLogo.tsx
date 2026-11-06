@@ -3,7 +3,6 @@
 import { Icon } from "@iconify/react";
 
 import { launcherIcon } from "../../lib/launcher-meta";
-import { useThemeStore } from "../../store/useThemeStore";
 import type { ExternalLauncherId } from "../../types/launcherImport";
 
 interface LauncherLogoProps {
@@ -13,22 +12,13 @@ interface LauncherLogoProps {
 }
 
 export function LauncherLogo({ launcher, size = "md", className = "" }: LauncherLogoProps) {
-  const accentColor = useThemeStore((state) => state.accentColor);
-  const box = size === "sm" ? "h-8 w-8" : "h-11 w-11";
+  const box = size === "sm" ? "h-7 w-7 rounded-sm" : "h-10 w-10 rounded-md";
 
   return (
     <div
-      className={`${box} flex flex-shrink-0 items-center justify-center overflow-hidden rounded-lg border ${className}`}
-      style={{
-        backgroundColor: `${accentColor.value}1a`,
-        borderColor: `${accentColor.value}4d`,
-      }}
+      className={`${box} flex flex-shrink-0 items-center justify-center overflow-hidden border border-line bg-s3 ${className}`}
     >
-      <Icon
-        icon={launcherIcon(launcher)}
-        className="h-1/2 w-1/2"
-        style={{ color: accentColor.value }}
-      />
+      <Icon icon={launcherIcon(launcher)} className="h-1/2 w-1/2 text-fg-2" />
     </div>
   );
 }

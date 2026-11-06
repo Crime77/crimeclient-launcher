@@ -1,19 +1,15 @@
 "use client";
 
 import type React from "react";
-import { forwardRef, useRef, useState } from "react";
+import { forwardRef, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Icon } from "@iconify/react";
+import { Search, X } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { useThemeStore } from "../../store/useThemeStore";
-import { gsap } from "gsap";
-import { ThemedSurface } from "./ThemedSurface";
-import { 
-  getSizeClasses,
-  getBorderRadiusClass,
+import {
   getAccessibilityProps,
   type ComponentSize,
-  type ComponentVariant 
+  type ComponentVariant
 } from "./design-system";
 
 interface SearchInputProps {
@@ -29,6 +25,25 @@ interface SearchInputProps {
   label?: string;
   description?: string;
   error?: string;
+}
+
+// heights 28 / 32 / 36 / 40 / 44 px
+const HEIGHT: Record<ComponentSize, { box: string; text: string; icon: number }> = {
+  xs: { box: "h-7 pl-2 pr-1", text: "text-xs", icon: 13 },
+  sm: { box: "h-8 pl-2.5 pr-1", text: "text-[13px]", icon: 14 },
+  md: { box: "h-9 pl-3 pr-1.5", text: "text-[13px]", icon: 15 },
+  lg: { box: "h-10 pl-3 pr-1.5", text: "text-[13px]", icon: 15 },
+  xl: { box: "h-11 pl-3.5 pr-2", text: "text-sm", icon: 16 },
+};
+
+/** A thin spinning ring, the loading state of the search field. */
+function Ring({ size }: { size: number }) {
+  return (
+    <span
+      className="block rounded-full border-[1.5px] border-line-3 border-t-fg-2 animate-spin"
+      style={{ width: size - 2, height: size - 2 }}
+    />
+  );
 }
 
 export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
@@ -50,21 +65,18 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
     ref,
   ) => {
     const { t } = useTranslation();
-    const [isFocused, setIsFocused] = useState(false);
-    const [isHovered, setIsHovered] = useState(false);
-    const [isPressed, setIsPressed] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-    const accentColor = useThemeStore((state) => state.accentColor);
-    const isBackgroundAnimationEnabled = useThemeStore((state) => state.isBackgroundAnimationEnabled);
-    const sizeClasses = getSizeClasses(size, "input");
-    const radiusClass = getBorderRadiusClass();
+    const borderRadius = useThemeStore((state) => state.borderRadius);
     const accessibilityProps = getAccessibilityProps({
       label,
       description,
       error,
       disabled
-    });    const mergedRef = (node: HTMLInputElement) => {
+    });
+    const dims = HEIGHT[size] ?? HEIGHT.md;
+
+    const mergedRef = (node: HTMLInputElement) => {
       if (ref) {
         if (typeof ref === "function") {
           ref(node);
@@ -73,64 +85,6 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
         }
       }
       inputRef.current = node;
-    };
-
-    const handleFocus = () => {
-      if (disabled) return;
-      setIsFocused(true);
-    };
-
-    const handleBlur = () => {
-      if (disabled) return;
-      setIsFocused(false);
-    };
-
-    const handleMouseDown = () => {
-      if (disabled) return;
-      setIsPressed(true);
-    };
-
-    const handleMouseUp = () => {
-      if (disabled) return;
-      setIsPressed(false);
-    };
-
-    const handleMouseEnter = () => {
-      if (disabled) return;
-      setIsHovered(true);
-
-      if (
-        containerRef.current &&
-        isBackgroundAnimationEnabled &&
-        variant === "3d"
-      ) {
-        gsap.to(containerRef.current, {
-          boxShadow: `0 14px 34px -18px rgba(0,0,0,0.85)`,
-          duration: 0.2,
-          ease: "power2.out",
-        });
-      }
-    };
-
-    const handleMouseLeave = () => {
-      if (disabled) return;
-      setIsHovered(false);
-
-      if (
-        containerRef.current &&
-        isBackgroundAnimationEnabled &&
-        variant === "3d"
-      ) {
-        gsap.to(containerRef.current, {
-          boxShadow: `0 10px 30px -18px rgba(0,0,0,0.8)`,
-          duration: 0.2,
-          ease: "power2.out",
-        });
-      }
-
-      if (isPressed) {
-        handleMouseUp();
-      }
     };
 
     const handleClear = () => {
@@ -148,232 +102,75 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
       if (e.key === "Enter" && onSearch) {
         onSearch(value);
       }
-    };    const sizeStyles = {
-      sm: {
-        container: "h-[42px]",
-        padding: "px-6",
-        text: "text-sm",
-        icon: "w-5 h-5",
-      },
-      md: {
-        container: "h-[50px]",
-        padding: "px-8",
-        text: "text-base",
-        icon: "w-6 h-6",
-      },
-      lg: {
-        container: "h-[58px]",
-        padding: "px-10",
-        text: "text-lg",
-        icon: "w-7 h-7",
-      },
-    };    const getVariantColors = () => {
-      return {
-        main: accentColor.value,
-        light: accentColor.hoverValue,
-        dark: accentColor.value,
-        text: "#ffffff",
-      };
     };
 
-    const colors = getVariantColors();    const getBackgroundColor = () => {
+    const variantClasses = (() => {
       if (variant === "minimal") {
-        return "transparent";
+        return "bg-transparent border-0 border-b border-line-2 focus-within:border-line-3 rounded-none";
       }
+      if (variant === "filled") {
+        return "bg-s2 border border-transparent focus-within:border-line-3";
+      }
+      if (error) {
+        return "bg-s2 border border-err/50 focus-within:border-err/70";
+      }
+      return "bg-s2 border border-line [&:hover:not(:focus-within)]:border-line-2 focus-within:border-line-3";
+    })();
 
-      return isHovered || isFocused ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.045)";
-    };    const getBorderColor = () => {
-      if (variant === "minimal") return "transparent";
-
-      return isFocused ? colors.main : "rgba(255,255,255,0.09)";
-    };
-
-    const getBorderClasses = () => {
-      if (variant === "minimal")
-        return "border-b-2 border-white/30 rounded-none";
-      if (variant === "filled") return "border-none rounded-[var(--border-radius)]";
-      if (variant === "3d") return "border rounded-[var(--border-radius)]";
-      return "border rounded-[var(--border-radius)]";
-    };    const getBoxShadow = () => {
-      if (variant === "minimal" || variant === "filled" || variant !== "3d")
-        return "none";
-
-      return isHovered || isFocused
-        ? `0 0 0 3px ${colors.main}26`
-        : "none";
-    };    const standardInputContent = (
-      <>
-        
-
-        <div className="flex items-center justify-center w-full h-full gap-2">
-          <div
-            className={cn(
-              "flex items-center justify-center transition-transform duration-200",
-              sizeStyles[size].icon,
-            )}
-            style={{
-              transform: "none",
-            }}
-          >
-            {loading ? (
-              <Icon
-                icon="svg-spinners:ring-resize"
-                className="text-white"
-              />
-            ) : (
-              <Icon icon="solar:magnifer-bold" className="text-white" />
-            )}
-          </div>
-
-          <input
-            ref={mergedRef}
-            type="text"
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={placeholder}
-            disabled={disabled}
-            className={cn(
-              "flex-1 h-full bg-transparent border-none outline-none text-white font-smallcaps placeholder:text-white/50 truncate",
-              sizeStyles[size].text,
-            )}
-            style={{
-              lineHeight: "1.1",
-              paddingTop: "0",
-              paddingBottom: "0",
-            }}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
-            spellCheck={false}
-            autoComplete="off"
-          />
-
-          {value && !disabled && (
-            <button
-              type="button"
-              onClick={handleClear}
-              className={cn(
-                "flex items-center justify-center transition-transform duration-200",
-                "text-white/70 hover:text-white",
-                sizeStyles[size].icon,
-              )}
-              style={{
-                transform: "none",
-              }}
-              aria-label={t('common.clear_search')}
-            >
-              <Icon icon="lucide:x" />
-            </button>
-          )}
-        </div>
-      </>    );
-
-    if (variant === "themed-surface") {
-      return (
-        <ThemedSurface className={cn("w-full", className)}>
-          <div
-            className={cn(
-              "flex items-center w-full h-full",
-              sizeStyles[size].container,
-              "w-full",
-            )}
-            onClick={() => inputRef.current?.focus()}
-          >
-            <div className="flex items-center justify-between w-full h-full px-4">
-              <div className="flex items-center gap-3">
-                <div
-                  className={cn(
-                    "flex items-center justify-center flex-shrink-0",
-                    sizeStyles[size].icon,
-                  )}
-                >
-                  {loading ? (
-                    <Icon
-                      icon="svg-spinners:ring-resize"
-                      className="text-white"
-                    />
-                  ) : (
-                    <Icon icon="solar:magnifer-bold" className="text-white" />
-                  )}
-                </div>
-
-                <input
-                  ref={mergedRef}
-                  type="text"
-                  value={value}
-                  onChange={(e) => onChange(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder={placeholder}
-                  disabled={disabled}
-                  className={cn(
-                    "bg-transparent border-none outline-none text-white font-smallcaps placeholder:text-white/50 truncate",
-                    sizeStyles[size].text,
-                  )}
-                  style={{
-                    lineHeight: "1.1",
-                    paddingTop: "0",
-                    paddingBottom: "0",
-                  }}
-                  spellCheck={false}
-                  autoComplete="off"
-                />
-              </div>
-
-              {value && !disabled && (
-                <button
-                  type="button"
-                  onClick={handleClear}
-                  className={cn(
-                    "flex items-center justify-center flex-shrink-0",
-                    "text-white/70 hover:text-white transition-colors duration-200",
-                    sizeStyles[size].icon,
-                  )}
-                  aria-label={t('common.clear_search')}
-                >
-                  <Icon icon="lucide:x" />
-                </button>
-              )}
-            </div>
-          </div>
-        </ThemedSurface>
-      );
-    }    return (
+    return (
       <div
         ref={containerRef}
         className={cn(
-          "font-smallcaps relative overflow-hidden backdrop-blur-md",
-          "text-white tracking-wider",
-          "flex items-center justify-center w-full",
-          "text-shadow-sm",
-          getBorderClasses(),
-          "focus-within:outline-none focus-within:ring-2 focus-within:ring-white/30 focus-within:ring-offset-1 focus-within:ring-offset-black/20",
+          "group relative flex items-center gap-2 w-full overflow-hidden cursor-text",
+          "transition-colors duration-fast ease-out",
+          variantClasses,
           disabled && "opacity-50 cursor-not-allowed",
-          sizeStyles[size].container,
-          sizeStyles[size].padding,
+          dims.box,
           className,
         )}
-        style={{
-          backgroundColor: getBackgroundColor(),
-          borderColor: getBorderColor(),
-          borderBottomColor:
-            variant === "minimal"
-              ? "transparent"
-              : isHovered || isFocused
-                ? colors.light
-                : colors.dark,
-          boxShadow: getBoxShadow(),
-          filter:
-            (isHovered || isFocused) && !disabled
-              ? "brightness(1.1)"
-              : "brightness(1)",
-        }}
+        style={variant === "minimal" ? undefined : { borderRadius: borderRadius === 0 ? 0 : "var(--r-md)" }}
         onClick={() => inputRef.current?.focus()}
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
       >
-        {standardInputContent}
+        <span className="flex items-center justify-center flex-shrink-0 text-fg-3 group-focus-within:text-fg-2 transition-colors duration-fast">
+          {loading ? <Ring size={dims.icon} /> : <Search size={dims.icon} strokeWidth={1.75} />}
+        </span>
+
+        <input
+          ref={mergedRef}
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          disabled={disabled}
+          className={cn(
+            "flex-1 min-w-0 h-full bg-transparent border-none outline-none text-fg placeholder:text-fg-4 truncate",
+            dims.text,
+            disabled && "cursor-not-allowed",
+          )}
+          style={{
+            lineHeight: "1.1",
+            paddingTop: "0",
+            paddingBottom: "0",
+          }}
+          spellCheck={false}
+          autoComplete="off"
+          {...accessibilityProps}
+        />
+
+        {value && !disabled && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleClear();
+            }}
+            className="flex items-center justify-center w-6 h-6 flex-shrink-0 rounded-sm text-fg-3 hover:text-fg hover:bg-s3 transition-colors duration-fast"
+            aria-label={t('common.clear_search')}
+          >
+            <X size={14} strokeWidth={1.75} />
+          </button>
+        )}
       </div>
     );
   },
