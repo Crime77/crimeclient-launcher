@@ -1,4 +1,23 @@
 {
+  "app": {
+    "windows": [
+      {
+        "fullscreen": false,
+        "resizable": true,
+        "title": "CrimeClient Launcher",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 1080,
+        "minHeight": 690,
+        "decorations": false,
+        "transparent": false,
+        "backgroundColor": "#0e0e0f",
+        "center": true,
+        "visible": false,
+        "shadow": false
+      }
+    ]
+  },
   "bundle": {
     "targets": [
       "appimage",

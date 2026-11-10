@@ -135,7 +135,14 @@ use commands::java_command::{
 #[tokio::main]
 async fn main() {
     #[cfg(target_os = "linux")]
-    std::env::set_var("__NV_DISABLE_EXPLICIT_SYNC", "1");
+    {
+        std::env::set_var("__NV_DISABLE_EXPLICIT_SYNC", "1");
+        // WebKitGTK's DMA-BUF renderer flickers and leaves parts of the window unpainted on many NVIDIA and
+        // Wayland setups (seen on NixOS). Off unless the user chose otherwise; must be set before GTK starts.
+        if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
+            std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+        }
+    }
 
     if let Err(e) = logging::setup_logging().await {
         eprintln!("FEHLER: Logging konnte nicht initialisiert werden: {}", e);
