@@ -20,7 +20,7 @@
 
   <launchable type="desktop-id">de.crime77.CrimeClientLauncher.desktop</launchable>
 
-  <url type="homepage">https://crime77.duckdns.org/</url>
+  <url type="homepage">https://crimeclient.duckdns.org/</url>
   <url type="contribute">https://github.com/Crime77/crimeclient-launcher</url>
   <url type="bugtracker">https://discord.gg/aWetZdEnce</url>
 

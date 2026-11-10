@@ -1,10 +1,10 @@
 # CrimeClient Launcher
 
-Der Launcher für [CrimeClient](https://crime77.duckdns.org/client/), den kostenlosen Fabric-Client für Minecraft 26.3.
+Der Launcher für [CrimeClient](https://crimeclient.duckdns.org/), den kostenlosen Fabric-Client für Minecraft 26.3.
 Anmelden mit dem Microsoft-Konto, Profil wählen, Spielen drücken: Das CrimeClient-Modpack ist schon eingerichtet.
 Dazu ein Shop, in dem man Shards für Cosmetics ausgibt, Skin-Verwaltung und Mods von Modrinth.
 
-**Download:** [crime77.duckdns.org/client](https://crime77.duckdns.org/client/) (Windows 10/11, Beta)
+**Download:** [crimeclient.duckdns.org](https://crimeclient.duckdns.org/) (Windows 10/11, Beta)
 
 ## Herkunft und Lizenz
 

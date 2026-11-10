@@ -25,7 +25,7 @@ pub const HTTP_CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 pub const CRIMECLIENT_DISCORD_URL: &str = "https://discord.gg/aWetZdEnce";
 
 /// Download page of the CrimeClient mod (the Discord activity's button).
-pub const CRIMECLIENT_DOWNLOAD_URL: &str = "https://crime77.duckdns.org/client/";
+pub const CRIMECLIENT_DOWNLOAD_URL: &str = "https://crimeclient.duckdns.org/";
 
 /// HTTP Client with launcher agent
 pub static HTTP_CLIENT: Lazy<Client> = Lazy::new(|| {
