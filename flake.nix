@@ -18,9 +18,9 @@
       lib = nixpkgs.lib;
 
       release = {
-        version = "0.3.1";
-        url = "https://crime77.duckdns.org/client/launcher/CrimeClient-Launcher-0.3.1-amd64.deb";
-        hash = "sha256-xLV+J8gZ+jWFyPJb9+YWCiP9mmoChZU6OIaS2+kC87c=";
+        version = "0.3.2";
+        url = "https://crime77.duckdns.org/client/launcher/CrimeClient-Launcher-0.3.2-amd64.deb";
+        hash = "sha256-NBg5NZSn6M5/BctlAMk4LQnz/VwWWj0xAiNf2PZ9jHc=";
       };
 
       meta = {
