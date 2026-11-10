@@ -442,6 +442,13 @@ async fn main() {
                             auto_check_updates_enabled = false;
                         }
 
+                        // ...and when started from the Nix flake (flake.nix sets it): the launcher sits read-only in the
+                        // Nix store, a new version comes with the next `nix run`.
+                        if std::env::var_os("CRIMECLIENT_NO_SELF_UPDATE").is_some() {
+                            info!("CRIMECLIENT_NO_SELF_UPDATE is set (Nix flake) - disabling automatic updates.");
+                            auto_check_updates_enabled = false;
+                        }
+
                         if auto_check_updates_enabled {
                             trace!("Initiating application update check (Channel determined by config: Beta={})...", check_beta_channel);
                             updater_utils::check_for_updates(state_init_app_handle.clone(), check_beta_channel, updater_window.clone()).await;

@@ -4,7 +4,19 @@ Der Launcher für [CrimeClient](https://crimeclient.duckdns.org/), den kostenlos
 Anmelden mit dem Microsoft-Konto, Profil wählen, Spielen drücken: Das CrimeClient-Modpack ist schon eingerichtet.
 Dazu ein Shop, in dem man Shards für Cosmetics ausgibt, Skin-Verwaltung und Mods von Modrinth.
 
-**Download:** [crimeclient.duckdns.org](https://crimeclient.duckdns.org/) (Windows 10/11, Beta)
+**Download:** [crimeclient.duckdns.org](https://crimeclient.duckdns.org/) (Windows 10/11 und Linux, Beta)
+
+**NixOS:** ohne Installation starten mit
+
+```bash
+nix run github:Crime77/crimeclient-launcher
+```
+
+Dauerhaft geht es mit `nix profile install github:Crime77/crimeclient-launcher` oder in der NixOS-Konfiguration über
+`inputs.crimeclient-launcher.packages.x86_64-linux.default`. Die Flake nimmt das veröffentlichte Linux-Paket und startet
+es in einer FHS-Umgebung, damit auch Java, die Spiel-Bibliotheken und CrimeClient Rust laufen, die der Launcher
+herunterlädt. Neue Versionen kommen über Nix (`nix run --refresh …`), nicht über den Launcher selbst. Nach einem Release
+setzt `python tools/update_flake.py <version>` Version und Hash in `flake.nix`.
 
 ## Herkunft und Lizenz
 
