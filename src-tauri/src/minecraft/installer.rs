@@ -670,6 +670,15 @@ pub async fn install_minecraft_version(
                     pack_id
                 );
         }
+        // CrimeClient Insider: ask for the newest Insider pack too (the account of this launch must have access,
+        // commands/insider_command.rs), so a new Insider build arrives without restarting the launcher
+        if let Some(creds) = credentials.as_ref() {
+            let effective = crate::commands::pack_rollout_commands::resolve_effective_pack_id(pack_id).await;
+            if crate::commands::insider_command::insider_pack_id().await.as_deref() == Some(effective.as_str()) {
+                let checked = crate::commands::insider_command::refresh_account(creds, false).await;
+                info!("[Insider] Launching pack '{}', access: {}", effective, checked.access);
+            }
+        }
         // No need to clone state here, it's still valid in this scope
         // Always attempt to get the config, which will be the latest if updated, or cached otherwise.
         Some(state.norisk_pack_manager.get_config().await)
@@ -718,7 +727,8 @@ pub async fn install_minecraft_version(
 
             let norisk_downloader_service =
                 NoriskPackDownloadService::with_concurrency(launcher_config.concurrent_downloads)
-                    .with_stats(summary.mods.clone());
+                    .with_stats(summary.mods.clone())
+                    .with_account(credentials.clone());
             let loader_str = modloader_enum.as_str();
             let pack_download_start = Instant::now();
             match summary_phase!(summary, format!("pack mods '{}'", selected_pack_id), {
