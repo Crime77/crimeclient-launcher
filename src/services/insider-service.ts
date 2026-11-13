@@ -11,6 +11,8 @@ export interface InsiderStatus {
   profile_id: string | null;
   /** the backend's pack or profile lists changed with this check */
   changed: boolean;
+  /** the check could not be done (Mojang refused the sign-in or could not be reached): ask again later */
+  retry: boolean;
 }
 
 /** What this PC knows about the active account, without asking the API. */
@@ -57,21 +59,51 @@ let running: Promise<void> | null = null;
 let again = false;
 
 /**
- * Checks the active account (app start after the normal refresh, every account change): first what this PC knows,
- * at once, then the API. Calls while one runs make it run once more.
+ * After a check that could not be done, ask again after these waits (the backend asks Mojang again at the earliest
+ * a minute after a refusal); a check that works, or the next app start or account change, starts over.
  */
-export function refreshInsiderAccess(): Promise<void> {
+const RETRY_DELAYS_MS = [65_000, 120_000, 300_000, 600_000];
+let retryTimer: ReturnType<typeof setTimeout> | null = null;
+let retries = 0;
+
+function scheduleRetry(retry: boolean): void {
+  if (retryTimer) {
+    clearTimeout(retryTimer);
+    retryTimer = null;
+  }
+  if (!retry) {
+    retries = 0;
+    return;
+  }
+  if (retries >= RETRY_DELAYS_MS.length) return;
+  const delay = RETRY_DELAYS_MS[retries++];
+  retryTimer = setTimeout(() => {
+    retryTimer = null;
+    void refreshInsiderAccess(true);
+  }, delay);
+}
+
+/**
+ * Checks the active account (app start after the normal refresh, every account change): first what this PC knows,
+ * at once, then the API. Calls while one runs make it run once more. `fromRetry` keeps counting the retries.
+ */
+export function refreshInsiderAccess(fromRetry = false): Promise<void> {
+  if (!fromRetry) retries = 0;
   if (running) {
     again = true;
     return running;
   }
   running = (async () => {
     try {
+      let retry = false;
       do {
         again = false;
         if (take(await getInsiderStatus())) await reloadProfiles();
-        if (take(await refreshInsider())) await reloadProfiles();
+        const status = await refreshInsider();
+        retry = status.retry;
+        if (take(status)) await reloadProfiles();
       } while (again);
+      scheduleRetry(retry);
     } catch (error) {
       console.error("[Insider] Failed to check the access:", error);
     } finally {

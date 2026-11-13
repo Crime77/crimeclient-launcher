@@ -3,7 +3,9 @@
 //! (crime_store_command.rs): 401 means sign in again, 403 means this account has no access.
 //!
 //! The last answer per account is kept in `crimeclient_insider.json` in the launcher folder, so the profile stays
-//! there while the API can't be reached. Its pack and standard profile are merged into the lists after every fetch
+//! there while the API can't be reached. When the check can't be done (Mojang refuses the sign-in, as it does with
+//! 429 after a few in a row), the public Insider list (`GET insiders`, `GET ranks`) decides instead, as long as this
+//! PC knows the pack, and the UI asks again later (`InsiderStatus.retry`). Its pack and standard profile are merged into the lists after every fetch
 //! of modpacks.json and versions.json (norisk_packs_state.rs, norisk_versions_state.rs), so `sync_standard_profiles`
 //! makes the Insider copy just like the public one. The pack stays in the list even when no account has access any
 //! more (otherwise `resolve_and_migrate_pack_id` would clear it from an installed Insider profile), the profile only
@@ -99,6 +101,17 @@ impl InsiderCache {
         let entry = self.accounts.entry(account).or_default();
         entry.access = false;
         entry.checked_ms = now_ms;
+    }
+
+    /// The public list names `account` while its own check could not be done (Mojang refused the sign-in or could
+    /// not be reached): it gets the profile when this PC knows the pack. That only shows it and lets files that are
+    /// already downloaded start; the API still checks every download. Returns whether that gave it access.
+    fn listed_publicly(&mut self, account: Uuid) -> bool {
+        if self.newest().is_none() || self.access(account) {
+            return false;
+        }
+        self.accounts.entry(account).or_default().access = true;
+        true
     }
 
     /// What the pack and profile lists get from this cache; they need merging again when it changes.
@@ -240,7 +253,7 @@ async fn check(account: &Credentials) -> Check {
     };
     if response.status().as_u16() == 401 {
         // token expired or the API lost it: sign in again once
-        let token = match crime_store_command::renew_token(account).await {
+        let token = match crime_store_command::renew_token(account, Some(&token)).await {
             Ok(token) => token,
             Err(e) => return Check::Unknown(format!("sign-in failed: {}", e.message)),
         };
@@ -260,6 +273,34 @@ async fn check(account: &Credentials) -> Check {
         401 | 403 => Check::Denied,
         status => Check::Unknown(format!("insider/launcher answered {status}")),
     }
+}
+
+/// Whether `GET insiders` and `GET ranks` (public, no sign-in) name `account` as an Insider or a dev.
+fn listed_in(insiders: &Value, ranks: &Value, account: Uuid) -> bool {
+    let id = account.to_string();
+    let insider = insiders
+        .get("insiders")
+        .and_then(Value::as_array)
+        .is_some_and(|list| list.iter().filter_map(Value::as_str).any(|uuid| uuid.eq_ignore_ascii_case(&id)));
+    let dev = ranks
+        .get("ranks")
+        .and_then(Value::as_object)
+        .is_some_and(|ranks| ranks.iter().any(|(uuid, rank)| uuid.eq_ignore_ascii_case(&id) && rank == "dev"));
+    insider || dev
+}
+
+/// The public lists for `account`; None when the API can't be read either.
+async fn publicly_listed(account: Uuid) -> Option<bool> {
+    async fn get(path: &str) -> Option<Value> {
+        let response = HTTP_CLIENT.get(format!("{API}/{path}")).send().await.ok()?;
+        if !response.status().is_success() {
+            return None;
+        }
+        response.json::<Value>().await.ok()
+    }
+    let insiders = get("insiders").await?;
+    let ranks = get("ranks").await?;
+    Some(listed_in(&insiders, &ranks, account))
 }
 
 /// Merges the cache into the pack and standard profile lists (and saves them); with `sync` the standard profiles
@@ -286,27 +327,43 @@ pub(crate) struct Refreshed {
     pub access: bool,
     /// the pack or profile list changed
     pub changed: bool,
+    /// the check could not be done (Mojang or the API): worth trying again later
+    pub unknown: bool,
 }
 
 /// Asks the API whether `account` gets the Insider profile, keeps the answer and merges the lists again when they
-/// change (with `sync` also the standard profile copies).
+/// change (with `sync` also the standard profile copies). When the check can't be done, the public Insider list
+/// may still give the account the profile (`InsiderCache::listed_publicly`).
 pub(crate) async fn refresh_account(account: &Credentials, sync: bool) -> Refreshed {
     let _one_at_a_time = REFRESH.lock().await;
     let checked = check(account).await;
+    let public = match &checked {
+        Check::Unknown(_) => publicly_listed(account.id).await,
+        _ => None,
+    };
     let now_ms = chrono::Utc::now().timestamp_millis();
     let (before, after) = update(|cache| match &checked {
         Check::Granted(answer) => cache.granted(account.id, answer.clone(), now_ms),
         Check::Denied => cache.denied(account.id, now_ms),
-        Check::Unknown(_) => {}
+        Check::Unknown(_) => {
+            if public == Some(true) {
+                cache.listed_publicly(account.id);
+            }
+        }
     })
     .await;
     match &checked {
         Check::Granted(answer) => info!("[Insider] {} has access ({})", account.username, answer.pack_id),
         Check::Denied => debug!("[Insider] {} has no access", account.username),
         Check::Unknown(reason) => warn!(
-            "[Insider] Could not check {} ({}), keeping what is known: access {}",
+            "[Insider] Could not check {} ({}), public list: {}, access: {}",
             account.username,
             reason,
+            match public {
+                Some(true) => "listed",
+                Some(false) => "not listed",
+                None => "not readable",
+            },
             after.access(account.id)
         ),
     }
@@ -314,7 +371,7 @@ pub(crate) async fn refresh_account(account: &Credentials, sync: bool) -> Refres
     if changed {
         apply(sync).await;
     }
-    Refreshed { access: after.access(account.id), changed }
+    Refreshed { access: after.access(account.id), changed, unknown: matches!(checked, Check::Unknown(_)) }
 }
 
 /// The pack id of the Insider profile, if this PC knows one.
@@ -356,15 +413,18 @@ pub struct InsiderStatus {
     profile_id: Option<Uuid>,
     /// the pack or profile lists changed with this check, so the UI loads them again
     changed: bool,
+    /// the check could not be done (Mojang refused the sign-in or could not be reached): the UI asks again later
+    retry: bool,
 }
 
-fn status(cache: &InsiderCache, account: Option<Uuid>, changed: bool) -> InsiderStatus {
+fn status(cache: &InsiderCache, account: Option<Uuid>, changed: bool, retry: bool) -> InsiderStatus {
     let newest = cache.newest();
     InsiderStatus {
         access: account.is_some_and(|id| cache.access(id)),
         pack_id: newest.map(|answer| answer.pack_id.clone()),
         profile_id: newest.and_then(InsiderAnswer::profile_id),
         changed,
+        retry,
     }
 }
 
@@ -379,7 +439,7 @@ pub async fn get_insider_status() -> Result<InsiderStatus, CommandError> {
         .into_iter()
         .find(|account| account.active)
         .map(|account| account.id);
-    Ok(status(&snapshot().await, active, false))
+    Ok(status(&snapshot().await, active, false, false))
 }
 
 /// Asks the API whether the active account gets the Insider profile (on app start and every account change).
@@ -393,11 +453,14 @@ pub async fn refresh_insider() -> Result<InsiderStatus, CommandError> {
             None
         }
     };
-    let changed = match &account {
-        Some(account) => refresh_account(account, true).await.changed,
-        None => false,
+    let (changed, retry) = match &account {
+        Some(account) => {
+            let refreshed = refresh_account(account, true).await;
+            (refreshed.changed, refreshed.unknown)
+        }
+        None => (false, false),
     };
-    Ok(status(&snapshot().await, account.map(|account| account.id), changed))
+    Ok(status(&snapshot().await, account.map(|account| account.id), changed, retry))
 }
 
 #[cfg(test)]
@@ -453,7 +516,7 @@ mod tests {
         assert_eq!(insider[0].selected_norisk_pack_id.as_deref(), Some("crimeclient-insider"));
         assert_eq!(versions.profiles.len(), 2);
 
-        let status = status(&cache, Some(b), false);
+        let status = status(&cache, Some(b), false, false);
         assert!(!status.access);
         assert_eq!(status.pack_id.as_deref(), Some("crimeclient-insider"));
         assert_eq!(status.profile_id.map(|id| id.to_string()).as_deref(), Some(PROFILE));
@@ -486,7 +549,40 @@ mod tests {
         merge_versions(&mut versions, &cache);
         assert_eq!(packs.packs.len(), 1);
         assert_eq!(versions.profiles.len(), 1);
-        assert_eq!(status(&cache, Some(Uuid::new_v4()), false).pack_id, None);
+        assert_eq!(status(&cache, Some(Uuid::new_v4()), false, false).pack_id, None);
+    }
+
+    #[test]
+    fn public_lists_name_insiders_and_devs() {
+        let (insider, dev, vip, other) = (Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4());
+        let insiders = json!({ "insiders": [insider.to_string().to_uppercase()] });
+        let ranks = json!({ "ranks": { dev.to_string(): "dev", vip.to_string(): "vip" } });
+        assert!(listed_in(&insiders, &ranks, insider));
+        assert!(listed_in(&insiders, &ranks, dev));
+        assert!(!listed_in(&insiders, &ranks, vip));
+        assert!(!listed_in(&insiders, &ranks, other));
+        assert!(!listed_in(&json!({}), &json!(null), insider));
+    }
+
+    #[test]
+    fn the_public_list_shows_the_profile_only_when_the_pack_is_known() {
+        let (a, b) = (Uuid::new_v4(), Uuid::new_v4());
+        let mut cache = InsiderCache::default();
+        assert!(!cache.listed_publicly(a), "without a known pack there is nothing to show");
+        assert!(!cache.access(a));
+
+        cache.granted(b, answer(PROFILE), 10);
+        cache.denied(a, 5);
+        assert!(cache.listed_publicly(a));
+        assert!(cache.access(a));
+        assert!(!cache.listed_publicly(a), "already had access");
+        let (mut packs, mut versions) = public_lists();
+        merge_packs(&mut packs, &cache);
+        merge_versions(&mut versions, &cache);
+        assert_eq!(versions.profiles.len(), 2);
+
+        cache.denied(a, 20);
+        assert!(!cache.access(a), "the next real answer of the API wins");
     }
 
     #[test]

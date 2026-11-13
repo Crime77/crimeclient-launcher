@@ -303,7 +303,7 @@ impl NoriskPackDownloadService {
         {
             // the token expired or the API lost it: sign in again once (download_utils reports the status as text)
             Err(e) if e.to_string().contains("returned status 401") => {
-                let token = crime_store_command::renew_token(&account).await.map_err(sign_in_failed)?;
+                let token = crime_store_command::renew_token(&account, Some(&token)).await.map_err(sign_in_failed)?;
                 Self::download_and_verify_file(url, target_path, None, expected_sha256, bearer(&token), stats).await
             }
             result => result,

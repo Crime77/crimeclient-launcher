@@ -88,6 +88,7 @@ function accountsMock(cmd: string, args: { accountId?: string }) {
         pack_id: "crimeclient-insider",
         profile_id: "insider-standard",
         changed: false,
+        retry: false,
       };
   }
   return undefined;

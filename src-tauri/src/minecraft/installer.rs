@@ -673,7 +673,8 @@ pub async fn install_minecraft_version(
         // CrimeClient Insider: ask for the newest Insider pack too (the account of this launch must have access,
         // commands/insider_command.rs), so a new Insider build arrives without restarting the launcher. An account
         // without access may not start it at all, not even from a shortcut or a copy of the profile (without the
-        // API it keeps the access it had at its last check, so Insiders can still play offline).
+        // API it keeps the access it had at its last check, so Insiders can still play offline; when only Mojang
+        // refuses the sign-in, the public Insider list decides).
         let effective = crate::commands::pack_rollout_commands::resolve_effective_pack_id(pack_id).await;
         if crate::commands::insider_command::insider_pack_id().await.as_deref() == Some(effective.as_str()) {
             let access = match credentials.as_ref() {
