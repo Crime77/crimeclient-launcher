@@ -84,7 +84,7 @@ impl NoriskPackManager {
         info!("Fetching latest Norisk packs config from API...");
 
         match NoRiskApi::get_modpacks(norisk_token, is_experimental).await {
-            Ok(new_config) => {
+            Ok(mut new_config) => {
                 debug!(
                     "Successfully fetched {} packs definitions from API.",
                     new_config.packs.len()
@@ -92,6 +92,10 @@ impl NoriskPackManager {
                 {
                     // Scope for the write lock
                     let mut config_guard = self.config.write().await;
+                    // CrimeClient: modpacks.json is public, the Insider pack comes from its own cache (read under the
+                    // lock, so a concurrent Insider check can't be overwritten with an older cache)
+                    let insider = crate::commands::insider_command::snapshot().await;
+                    crate::commands::insider_command::merge_packs(&mut new_config, &insider);
                     *config_guard = new_config;
                 } // Write lock released here
 
@@ -162,6 +166,16 @@ impl NoriskPackManager {
             *config_guard = new_config;
         }
         self.save_config().await // Save the updated config (already handles locking)
+    }
+
+    /// CrimeClient: puts the cached Insider pack (commands/insider_command.rs) into the list and saves it.
+    pub async fn merge_insider(&self) -> Result<()> {
+        {
+            let mut config_guard = self.config.write().await;
+            let insider = crate::commands::insider_command::snapshot().await;
+            crate::commands::insider_command::merge_packs(&mut config_guard, &insider);
+        }
+        self.save_config().await
     }
 
     /// Prints the current configuration to the console for debugging.

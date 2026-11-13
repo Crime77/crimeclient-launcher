@@ -3056,6 +3056,11 @@ impl ProfileManager {
     }
 
     pub async fn sync_standard_profiles(&self) -> Result<()> {
+        // CrimeClient: one sync at a time. The Insider check (commands/insider_command.rs) syncs too, often while the
+        // app start's refresh_standard_versions does; two at once would each create a copy of a new profile.
+        static SYNC: once_cell::sync::Lazy<Mutex<()>> = once_cell::sync::Lazy::new(|| Mutex::new(()));
+        let _one_at_a_time = SYNC.lock().await;
+
         info!("ProfileManager: Starting standard profiles synchronization...");
 
         // Ensure profiles are loaded before syncing to avoid race conditions

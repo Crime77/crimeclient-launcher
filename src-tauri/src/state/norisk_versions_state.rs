@@ -61,7 +61,7 @@ impl NoriskVersionManager {
 
         // Assuming placeholder token/flag is okay, like for packs
         match NoRiskApi::get_standard_versions(norisk_token, is_experimental).await {
-            Ok(new_config) => {
+            Ok(mut new_config) => {
                 debug!(
                     "Successfully fetched {} standard profile definitions from API.",
                     new_config.profiles.len()
@@ -69,6 +69,10 @@ impl NoriskVersionManager {
                 {
                     // Scope for the write lock
                     let mut config_guard = self.config.write().await;
+                    // CrimeClient: versions.json is public, the Insider profile comes from its own cache (read under
+                    // the lock, so a concurrent Insider check can't be overwritten with an older cache)
+                    let insider = crate::commands::insider_command::snapshot().await;
+                    crate::commands::insider_command::merge_versions(&mut new_config, &insider);
                     *config_guard = new_config;
                 } // Write lock released here
 
@@ -168,6 +172,17 @@ impl NoriskVersionManager {
             *config_guard = new_config;
         }
         self.save_config().await // Save the updated config
+    }
+
+    /// CrimeClient: puts the cached Insider profile (commands/insider_command.rs) into the standard profiles, or takes
+    /// it out when no account on this PC has access any more, and saves the list.
+    pub async fn merge_insider(&self) -> Result<()> {
+        {
+            let mut config_guard = self.config.write().await;
+            let insider = crate::commands::insider_command::snapshot().await;
+            crate::commands::insider_command::merge_versions(&mut config_guard, &insider);
+        }
+        self.save_config().await
     }
 
     /// Prints the current configuration to the console for debugging.

@@ -13,6 +13,7 @@ pub mod crime_shader_command;
 pub mod crime_wardrobe_command;
 pub mod curseforge_commands;
 pub mod file_command;
+pub mod insider_command;
 pub mod java_command;
 pub mod minecraft_auth_command;
 pub mod minecraft_command;
