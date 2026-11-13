@@ -17,7 +17,7 @@ use crate::error::CommandError;
 use crate::minecraft::auth::minecraft_auth::Credentials;
 use crate::state::state_manager::State;
 
-const API: &str = "https://crime77.duckdns.org/mod/api";
+pub(crate) const API: &str = "https://crime77.duckdns.org/mod/api";
 /// Names, slots and colours of all cosmetics (the client's cosmetics/index.json, kept current by publish_catalog.sh).
 const CATALOG_INDEX: &str = "catalog/file?path=cosmetics/index.json";
 const MOJANG_JOIN: &str = "https://sessionserver.mojang.com/session/minecraft/join";
@@ -59,7 +59,7 @@ async fn read_json(response: reqwest::Response) -> Result<Value, CommandError> {
     Err(store_error(message, Some(status.as_u16())))
 }
 
-async fn active_account() -> Result<Credentials, CommandError> {
+pub(crate) async fn active_account() -> Result<Credentials, CommandError> {
     let state = State::get().await?;
     state
         .minecraft_account_manager_v2
@@ -68,7 +68,7 @@ async fn active_account() -> Result<Credentials, CommandError> {
         .ok_or_else(|| store_error("not signed in", Some(401)))
 }
 
-async fn sign_in(account: &Credentials) -> Result<String, CommandError> {
+pub(crate) async fn sign_in(account: &Credentials) -> Result<String, CommandError> {
     debug!("[Store] signing in {}", account.username);
     let start = read_json(
         HTTP_CLIENT
@@ -115,6 +115,22 @@ async fn sign_in(account: &Credentials) -> Result<String, CommandError> {
         .ok_or_else(|| store_error("bad answer from store", None))
 }
 
+/// The store token of `account` for this launcher session; signs in first when there is none yet.
+pub(crate) async fn token_for(account: &Credentials) -> Result<String, CommandError> {
+    let cached = TOKENS.lock().await.get(&account.id).cloned();
+    match cached {
+        Some(token) => Ok(token),
+        None => renew_token(account).await,
+    }
+}
+
+/// Signs `account` in (again, after a 401) and keeps the new token for this launcher session.
+pub(crate) async fn renew_token(account: &Credentials) -> Result<String, CommandError> {
+    let token = sign_in(account).await?;
+    TOKENS.lock().await.insert(account.id, token.clone());
+    Ok(token)
+}
+
 async fn send(method: &str, path: &str, body: &Option<Value>, token: Option<&str>) -> Result<reqwest::Response, CommandError> {
     let url = format!("{API}/{path}");
     let mut request = if method == "POST" {
@@ -143,22 +159,13 @@ pub async fn crime_store_request(method: String, path: String, body: Option<Valu
     }
 
     let account = active_account().await?;
-    let cached = TOKENS.lock().await.get(&account.id).cloned();
-    let token = match cached {
-        Some(token) => token,
-        None => {
-            let token = sign_in(&account).await?;
-            TOKENS.lock().await.insert(account.id, token.clone());
-            token
-        }
-    };
+    let token = token_for(&account).await?;
 
     let response = send(&method, &path, &body, Some(&token)).await?;
     if response.status().as_u16() != 401 {
         return read_json(response).await;
     }
     // token expired or the API lost it: sign in again once
-    let token = sign_in(&account).await?;
-    TOKENS.lock().await.insert(account.id, token.clone());
+    let token = renew_token(&account).await?;
     read_json(send(&method, &path, &body, Some(&token)).await?).await
 }
