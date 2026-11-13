@@ -671,12 +671,24 @@ pub async fn install_minecraft_version(
                 );
         }
         // CrimeClient Insider: ask for the newest Insider pack too (the account of this launch must have access,
-        // commands/insider_command.rs), so a new Insider build arrives without restarting the launcher
-        if let Some(creds) = credentials.as_ref() {
-            let effective = crate::commands::pack_rollout_commands::resolve_effective_pack_id(pack_id).await;
-            if crate::commands::insider_command::insider_pack_id().await.as_deref() == Some(effective.as_str()) {
-                let checked = crate::commands::insider_command::refresh_account(creds, false).await;
-                info!("[Insider] Launching pack '{}', access: {}", effective, checked.access);
+        // commands/insider_command.rs), so a new Insider build arrives without restarting the launcher. An account
+        // without access may not start it at all, not even from a shortcut or a copy of the profile (without the
+        // API it keeps the access it had at its last check, so Insiders can still play offline).
+        let effective = crate::commands::pack_rollout_commands::resolve_effective_pack_id(pack_id).await;
+        if crate::commands::insider_command::insider_pack_id().await.as_deref() == Some(effective.as_str()) {
+            let access = match credentials.as_ref() {
+                Some(creds) => {
+                    let checked = crate::commands::insider_command::refresh_account(creds, false).await;
+                    info!("[Insider] Launching pack '{}', access: {}", effective, checked.access);
+                    checked.access
+                }
+                None => false,
+            };
+            if !access {
+                return Err(AppError::Profile(
+                    "This Minecraft account has no access to CrimeClient Insider. Switch to an account with access or start the normal CrimeClient profile."
+                        .to_string(),
+                ));
             }
         }
         // No need to clone state here, it's still valid in this scope
