@@ -64,9 +64,47 @@ const config = {
 // open http://localhost:1430/?noaccount to see the sign-in screen
 const signedIn = !location.search.includes("noaccount");
 
+// CrimeClient Insider (commands/insider_command.rs): crime77 is a dev and sees the Insider profile and pack.
+// ?noinsider takes that away, ?friend adds a second account without access to switch to.
+const friend = { ...account, id: "00000000-0000-0000-0000-000000000002", username: "Kumpel", minecraft_username: "Kumpel" };
+const mockAccounts = location.search.includes("friend") ? [account, friend] : [account];
+const insiderAccounts = new Set(location.search.includes("noinsider") ? [] : [account.id]);
+let activeAccountId: string | null = signedIn ? account.id : null;
+
+function accountsMock(cmd: string, args: { accountId?: string }) {
+  const accounts = signedIn ? mockAccounts.map((a) => ({ ...a, active: a.id === activeAccountId })) : [];
+  switch (cmd) {
+    case "set_active_account":
+      activeAccountId = args.accountId ?? activeAccountId;
+      return null;
+    case "get_accounts":
+      return accounts;
+    case "get_active_account":
+      return accounts.find((a) => a.active) ?? null;
+    case "get_insider_status":
+    case "refresh_insider":
+      return {
+        access: activeAccountId !== null && insiderAccounts.has(activeAccountId),
+        pack_id: "crimeclient-insider",
+        profile_id: "insider-standard",
+        changed: false,
+      };
+  }
+  return undefined;
+}
+
+const pack = (displayName: string, description: string, weight: number) => ({
+  displayName, description, mods: [], assets: [], isExperimental: false, listing: { category: "", weight, hidden: false },
+});
+const packs = {
+  packs: {
+    crimeclient: pack("CrimeClient", "Der CrimeClient mit allen Leistungs-Mods", 100),
+    "crimeclient-insider": pack("CrimeClient Insider", "Die neuesten Builds vor allen anderen", 90),
+  },
+  repositories: {},
+};
+
 const responses: Record<string, unknown> = {
-  get_accounts: signedIn ? [account] : [],
-  get_active_account: signedIn ? account : null,
   get_launcher_config: config,
   set_launcher_config: config,
   get_app_version: "0.2.0-dev",
@@ -74,6 +112,8 @@ const responses: Record<string, unknown> = {
   get_all_profiles_and_last_played: { all_profiles: profiles, last_played_profile_id: "p-crime" },
   get_standard_profiles: { profiles: [] },
   refresh_standard_versions: [],
+  get_norisk_packs: packs,
+  get_norisk_packs_resolved: packs,
   get_processes: [],
   get_system_ram_mb: 16384,
   get_default_memory_max_mb: 4096,
@@ -228,6 +268,8 @@ export function installTauriMock() {
     if (cmd === "crime_store_request") return storeMock(args as { method: string; path: string; body: { id?: string } | null });
     if (cmd.startsWith("crime_wardrobe_")) return wardrobeMock(cmd, args as { slot?: string; id?: string | null });
     if (cmd.startsWith("crime_shader_")) return shaderMock(cmd, args as { chosen?: Record<string, string>; on?: boolean });
+    const accounts = accountsMock(cmd, (args ?? {}) as { accountId?: string });
+    if (accounts !== undefined) return accounts;
     if (cmd === "get_profile") {
       return profiles.find((p) => p.id === (args as { id?: string })?.id) ?? profiles[0];
     }

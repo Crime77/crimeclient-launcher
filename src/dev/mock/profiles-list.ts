@@ -83,6 +83,11 @@ const profiles = [
     group: "creative", mod_count: 6, playtime_seconds: 0, last_played: null, created: "2026-11-03T21:00:00Z",
     sync_pack_ids: ["sp-shaders"],
   }),
+  // the copy of the CrimeClient Insider standard profile; only accounts with access see it (tauriMock.ts insiderMock)
+  profile("p-insider", "CrimeClient Insider 26.3", "26.3", "fabric", {
+    group: "CRIMECLIENT", mod_count: 44, playtime_seconds: 5_400, last_played: ago(2 * DAY), is_standard_version: true,
+    selected_norisk_pack_id: "crimeclient-insider", source_standard_profile_id: "insider-standard",
+  }),
 ];
 
 // --- sync packs ----------------------------------------------------------------------------
