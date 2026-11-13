@@ -144,6 +144,10 @@ pub struct CompatibilityTarget {
     /// This allows specifying different source types and parameters per version/loader combination.
     #[serde(rename = "source", default)]
     pub source: Option<NoriskModSourceDefinition>,
+    /// Optional (CrimeClient): SHA-256 of the file in hex. When set, a cached file must match it and a download that
+    /// doesn't is deleted and fails (norisk_pack_downloader.rs).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sha256: Option<String>,
 }
 
 /// Type alias for the compatibility map: McVersion -> Loader -> CompatibilityTarget

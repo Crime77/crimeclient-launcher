@@ -6,6 +6,7 @@
 export interface CompatibilityTarget {
     identifier: string;
     filename: string | null;
+    sha256?: string | null; // CrimeClient: checked by the pack downloader when set
 }
 
 // Corresponds to Rust enum NoriskModSourceDefinition

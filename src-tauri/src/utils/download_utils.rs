@@ -28,6 +28,8 @@ pub struct DownloadConfig {
     pub max_retries: u32,
     /// Custom user agent to use for the request
     pub user_agent: Option<String>,
+    /// Extra request header (name, value), e.g. `Authorization` for CrimeClient Insider files. Never logged.
+    pub header: Option<(String, String)>,
     /// Progress callback function
     pub progress_callback: Option<Box<dyn Fn(u64, Option<u64>) + Send + Sync>>,
     /// Check disk space before download (default: true)
@@ -48,6 +50,7 @@ impl std::fmt::Debug for DownloadConfig {
             .field("force_overwrite", &self.force_overwrite)
             .field("max_retries", &self.max_retries)
             .field("user_agent", &self.user_agent)
+            .field("header", &self.header.as_ref().map(|(name, _)| format!("{name}: <redacted>")))
             .field("progress_callback", &"<callback function>")
             .field("check_disk_space", &self.check_disk_space)
             .field("disk_space_buffer", &self.disk_space_buffer)
@@ -67,6 +70,7 @@ impl Clone for DownloadConfig {
             force_overwrite: self.force_overwrite,
             max_retries: self.max_retries,
             user_agent: self.user_agent.clone(),
+            header: self.header.clone(),
             // Note: progress_callback cannot be cloned, so we set it to None
             // This is acceptable since cloning is mainly used for configuration templates
             progress_callback: None,
@@ -88,6 +92,7 @@ impl Default for DownloadConfig {
             force_overwrite: false,
             max_retries: 3,
             user_agent: None,
+            header: None,
             progress_callback: None,
             check_disk_space: true,
             disk_space_buffer: 0.25, // 25% buffer by default
@@ -134,6 +139,12 @@ impl DownloadConfig {
 
     pub fn with_user_agent<S: Into<String>>(mut self, user_agent: S) -> Self {
         self.user_agent = Some(user_agent.into());
+        self
+    }
+
+    /// Sends this header with the request (its value is never logged).
+    pub fn with_header<N: Into<String>, V: Into<String>>(mut self, name: N, value: V) -> Self {
+        self.header = Some((name.into(), value.into()));
         self
     }
 
@@ -319,6 +330,9 @@ impl DownloadUtils {
         
         if let Some(user_agent) = &config.user_agent {
             request = request.header("User-Agent", user_agent);
+        }
+        if let Some((name, value)) = &config.header {
+            request = request.header(name.as_str(), value.as_str());
         }
 
         let response = request.send().await.map_err(|e| {
