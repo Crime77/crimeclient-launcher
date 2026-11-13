@@ -26,13 +26,16 @@ import type {
 } from "../types/modrinth";
 import { NoriskVersionsConfig } from "../types/noriskVersions";
 import { FileNode } from "../types/fileSystem";
+import { visibleProfiles } from "../store/insider-store";
+
+// The profile lists leave out CrimeClient Insider for accounts without access (store/insider-store.ts).
 
 export async function listProfiles(): Promise<Profile[]> {
-  return invoke<Profile[]>("list_profiles");
+  return visibleProfiles(await invoke<Profile[]>("list_profiles"));
 }
 
 export async function searchProfiles(query: string): Promise<Profile[]> {
-  return invoke<Profile[]>("search_profiles", { query });
+  return visibleProfiles(await invoke<Profile[]>("search_profiles", { query }));
 }
 
 export interface ProfileBackupInfo {
@@ -322,7 +325,8 @@ export async function getNoriskPacksResolved(): Promise<any> {
 }
 
 export async function getStandardProfiles(): Promise<NoriskVersionsConfig> {
-  return invoke<NoriskVersionsConfig>("get_standard_profiles");
+  const config = await invoke<NoriskVersionsConfig>("get_standard_profiles");
+  return { ...config, profiles: visibleProfiles(config?.profiles ?? []) };
 }
 
 export async function refreshNoriskPacks(): Promise<void> {
@@ -334,7 +338,8 @@ export async function refreshStandardVersions(): Promise<void> {
 }
 
 export async function getAllProfilesAndLastPlayed(): Promise<AllProfilesAndLastPlayed> {
-  return invoke<AllProfilesAndLastPlayed>("get_all_profiles_and_last_played");
+  const result = await invoke<AllProfilesAndLastPlayed>("get_all_profiles_and_last_played");
+  return { ...result, all_profiles: visibleProfiles(result.all_profiles) };
 }
 
 export async function getLocalContent(

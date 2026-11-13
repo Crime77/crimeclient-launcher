@@ -2,6 +2,8 @@ import { invoke } from '@tauri-apps/api/core';
 import type { UpdateInfo } from '../types/updater';
 import type { Profile } from '../types/profile';
 import { useProfileStore } from '../store/profile-store';
+import { visibleProfiles } from '../store/insider-store';
+import { loadInsiderStatus, refreshInsiderAccess } from './insider-service';
 
 /**
  * Triggers a refresh of the Norisk packs configuration from the backend.
@@ -30,6 +32,8 @@ export const refreshStandardVersions = (): Promise<Profile[]> => {
 export const refreshNrcDataOnMount = async (): Promise<void> => {
   // Direkt setState verwenden, um den Ladezustand zu Beginn zu setzen
   useProfileStore.setState({ loading: true, error: null });
+  // CrimeClient Insider: what this PC knows about the active account, before the lists are filtered
+  await loadInsiderStatus();
 
   // Introduce a 5-second delay for testing
   //console.log("[TEST] Starting 5-second delay in refreshNrcDataOnMount...");
@@ -51,8 +55,8 @@ export const refreshNrcDataOnMount = async (): Promise<void> => {
     try {
       const standardProfiles = await refreshStandardVersions();
       console.log("Standard Versions updated successfully on mount!");
-      // Store the standard profiles in the profile store
-      useProfileStore.setState({ standardProfiles });
+      // Store the standard profiles in the profile store (CrimeClient Insider only with access)
+      useProfileStore.setState({ standardProfiles: visibleProfiles(standardProfiles) });
       standardVersionsSuccess = true;
     } catch (error) {
       console.error("Failed to refresh Standard Versions on mount:", error);
@@ -83,6 +87,9 @@ export const refreshNrcDataOnMount = async (): Promise<void> => {
   }
   // Kein expliziter finally-Block hier nötig, um loading auf false zu setzen,
   // da dies entweder durch fetchProfiles() oder den catch-Block oben abgedeckt wird.
+
+  // CrimeClient Insider: ask the API about the active account after the normal refresh
+  void refreshInsiderAccess();
 };
 
 /**

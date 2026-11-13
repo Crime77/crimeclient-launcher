@@ -4,6 +4,7 @@ import type { MinecraftAccount } from "../types/minecraft";
 import { toast } from "react-hot-toast";
 import { getLauncherConfig } from "../services/launcher-config-service";
 import { refreshPermissions } from "../services/permission-service";
+import { refreshInsiderAccess } from "../services/insider-service";
 import i18n from '../i18n/i18n';
 import { parseErrorMessage } from "../utils/error-utils";
 
@@ -12,6 +13,8 @@ const onActiveAccountChanged = (_account: MinecraftAccount | null) => {
   refreshPermissions().catch((error) => {
     console.error("[AuthStore] Error refreshing permissions:", error);
   });
+  // CrimeClient Insider is shown only to accounts with access
+  void refreshInsiderAccess();
 };
 
 interface MinecraftAuthState {

@@ -4,9 +4,15 @@ import { PERMISSION } from "../constants/permissions";
 import { usePermissions } from "./usePermission";
 import { devPackPermission, isDevPack, visiblePacks, type Packs } from "../utils/pack-listing";
 import { logError } from "../utils/logging-utils";
+import { useInsiderStore, visibleInsiderPacks } from "../store/insider-store";
 
 let cache: Packs | null = null;
 let inFlight: Promise<Packs> | null = null;
+
+/** The backend's pack list changed (CrimeClient Insider): the next loadPacks asks again. */
+export function invalidatePacks(): void {
+  cache = null;
+}
 
 export function loadPacks(): Promise<Packs> {
   if (cache) return Promise.resolve(cache);
@@ -30,9 +36,16 @@ export function loadPacks(): Promise<Packs> {
 export function usePacks(): { packs: Packs; loading: boolean } {
   const [packs, setPacks] = useState<Packs>(() => cache ?? {});
   const [loading, setLoading] = useState(() => cache === null);
+  const insiderRevision = useInsiderStore((s) => s.revision);
+  const insiderAccess = useInsiderStore((s) => s.access);
+  const insiderPackId = useInsiderStore((s) => s.packId);
 
   useEffect(() => {
-    if (cache) return;
+    if (cache) {
+      setPacks(cache);
+      setLoading(false);
+      return;
+    }
     let active = true;
     loadPacks().then((p) => {
       if (!active) return;
@@ -40,7 +53,7 @@ export function usePacks(): { packs: Packs; loading: boolean } {
       setLoading(false);
     });
     return () => { active = false; };
-  }, []);
+  }, [insiderRevision]);
 
   const nodes = useMemo(
     () => [PERMISSION.STAFF, ...Object.keys(packs).filter(isDevPack).map(devPackPermission)],
@@ -49,8 +62,13 @@ export function usePacks(): { packs: Packs; loading: boolean } {
   const granted = usePermissions(nodes);
 
   const allowed = useMemo(
-    () => visiblePacks(packs, (id) => granted.has(PERMISSION.STAFF) || granted.has(devPackPermission(id))),
-    [packs, granted],
+    () =>
+      visibleInsiderPacks(
+        visiblePacks(packs, (id) => granted.has(PERMISSION.STAFF) || granted.has(devPackPermission(id))),
+        insiderAccess,
+        insiderPackId,
+      ),
+    [packs, granted, insiderAccess, insiderPackId],
   );
 
   return { packs: allowed, loading };
